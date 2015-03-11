@@ -140,7 +140,7 @@ class EcnSpider2(QofSpider):
                 return None
             if flow["destinationTransportPort"] != 80:
                 return None
-            if flow["initialTCPFlags"] | TCP_RST:
+            if flow["initialTCPFlags"] & TCP_RST:
                 return None
         except:
             return None
