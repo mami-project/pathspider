@@ -33,15 +33,18 @@ import queue
 import ipfix.reader
 import ipfix
 import yaml
+import os
+import time
+import logging
 
 ###
 ### Utility Classes
 ###
 
 class SemaphoreN(threading.BoundedSemaphore):
-    '''
+    """
     An extension to the standard library's BoundedSemaphore that provides functions to handle n tokens at once.
-    '''
+    """
     def __init__(self, value):
         self._VALUE = value
         super().__init__(self._VALUE)
@@ -51,33 +54,33 @@ class SemaphoreN(threading.BoundedSemaphore):
         return 'SemaphoreN with a maximum value of {}.'.format(self._VALUE)
     
     def acquire_n(self, value=1, blocking=True, timeout=None):
-        '''
+        """
         Acquire ``value`` number of tokens at once.
         
         The parameters ``blocking`` and ``timeout`` have the same semantics as :class:`BoundedSemaphore`.
         
         :returns: The same value as the last call to `BoundedSemaphore`'s :meth:`acquire` if :meth:`acquire` were called ``value`` times instead of the call to this method.
-        '''
+        """
         ret = None
         for _ in range(value):
             ret = self.acquire(blocking=blocking, timeout=timeout)
         return ret
     
     def release_n(self, value=1):
-        '''
+        """
         Release ``value`` number of tokens at once.
         
         :returns: The same value as the last call to `BoundedSemaphore`'s :meth:`release` if :meth:`release` were called ``value`` times instead of the call to this method.
-        '''
+        """
         ret = None
         for _ in range(value):
             ret = self.release()
         return ret
     
     def empty(self):
-        '''
+        """
         Acquire all tokens of the semaphore.
-        '''
+        """
         while self.acquire(blocking=False):
             pass
 
@@ -94,7 +97,7 @@ class QofSpider:
 
     """
 
-    def __init__(self, worker_count, interface_url, qof_port=4739):
+    def __init__(self, worker_count, interface_uri, qof_port=4739):
         self.running = False
         self.stopping = False
 
@@ -120,6 +123,9 @@ class QofSpider:
 
         self.listener = None
         self.qofproc = None
+        self.owner = None
+
+        self.lock = threading.Lock()
 
     def configurator(self):
         """
@@ -138,8 +144,8 @@ class QofSpider:
         # In case the master exits the run loop before all workers have, 
         # these tokens will allow all workers to run through again, 
         # until the next check at the start of the loop
-        self.sem_config_zero.release_n(num_workers)
-        self.sem_config_one.release_n(num_workers)
+        self.sem_config_zero.release_n(self.worker_count)
+        self.sem_config_one.release_n(self.worker_count)
 
     def config_zero(self):
         assert(False, "Cannot instantiate an abstract Qofspider")
@@ -181,8 +187,8 @@ class QofSpider:
             self.sem_config_zero_rdy.release()
 
             # Pass results on for merge
-            self.resqueue.add(self.post_connect(job, conn0, pcs, 0))
-            self.resqueue.add(self.post_connect(job, conn1, pcs, 1))
+            self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
+            self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
 
             self.jobqueue.task_done()
 
@@ -199,7 +205,7 @@ class QofSpider:
         with tempfile.TemporaryDirectory(prefix="qoftmp") as confdir:
 
             # create a QoF configuration file
-            confpath = os.path.join(d.name,"qof.yaml")
+            confpath = os.path.join(confdir,"qof.yaml")
             with open(confpath, "w") as conffile:
                 conffile.write(yaml.dump(self.qof_config()))
 
@@ -225,7 +231,7 @@ class QofSpider:
             msr = ipfix.reader.from_stream(self.rfile)
 
             for d in msr.namedict_iterator():
-                tf = tupleize_flow(d)
+                tf = self.tupleize_flow(d)
                 if tf:
                     self.server.spider.flowqueue.add(tf)
                 pass
@@ -238,7 +244,7 @@ class QofSpider:
             self.spider = spider
 
     def qoflistener(self):
-        self.listener = QofCollectorListener(("localhost",4739), QofCollectorHandler, self)
+        self.listener = QofSpider.QofCollectorListener(("localhost",4739), QofSpider.QofCollectorHandler, self)
         self.listener.serve_forever()
 
     def tupleize_flow(self, flow):
@@ -250,7 +256,7 @@ class QofSpider:
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
-                    sleep(QUEUE_SLEEP)
+                    time.sleep(QUEUE_SLEEP)
                     next
 
                 flowkey = (flow.ip, flow.port)
@@ -259,14 +265,14 @@ class QofSpider:
                     self.merge(flow, self.restab[flowkey])
                     del self.restab[flowkey]
                 else:
-                    flowtab[flowkey] = flow
+                    self.flowtab[flowkey] = flow
 
                 self.flowqueue.task_done()
             else:
                 try:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
-                    sleep(QUEUE_SLEEP)
+                    time.sleep(QUEUE_SLEEP)
                     next
 
                 reskey = (res.ip, res.port)
@@ -274,7 +280,7 @@ class QofSpider:
                     self.merge(self.flowtab[reskey], res)
                     del self.flowtab[reskey]
                 else:
-                    restab[reskey] = res
+                    self.restab[reskey] = res
 
                 self.resqueue.task_done()
 
@@ -295,7 +301,7 @@ class QofSpider:
             # now start up ecnspider, backwards
             threading.Thread(target=self.merger, name="merger", daemon=True).start()
             threading.Thread(target=self.configurator, name="configurator", daemon=True).start()
-            for i in range(args.workers):
+            for i in range(self.worker_count):
                 threading.Thread(target=self.worker, name='worker_{}'.format(i), daemon=True).start()
 
     def stop(self):
@@ -321,7 +327,7 @@ class QofSpider:
 
     def add_job(self, job):
         assert(not self.stopping, "Cannot add a job while waiting for shutdown")
-        self.jobqueue.add(job)
+        self.jobqueue.put(job)
 
 ###
 ### OLD STUFF
