@@ -103,7 +103,7 @@ class QofSpider:
 
         self.worker_count = worker_count
         self.interface_uri = interface_uri
-        self.qof_port = 4739
+        self.qof_port = qof_port
 
         self.sem_config_zero = SemaphoreN(worker_count)
         self.sem_config_zero.empty()
@@ -165,7 +165,6 @@ class QofSpider:
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
                 self.sem_config_zero_rdy.release()
-                next
 
             # Hook for preconnection
             pcs = self.pre_connect(job)
@@ -231,10 +230,9 @@ class QofSpider:
             msr = ipfix.reader.from_stream(self.rfile)
 
             for d in msr.namedict_iterator():
-                tf = self.tupleize_flow(d)
+                tf = self.server.spider.tupleize_flow(d)
                 if tf:
                     self.server.spider.flowqueue.add(tf)
-                pass
 
             print("connection from "+str(self.client_address)+" terminated.")
 
@@ -257,7 +255,6 @@ class QofSpider:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
-                    next
 
                 flowkey = (flow.ip, flow.port)
 
@@ -273,7 +270,6 @@ class QofSpider:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
-                    next
 
                 reskey = (res.ip, res.port)
                 if reskey in self.flowtab:
