@@ -205,7 +205,7 @@ class EcnSpider2Linux(EcnSpider2):
                          worker_count, conn_timeout, interface_uri, qof_port)
 
 def results(record):
-    logging.info(str(record))
+    print(str(record))
 
 def main():
     ecn = EcnSpider2Linux(results, '127.0.0.1', '::1',
