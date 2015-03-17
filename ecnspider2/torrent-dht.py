@@ -21,6 +21,9 @@ def parse_compact_node_info(data):
         # (id, (ip, port))
         yield {'id':frame[0], 'addr':("{}.{}.{}.{}".format(frame[1], frame[2], frame[3], frame[4]), frame[5])}
 
+Request = collections.namedtuple("Request", ['tid', 'time', 'addr'])
+QUEUE_SLEEP = 0.1
+
 class DHT:
     def __init__(self, bindaddr, bindaddr6):
         self.tid = 0
@@ -28,19 +31,40 @@ class DHT:
 
         self.myid = create_id()
 
-        self.requests = {}
+        self.lock = threading.RLock()
+        self.requests = collections.OrderedDict()
 
-        self.running = True
+        # addresses for the user
+        self.addr_cache = queue.Queue()
+
+        self.requests_timeout = 0
+        self.requests_success = 0
+
+        # addresses to ask for more addresses
+        self.addr_pool = collections.deque()
+
+        self.running = False
 
         self.sock4 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.sock4.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 100000)
         self.sock4.bind(bindaddr)
 
         self.sock6 = None
         #self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         #self.sock6.bind(bindaddr6)
 
-        self.thread = threading.Thread(target=self._serverproc, daemon=True)
-        self.thread.start()
+        #self.thread = threading.Thread(target=self._serverproc, daemon=True)
+        #self.thread.start()
+
+    def __iter__(self):
+        self.running = True
+        threading.Thread(target=self.sender, daemon=True).start()
+        threading.Thread(target=self.receiver, daemon=True).start()
+
+        return self
+
+    def __next__(self):
+        return self.addr_cache.get()
 
     def close(self):
         self.running = False
@@ -51,38 +75,46 @@ class DHT:
             self.tid = 0
         return struct.pack("H", self.tid)
 
-    def _send(self, data, addr, callback, user):
+    def _send(self, tid, data, addr):
+        bytes_sent = 0
         try:
             # determine if ipv4 or ipv6 address
-            self.sock4.sendto(bencodepy.encode(data), addr)
+            bytes_sent = self.sock4.sendto(bencodepy.encode(data), addr)
+
             #self.sock6.sendto(bencodepy.encode(data), addr)
 
-            self.requests[data["t"]] = (callback, user)
+            with self.lock:
+                self.requests[tid] = Request(tid, time.time(), addr)
+
         except bencodepy.EncodingError:
             self.log.exception("encoding {} to bencode failed.".format(data))
         except Exception:
             self.log.exception("sending {} to {} failed.".format(data, addr))
 
-    def ping(self, addr, target, callback, user=None):
+        return bytes_sent
+
+    def ping(self, addr, target):
+        tid = self._generate_tid()
         query = {
-            "t": self._generate_tid(),
+            "t": tid,
             "y": "q",
             "q": "ping",
             "a": {"id":target}
         }
 
-        self._send(query, addr, callback, user)
+        return self._send(tid, query, addr)
 
-    def find_node(self, addr, target, callback, user=None):
+    def find_node(self, addr, target):
+        tid = self._generate_tid()
         query = {
-            "t": self._generate_tid(),
+            "t": tid,
             "y": "q",
             "q": "find_node",
             "want": ['n4', 'n6'],
             "a": {"id": self.myid, "target": target}
         }
 
-        self._send(query, addr, callback, user)
+        return self._send(tid, query, addr)
 
     def get_peers(self, addr, infohash, callback, user=None):
         raise NotImplemented()
@@ -90,20 +122,105 @@ class DHT:
     def announce_peer(self, addr, infohash, token, port, callback, user=None):
         raise NotImplemented()
 
-    def _serverproc(self):
-        self.log.info("Running dht server.")
+    def sender(self):
+        """
+
+        """
+        self.log.debug("Sender thread started.")
+
+        max_bandwidth = 5*1024 # bytes/sec
+
+        slot_time = 0.1
+
+        track = collections.deque()
+        amount = 0
+        slot_amount = max_bandwidth*slot_time
+
+        last = int(time.time())
+        while self.running:
+            tnow = time.time()
+
+            if last != int(tnow):
+                last = int(tnow)
+                print("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, timeout/success rate: {:0.0%}".format(amount/1024/slot_time, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, float(self.requests_timeout) / (self.requests_success+1)))
+
+            # cleanup bandwidth track
+            while len(track) > 0:
+                if track[0][0] + slot_time < tnow:
+                    _, value = track.popleft()
+                    amount -= value
+                else:
+                    break
+
+            # cleanup requests
+            with self.lock:
+                to_delete = []
+                for key in self.requests:
+                    if self.requests[key].time + 15 < tnow:
+                        to_delete.append(key)
+                        self.requests_timeout += 1
+                    else:
+                        break
+
+                for key in to_delete:
+                    del self.requests[key]
+
+            # are there enough addresses in the cache?
+            if self.addr_cache.qsize() > 1000:
+                time.sleep(QUEUE_SLEEP)
+                continue
+
+            # am i below maximum requests running?
+            if len(self.requests) > 10:
+                time.sleep(QUEUE_SLEEP)
+                continue
+
+            # is there bandwidth available for another request?
+            if amount > slot_amount:
+                time.sleep(QUEUE_SLEEP)
+                continue
+
+            # get an address
+            with self.lock:
+                addr = self.addr_pool.popleft()
+
+                # if there are not enough addr in the pool, fill it in again
+                if len(self.addr_pool) < 100:
+                    self.addr_pool.append(addr)
+
+            # send request
+            bytes_sent = self.find_node(addr, create_id())
+            track.append((time.time(), bytes_sent))
+            amount += bytes_sent
+
+    def receiver(self):
+        """
+
+        """
+        self.log.info("Receiver thread started.")
         while self.running:
             try:
                 recvd = bencodepy.decode(self.sock4.recv(4096))
                 if recvd[b'y'] == b'r':
                     tid = recvd[b't']
-                    req = self.requests.get(tid)
-                    if req is None:
-                        self.log.error("Received response to unknown request.")
-                    else:
-                        del self.requests[tid]
-                        req[0](recvd[b'r'], req[1])
 
+                    response = recvd[b'r']
+
+                    with self.lock:
+                        try:
+                            req = self.requests[tid]
+                        except KeyError:
+                            self.log.error("Received response to unknown request.")
+                        else:
+                            del self.requests[tid]
+
+                            for node in parse_compact_node_info(response[b'nodes']):
+                                self.addr_cache.put(node['addr'])
+                                self.requests_success += 1
+
+                                if len(self.addr_pool) > 100:
+                                    self.addr_pool.popleft()
+                                self.addr_pool.append(node['addr'])
             except bencodepy.DecodingError:
                 self.log.exception("bencode decoding of incoming packet failed.")
             except KeyError:
@@ -111,108 +228,13 @@ class DHT:
             except Exception:
                 self.log.exception("Other exception...")
 
-        self.log.info("Shutting down dht server.")
+        self.log.info("Shutting down receiver.")
         self.sock4.close()
         #self.sock6.close()
 
-
-def crawler_on_find_node(recvd, nodes_learned):
-    try:
-        # add every node learned from request. if the queue is full the information is dropped.
-        for node in parse_compact_node_info(recvd[b'nodes']):
-            nodes_learned.put(node)
-
-    except (KeyError, struct.error, queue.Full):
-        pass
-
-def crawler(seed: list, chunk_size = 10, to_ask_queue_size = 100000, bootstrap_size = 1000, extra_info = False):
-    # start dht server
-    dht = DHT(("0.0.0.0", 6882), ("::", 6882))
-
-    # where new nodes are stored.
-    nodes_learned = queue.Queue()
-
-    addrs_to_ask = collections.deque(maxlen=to_ask_queue_size)
-
-    bootstrap = set(seed)
-
-    call_find_node = lambda addr: dht.find_node(addr, create_id(), callback=crawler_on_find_node, user=nodes_learned)
-
-    time_last_request = 0
-
-    try:
-        while True:
-            if nodes_learned.qsize() < 1000 and time_last_request+0.1 <= time.time():
-                time_last_request = time.time()
-
-                if len(addrs_to_ask) == 0:
-                    print("queue empty.. restarting")
-                    addrs_to_ask.extend(bootstrap)
-
-                for _ in range(0, chunk_size):
-                    try:
-                        addr = addrs_to_ask.popleft()
-                    except IndexError:
-                        break
-
-                    # try to retrieve c.a. 64 endpoints per node
-                    for _ in range(0, 8):
-                        call_find_node(addr)
-
-            try:
-                node = nodes_learned.get(block=True, timeout=0.1)
-
-                if extra_info:
-                    yield node
-                else:
-                    yield (node, nodes_learned.qsize(), len(addrs_to_ask), len(bootstrap))
-
-                addrs_to_ask.append(node['addr'])
-
-                # remember some nodes to get back to if we get stuck and need to restart.
-                if len(bootstrap) < bootstrap_size:
-                    bootstrap.add(node['addr'])
-
-            except queue.Empty:
-                pass
-
-
-    except GeneratorExit:
-        dht.close()
-
-
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("{} <number_of_ips> <filename>".format(sys.argv[0]))
+    dht = DHT(('0.0.0.0', 3710), ('::', 3710))
+    dht.addr_pool.append(("dht.transmissionbt.com", 6881))
 
-    count = int(sys.argv[1])
-    filename = sys.argv[2]
-
-    #seed = [("dht.transmissionbt.com", 6881)]
-    seed = [("212.129.33.50", 6881)]
-
-    addrs_unique = set()
-
-    dummy = 0
-    index = 0
-    with open(filename, "wt") as f:
-        for index, (node, learned_queue_len, to_ask_queue_len, bootstrap_len) in enumerate(crawler(seed)):
-            try:
-                if node['addr'] in addrs_unique:
-                    continue
-
-                addrs_unique.add(node['addr'])
-
-                f.write("{addr[0]} {addr[1]} {id}\n".format(**node))
-
-                if index >= count:
-                    break
-
-                if dummy == 100:
-                    print("collected {} of {} (learned queue: {}, to ask queue: {}, bootstrap set: {})".format(index, count, learned_queue_len, to_ask_queue_len, bootstrap_len))
-                    dummy = 0
-                dummy += 1
-            except KeyboardInterrupt:
-                break
-
-    print("nodes written to file: {}".format(index))
+    for addr in dht:
+        time.sleep(random.uniform(0.01, 0.1))
