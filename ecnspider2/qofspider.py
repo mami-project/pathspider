@@ -148,14 +148,12 @@ class QofSpider:
         self.sem_config_one.release_n(self.worker_count)
 
     def config_zero(self):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     def config_one(self):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     def worker(self):
-        self.pre_connect()
-
         while self.running:
             try:
                 job = self.jobqueue.get_nowait()
@@ -165,40 +163,40 @@ class QofSpider:
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
                 self.sem_config_zero_rdy.release()
+            else:
+                # Hook for preconnection
+                pcs = self.pre_connect(job)
 
-            # Hook for preconnection
-            pcs = self.pre_connect(job)
-            
-            # Wait for configuration zero
-            self.sem_config_zero.acquire()
+                # Wait for configuration zero
+                self.sem_config_zero.acquire()
 
-            # Connect in configuration zero
-            conn0 = self.connect(job, pcs, 0)
-            
-            # Wait for configuration one
-            self.sem_config_one_rdy.release()
-            self.sem_config_one.acquire()
+                # Connect in configuration zero
+                conn0 = self.connect(job, pcs, 0)
 
-            # Connect in configuration one
-            conn1 = self.connect(job, pcs, 1)
+                # Wait for configuration one
+                self.sem_config_one_rdy.release()
+                self.sem_config_one.acquire()
 
-            # Signal okay to go to configuration zero
-            self.sem_config_zero_rdy.release()
+                # Connect in configuration one
+                conn1 = self.connect(job, pcs, 1)
 
-            # Pass results on for merge
-            self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
-            self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
+                # Signal okay to go to configuration zero
+                self.sem_config_zero_rdy.release()
 
-            self.jobqueue.task_done()
+                # Pass results on for merge
+                self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
+                self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
+
+                self.jobqueue.task_done()
 
     def pre_connect(self, job):
         pass
 
     def connect(self, job, pcs, config):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     def post_connect(self, job, conn, pcs, config):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     def qofowner(self):
         with tempfile.TemporaryDirectory(prefix="qoftmp") as confdir:
@@ -213,7 +211,7 @@ class QofSpider:
                                              "--in",self.interface_uri,
                                              "--out","localhost",
                                              "--ipfix","tcp",
-                                             "--ipfix-port",self.qof_port])
+                                             "--ipfix-port",str(self.qof_port)])
 
             # wait for it to exit
             rv = self.qofproc.wait()
@@ -221,7 +219,7 @@ class QofSpider:
             # FIXME do something with return code
 
     def qof_config(self):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     class QofCollectorHandler(socketserver.StreamRequestHandler):
         def handle(self):
@@ -238,7 +236,7 @@ class QofSpider:
 
     class QofCollectorListener(socketserver.ThreadingMixIn, socketserver.TCPServer):
         def __init__(self, server_address, RequestHandlerClass, spider):
-            super().__init__(self, server_address, RequestHandlerClass)
+            super().__init__(server_address, RequestHandlerClass)
             self.spider = spider
 
     def qoflistener(self):
@@ -246,7 +244,7 @@ class QofSpider:
         self.listener.serve_forever()
 
     def tupleize_flow(self, flow):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     def merger(self):
         while self.running:
@@ -255,33 +253,33 @@ class QofSpider:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
-
-                flowkey = (flow.ip, flow.port)
-
-                if flowkey in self.restab:
-                    self.merge(flow, self.restab[flowkey])
-                    del self.restab[flowkey]
                 else:
-                    self.flowtab[flowkey] = flow
+                    flowkey = (flow.ip, flow.port)
 
-                self.flowqueue.task_done()
+                    if flowkey in self.restab:
+                        self.merge(flow, self.restab[flowkey])
+                        del self.restab[flowkey]
+                    else:
+                        self.flowtab[flowkey] = flow
+
+                    self.flowqueue.task_done()
             else:
                 try:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
-
-                reskey = (res.ip, res.port)
-                if reskey in self.flowtab:
-                    self.merge(self.flowtab[reskey], res)
-                    del self.flowtab[reskey]
                 else:
-                    self.restab[reskey] = res
+                    reskey = (res.ip, res.port)
+                    if reskey in self.flowtab:
+                        self.merge(self.flowtab[reskey], res)
+                        del self.flowtab[reskey]
+                    else:
+                        self.restab[reskey] = res
 
-                self.resqueue.task_done()
+                    self.resqueue.task_done()
 
     def merge(self, flow, res):
-        assert(False, "Cannot instantiate an abstract Qofspider")
+        raise NotImplemented("Cannot instantiate an abstract Qofspider")
 
     def run(self):
         with self.lock:
@@ -322,7 +320,7 @@ class QofSpider:
             self.stopping = False
 
     def add_job(self, job):
-        assert(not self.stopping, "Cannot add a job while waiting for shutdown")
+        assert not self.stopping, "Cannot add a job while waiting for shutdown"
         self.jobqueue.put(job)
 
 ###

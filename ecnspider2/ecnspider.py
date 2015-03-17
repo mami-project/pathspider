@@ -23,6 +23,10 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 import qofspider
 import http.client
 import collections
+import socket
+import subprocess
+import logging
+import time
 
 # Flags constants
 TCP_CWR = 0x80
@@ -53,6 +57,9 @@ Connection.OK = 0
 Connection.FAILED = 1
 Connection.TIMEOUT = 2
 
+# HTTP constants
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0'
+
 SpiderRecord = collections.namedtuple("SpiderRecord",
     ["ip","host","port","ecnstate","connstate","httpstatus"])
 
@@ -63,7 +70,9 @@ MergedRecord = collections.namedtuple("FlowRecord",
     ["ip","host","ecnstate","connstate","httpstatus",
      "octets","fif","fsf","fuf","fir","fsr","fur"])
 
-class EcnSpider2(QofSpider):
+Job = collections.namedtuple("Job", ["ip", "host"])
+
+class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
                  local_ip4, local_ip6, 
                  worker_count, conn_timeout, 
@@ -76,7 +85,7 @@ class EcnSpider2(QofSpider):
         self.result_sink = result_sink
 
     def connect(self, job, pcs, config):
-        client = http.client.HTTPConnection(job.ip, timeout=self.conn_imeout)
+        client = http.client.HTTPConnection(job.ip, timeout=self.conn_timeout)
         client.auto_open = 0
         try:
             client.connect()
@@ -85,12 +94,12 @@ class EcnSpider2(QofSpider):
         except OSError as e:
             return Connection(None, None, Connection.FAIL)
         else:
-            return (client, client.sock.getsockname()[1], Connection.OK)
+            return Connection(client, client.sock.getsockname()[1], Connection.OK)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.status == Connection.OK:
+        if conn.state == Connection.OK:
             headers = {'User-Agent': USER_AGENT, 
-                       'Connection': 'close'
+                       'Connection': 'close',
                        'Host': job.host}
             try:
                 conn.client.request('GET', '/', headers=headers)
@@ -150,7 +159,7 @@ class EcnSpider2(QofSpider):
         if ("sourceIPv4Address" in flow and
           flow["sourceIPv4Address"] == self.local_ip4):
             ip = flow["destinationIPv4Address"]
-        elif "sourceIPv6Address" in flow and
+        elif ("sourceIPv6Address" in flow and
           flow["sourceIPv6Address"] == self.local_ip6):
             ip = flow["destinationIPv6Address"]
         else:
@@ -195,8 +204,19 @@ class EcnSpider2Linux(EcnSpider2):
         super().__init__(result_sink, local_ip4, local_ip6, 
                          worker_count, conn_timeout, interface_uri, qof_port)
 
+def results(record):
+    logging.info(str(record))
+
 def main():
-    pass
+    ecn = EcnSpider2Linux(results, '127.0.0.1', '::1',
+                 worker_count=5, conn_timeout=5,
+                 interface_uri='wlan0', qof_port=4739)
+    ecn.add_job(Job("173.194.113.232", "google.com"))
+
+    ecn.run()
+    time.sleep(10)
+    ecn.stop()
+
 
 if __name__ == "__main__":
     main()
