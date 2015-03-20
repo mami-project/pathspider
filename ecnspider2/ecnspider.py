@@ -203,10 +203,12 @@ class EcnSpider2(qofspider.QofSpider):
 class EcnSpider2Linux(EcnSpider2):
 
     def config_zero(self):
-        subprocess.check_call(['sudo', '-n', '/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'])
+        subprocess.check_call(['sudo', '-n', '/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def config_one(self):
-        subprocess.check_call(['sudo', '-n', '/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'])
+        subprocess.check_call(['sudo', '-n', '/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
@@ -217,10 +219,12 @@ class EcnSpider2Linux(EcnSpider2):
 class EcnSpider2Darwin(EcnSpider2):
 
     def config_zero(self):
-        subprocess.check_call(['sudo', '-n', '/usr/sbin/sysctl', '-w', 'net.inet.tcp.ecn_initiate_out=0'])
+        subprocess.check_call(['sudo', '-n', '/usr/sbin/sysctl', '-w', 'net.inet.tcp.ecn_initiate_out=0'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def config_one(self):
-        subprocess.check_call(['sudo', '-n', '/usr/sbin/sysctl', '-w', 'net.inet.tcp.ecn_initiate_out=1'])
+        subprocess.check_call(['sudo', '-n', '/usr/sbin/sysctl', '-w', 'net.inet.tcp.ecn_initiate_out=1'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
@@ -238,7 +242,7 @@ def main():
 
     ecn = EcnSpider2Darwin(result_sink = lambda x: print(repr(x)),
                            worker_count=5, conn_timeout=5,
-                           interface_uri='bpf:en0')
+                           interface_uri='pcapint:en0')
 
     ecn.run()
     ecn.add_job(Job(ip_address("173.194.113.232"), "google.com"))

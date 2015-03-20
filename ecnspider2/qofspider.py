@@ -271,7 +271,7 @@ class QofSpider:
 
     def qoflistener(self):
         logger = logging.getLogger('qofspider')
-        self.listener = QofSpider.QofCollectorListener(("localhost",4739), QofSpider.QofCollectorHandler, self)
+        self.listener = QofSpider.QofCollectorListener(("localhost",self.qof_port), QofSpider.QofCollectorHandler, self)
         logger.error("starting listener")
         self.listener.serve_forever()
         logger.error("listener stopped")
@@ -341,7 +341,8 @@ class QofSpider:
 
             # start QoF
             self.owner = threading.Thread(target=self.qofowner,
-                                          name='qofowner').start()
+                                          name='qofowner')
+            self.owner.start()
             logger.debug("owner up")
 
             # now start up ecnspider, backwards
@@ -379,10 +380,10 @@ class QofSpider:
                 self.terminate_qof()
             except ProcessLookupError:
                 pass
+            self.owner.join()
 
             time.sleep(QOF_FINAL_SLEEP)
 
-            self.owner.join()
             self.listener.shutdown()
             logger.debug("QoF shutdown complete")
 
