@@ -25,6 +25,7 @@ Derived and generalized from ECN Spider
 """
 
 from collections import namedtuple
+from ipaddress import ip_address
 import tempfile
 import subprocess
 import threading
@@ -37,6 +38,7 @@ import sys
 import os
 import time
 import logging
+import socket
 
 ###
 ### Utility Classes
@@ -87,6 +89,8 @@ class SemaphoreN(threading.BoundedSemaphore):
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
+
+QOF_FINAL_SLEEP = 5
 
 class QofSpider:
     """
@@ -167,7 +171,7 @@ class QofSpider:
                 job = self.jobqueue.get_nowait()
                 logger.debug("got a job: "+repr(job))
             except queue.Empty:
-                logger.debug("no job available, sleeping")
+                #logger.debug("no job available, sleeping")
                 # spin the semaphores
                 self.sem_config_zero.acquire()
                 time.sleep(QUEUE_SLEEP)
@@ -222,11 +226,12 @@ class QofSpider:
                 logger.debug("wrote qof configuration file in "+confpath)
 
             # run qof
-            qofargs = ["sudo","qof","--yaml",confpath,
-                         "--in",self.interface_uri,
-                         "--out","localhost",
-                         "--ipfix","tcp",
-                         "--ipfix-port",str(self.qof_port)]
+            qofargs = ["sudo", "-n",
+                         "qof", "--yaml", confpath,
+                         "--in", self.interface_uri,
+                         "--out", "localhost",
+                         "--ipfix", "tcp",
+                         "--ipfix-port", str(self.qof_port)]
             self.qofproc = subprocess.Popen(qofargs)
             logger.debug("started qof as "+" ".join(qofargs))
 
@@ -281,7 +286,6 @@ class QofSpider:
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
-                    logger.debug("sleeping on no flow available")
                     time.sleep(QUEUE_SLEEP)
 
                 else:
@@ -302,7 +306,6 @@ class QofSpider:
                 try:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
-                    logger.debug("sleeping on no result available")
                     time.sleep(QUEUE_SLEEP)
                 else:
                     reskey = (res.ip, res.port)
@@ -338,8 +341,8 @@ class QofSpider:
 
             # start QoF
             self.owner = threading.Thread(target=self.qofowner,
-                                          name='qofowner',
-                                          daemon=True).start()
+                                          name='qofowner').start()
+            logger.debug("owner up")
 
             # now start up ecnspider, backwards
             threading.Thread(target=self.merger,
@@ -368,16 +371,21 @@ class QofSpider:
             # Wait for job and result queues to empty
             self.jobqueue.join()
             self.resqueue.join()
-            logger.debug("flow queue empty")
+            logger.debug("job and result queues empty")
 
             # Shut down QoF
+            logger.debug("Shutting down QoF...")
             try:
-                self.qofproc.terminate()
+                self.terminate_qof()
             except ProcessLookupError:
                 pass
+
+            time.sleep(QOF_FINAL_SLEEP)
+
             self.owner.join()
             self.listener.shutdown()
-            logger.debug("QoF shutdown")
+            logger.debug("QoF shutdown complete")
+
 
             # Wait for flow queue to empty
             self.flowqueue.join()
@@ -393,6 +401,11 @@ class QofSpider:
         assert not self.stopping, "Cannot add a job while waiting for shutdown"
         self.jobqueue.put(job)
 
+    def terminate_qof(self):
+        # We need to hack this, since it runs as root and you can't kill it
+        subprocess.check_call(['sudo', '-n', 'kill', str(self.qofproc.pid)])
+
+
 def log_to_console(verbosity):
     logger = logging.getLogger('qofspider')
     logger.setLevel(verbosity)
@@ -404,3 +417,18 @@ def log_to_console(verbosity):
     logger.addHandler(consoleHandler)
 
     logger.info("Logging started")
+
+def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
+    if ipv == 4:
+        af = socket.AF_INET
+    elif ipv == 6:
+        af = socket.AF_INET6
+    else:
+        assert False
+
+    try:
+        s = socket.socket(af, socket.SOCK_DGRAM)
+        s.connect((target, port))
+        return ip_address(s.getsockname()[0])
+    except:
+        return None

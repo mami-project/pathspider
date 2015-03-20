@@ -20,6 +20,7 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 
 """
 
+from ipaddress import ip_address
 import qofspider
 import http.client
 import collections
@@ -75,18 +76,27 @@ Job = collections.namedtuple("Job", ["ip", "host"])
 
 class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
-                 local_ip4, local_ip6,
                  worker_count, conn_timeout,
-                 interface_uri, qof_port=4739):
+                 interface_uri,
+                 local_ip4 = None, local_ip6 = None,
+                 qof_port=4739):
         super().__init__(worker_count, interface_uri, qof_port)
 
         self.conn_timeout = conn_timeout
-        self.local_ip4 = local_ip4
-        self.local_ip6 = local_ip6
         self.result_sink = result_sink
 
+        if local_ip4:
+            self.local_ip4 = local_ip4
+        else:
+            self.local_ip4 = qofspider.local_address(ipv=4)
+
+        if local_ip6:
+            self.local_ip6 = local_ip6
+        else:
+            self.local_ip6 = qofspider.local_address(ipv=6)
+
     def connect(self, job, pcs, config):
-        client = http.client.HTTPConnection(job.ip, timeout=self.conn_timeout)
+        client = http.client.HTTPConnection(str(job.ip), timeout=self.conn_timeout)
         client.auto_open = 0
         try:
             client.connect()
@@ -199,11 +209,10 @@ class EcnSpider2Linux(EcnSpider2):
         subprocess.check_call(['sudo', '-n', '/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'])
 
     def __init__(self, result_sink,
-                 local_ip4, local_ip6,
                  worker_count, conn_timeout,
-                 interface_uri, qof_port=4739):
-        super().__init__(result_sink, local_ip4, local_ip6,
-                         worker_count, conn_timeout, interface_uri, qof_port)
+                 interface_uri,
+                 local_ip4=None, local_ip6=None, qof_port=4739):
+        super().__init__(result_sink, worker_count, conn_timeout, interface_uri, local_ip4, local_ip6, qof_port)
 
 class EcnSpider2Darwin(EcnSpider2):
 
@@ -214,11 +223,10 @@ class EcnSpider2Darwin(EcnSpider2):
         subprocess.check_call(['sudo', '-n', '/usr/sbin/sysctl', '-w', 'net.inet.tcp.ecn_initiate_out=1'])
 
     def __init__(self, result_sink,
-                 local_ip4, local_ip6,
                  worker_count, conn_timeout,
-                 interface_uri, qof_port=4739):
-        super().__init__(result_sink, local_ip4, local_ip6,
-                         worker_count, conn_timeout, interface_uri, qof_port)
+                 interface_uri,
+                 local_ip4=None, local_ip6=None, qof_port=4739):
+        super().__init__(result_sink, worker_count, conn_timeout, interface_uri, local_ip4, local_ip6, qof_port)
 
 
 
@@ -228,13 +236,13 @@ def results(record):
 def main():
     qofspider.log_to_console(logging.DEBUG)
 
-    ecn = EcnSpider2Darwin(results, '127.0.0.1', '::1',
-                 worker_count=5, conn_timeout=5,
-                 interface_uri='wlan0', qof_port=4739)
-    ecn.add_job(Job("173.194.113.232", "google.com"))
+    ecn = EcnSpider2Darwin(result_sink = lambda x: print(repr(x)),
+                           worker_count=5, conn_timeout=5,
+                           interface_uri='bpf:en0')
 
     ecn.run()
-    time.sleep(10)
+    ecn.add_job(Job(ip_address("173.194.113.232"), "google.com"))
+    time.sleep(1)
     ecn.stop() # note that stop will wait for every queue to empty
                # perhaps it should be call "finish"
 
