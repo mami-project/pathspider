@@ -228,6 +228,7 @@ class QofSpider:
             # run qof
             qofargs = ["sudo", "-n",
                          "qof", "--yaml", confpath,
+                         "--verbose",
                          "--in", self.interface_uri,
                          "--out", "localhost",
                          "--ipfix", "tcp",
@@ -271,8 +272,8 @@ class QofSpider:
 
     def qoflistener(self):
         logger = logging.getLogger('qofspider')
-        self.listener = QofSpider.QofCollectorListener(("localhost",self.qof_port), QofSpider.QofCollectorHandler, self)
-        logger.error("starting listener")
+        self.listener = QofSpider.QofCollectorListener(("",self.qof_port), QofSpider.QofCollectorHandler, self)
+        logger.error("starting listener: "+repr(self.listener))
         self.listener.serve_forever()
         logger.error("listener stopped")
 

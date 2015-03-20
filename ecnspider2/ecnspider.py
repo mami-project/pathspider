@@ -242,7 +242,8 @@ def main():
 
     ecn = EcnSpider2Darwin(result_sink = lambda x: print(repr(x)),
                            worker_count=5, conn_timeout=5,
-                           interface_uri='pcapint:en0')
+                           interface_uri='pcapint:en0',
+                           qof_port=54739)
 
     ecn.run()
     ecn.add_job(Job(ip_address("173.194.113.232"), "google.com"))
