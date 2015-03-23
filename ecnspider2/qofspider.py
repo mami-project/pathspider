@@ -254,7 +254,7 @@ class QofSpider:
     class QofCollectorHandler(socketserver.StreamRequestHandler):
         def handle(self):
             logger = logging.getLogger('qofspider')
-            logging.info("connection from "+str(self.client_address))
+            logger.info("connection from "+str(self.client_address))
 
             msr = ipfix.reader.from_stream(self.rfile)
 
@@ -263,7 +263,7 @@ class QofSpider:
                 if tf:
                     self.server.spider.flowqueue.add(tf)
 
-            logging.info("connection from "+str(self.client_address)+ "terminated")
+            logger.info("connection from "+str(self.client_address)+ "terminated")
 
     class QofCollectorListener(socketserver.ThreadingMixIn, socketserver.TCPServer):
         def __init__(self, server_address, RequestHandlerClass, spider):

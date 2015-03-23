@@ -29,6 +29,7 @@ import logging
 import subprocess
 import logging
 import time
+import ipfix
 
 # Flags constants
 TCP_CWR = 0x80
@@ -154,6 +155,9 @@ class EcnSpider2(qofspider.QofSpider):
                  'reverseQofTcpCharacteristics']}
 
     def tupleize_flow(self, flow):
+        logger = logging.getLogger('qofspider')
+        logger.info("received: " + repr(flow))
+
         # Short-circuit non-HTTP over TCP flows, and reset storms
         try:
             if flow["protocolIdentifier"] != 6:
@@ -239,10 +243,12 @@ def results(record):
 
 def main():
     qofspider.log_to_console(logging.DEBUG)
+    ipfix.ie.use_iana_default()
+    ipfix.ie.use_specfile("qof.iespec")
 
-    ecn = EcnSpider2Darwin(result_sink = lambda x: print(repr(x)),
+    ecn = EcnSpider2Linux(result_sink = lambda x: print(repr(x)),
                            worker_count=5, conn_timeout=5,
-                           interface_uri='pcapint:en0',
+                           interface_uri='int:wlan0',
                            qof_port=54739)
 
     ecn.run()
