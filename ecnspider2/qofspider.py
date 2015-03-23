@@ -261,7 +261,7 @@ class QofSpider:
             for d in msr.namedict_iterator():
                 tf = self.server.spider.tupleize_flow(d)
                 if tf:
-                    self.server.spider.flowqueue.add(tf)
+                    self.server.spider.flowqueue.put(tf)
 
             logger.info("connection from "+str(self.client_address)+ "terminated")
 

@@ -155,9 +155,6 @@ class EcnSpider2(qofspider.QofSpider):
                  'reverseQofTcpCharacteristics']}
 
     def tupleize_flow(self, flow):
-        logger = logging.getLogger('qofspider')
-        logger.info("received: " + repr(flow))
-
         # Short-circuit non-HTTP over TCP flows, and reset storms
         try:
             if flow["protocolIdentifier"] != 6:
@@ -182,12 +179,12 @@ class EcnSpider2(qofspider.QofSpider):
 
         # Merge flags
         fif = flow["initialTCPFlags"]
-        fsf = (flow["lastSynTCPFlags"] |
+        fsf = (flow["lastSynTcpFlags"] |
               (flow["qofTcpCharacteristics"] & 0xFF00))
         fuf = (flow["unionTCPFlags"] |
               ((flow["qofTcpCharacteristics"] & 0xFF) << 8))
         fir = flow["reverseInitialTCPFlags"]
-        fsr = (flow["reverseLastSynTCPFlags"] |
+        fsr = (flow["reverseLastSynTcpFlags"] |
               (flow["reverseQofTcpCharacteristics"] & 0xFF00))
         fur = (flow["reverseUnionTCPFlags"] |
               ((flow["reverseQofTcpCharacteristics"] & 0xFF) << 8))
