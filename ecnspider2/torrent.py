@@ -21,7 +21,9 @@ def parse_compact_node_info(data):
         # (id, (ip, port))
         yield {'id':frame[0], 'addr':("{}.{}.{}.{}".format(frame[1], frame[2], frame[3], frame[4]), frame[5])}
 
-Request = collections.namedtuple("Request", ['tid', 'time', 'addr'])
+REQUEST_TYPE_PING = 0x01
+REQUEST_TYPE_FIND_NODE = 0x02
+Request = collections.namedtuple("Request", ['tid', 'time', 'addr', 'type'])
 QUEUE_SLEEP = 0.1
 
 class DHT:
@@ -48,6 +50,7 @@ class DHT:
         self.sock4 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.sock4.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 100000)
         self.sock4.bind(bindaddr)
+        self.sock4.settimeout(1)
 
         self.sock6 = None
         #self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
@@ -75,7 +78,7 @@ class DHT:
             self.tid = 0
         return struct.pack("H", self.tid)
 
-    def _send(self, tid, data, addr):
+    def _send(self, tid, data, addr, type):
         bytes_sent = 0
         try:
             # determine if ipv4 or ipv6 address
@@ -84,7 +87,7 @@ class DHT:
             #self.sock6.sendto(bencodepy.encode(data), addr)
 
             with self.lock:
-                self.requests[tid] = Request(tid, time.time(), addr)
+                self.requests[tid] = Request(tid, time.time(), addr, type)
 
         except bencodepy.EncodingError:
             self.log.exception("encoding {} to bencode failed.".format(data))
@@ -93,16 +96,16 @@ class DHT:
 
         return bytes_sent
 
-    def ping(self, addr, target):
+    def ping(self, addr, sender):
         tid = self._generate_tid()
         query = {
             "t": tid,
             "y": "q",
             "q": "ping",
-            "a": {"id":target}
+            "a": {"id":sender}
         }
 
-        return self._send(tid, query, addr)
+        return self._send(tid, query, addr, REQUEST_TYPE_PING)
 
     def find_node(self, addr, target):
         tid = self._generate_tid()
@@ -114,7 +117,7 @@ class DHT:
             "a": {"id": self.myid, "target": target}
         }
 
-        return self._send(tid, query, addr)
+        return self._send(tid, query, addr, REQUEST_TYPE_FIND_NODE)
 
     def get_peers(self, addr, infohash, callback, user=None):
         raise NotImplemented()
@@ -142,7 +145,7 @@ class DHT:
 
             if last != int(tnow):
                 last = int(tnow)
-                print("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, timeout/success rate: {:0.0%}".format(amount/1024/slot_time, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, float(self.requests_timeout) / (self.requests_success+1)))
+                self.log.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, timeout/success rate: {:0.0%}".format(amount/1024/slot_time, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, float(self.requests_timeout) / (self.requests_success+1)))
 
             # cleanup bandwidth track
             while len(track) > 0:
@@ -210,17 +213,24 @@ class DHT:
                         try:
                             req = self.requests[tid]
                         except KeyError:
-                            self.log.error("Received response to unknown request.")
+                            self.log.warning("Received response to unknown request.")
                         else:
                             del self.requests[tid]
 
-                            for node in parse_compact_node_info(response[b'nodes']):
-                                self.addr_cache.put(node['addr'])
-                                self.requests_success += 1
+                            if req.type == REQUEST_TYPE_FIND_NODE:
+                                for node in parse_compact_node_info(response[b'nodes']):
+                                    self.addr_cache.put(node['addr'])
+                                    self.requests_success += 1
 
-                                if len(self.addr_pool) > 100:
-                                    self.addr_pool.popleft()
-                                self.addr_pool.append(node['addr'])
+                                    if len(self.addr_pool) > 100:
+                                        self.addr_pool.popleft()
+                                    self.addr_pool.append(node['addr'])
+                            elif req.type == REQUEST_TYPE_PING:
+                                print("addr: {}, id: {}".format(req.addr, response[b'id']))
+                            else:
+                                self.log.warning("Unknown request type: {}. Seems like I've created a Request record with a unexpected request type.".format(req.type))
+            except socket.timeout:
+                continue
             except bencodepy.DecodingError:
                 self.log.exception("bencode decoding of incoming packet failed.")
             except KeyError:
