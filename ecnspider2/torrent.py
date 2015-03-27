@@ -29,7 +29,6 @@ QUEUE_SLEEP = 0.1
 class DHT:
     def __init__(self, bindaddr, bindaddr6):
         self.tid = 0
-        self.log = logging.getLogger("DHT")
 
         self.myid = create_id()
 
@@ -61,8 +60,8 @@ class DHT:
 
     def __iter__(self):
         self.running = True
-        threading.Thread(target=self.sender, daemon=True).start()
-        threading.Thread(target=self.receiver, daemon=True).start()
+        threading.Thread(name="dht sender", target=self.sender, daemon=True).start()
+        threading.Thread(name="dht receiver", target=self.receiver, daemon=True).start()
 
         return self
 
@@ -79,20 +78,13 @@ class DHT:
         return struct.pack("H", self.tid)
 
     def _send(self, tid, data, addr, type):
-        bytes_sent = 0
-        try:
-            # determine if ipv4 or ipv6 address
-            bytes_sent = self.sock4.sendto(bencodepy.encode(data), addr)
+        # TODO: determine if ipv4 or ipv6 address
+        bytes_sent = self.sock4.sendto(bencodepy.encode(data), addr)
 
-            #self.sock6.sendto(bencodepy.encode(data), addr)
+        #self.sock6.sendto(bencodepy.encode(data), addr)
 
-            with self.lock:
-                self.requests[tid] = Request(tid, time.time(), addr, type)
-
-        except bencodepy.EncodingError:
-            self.log.exception("encoding {} to bencode failed.".format(data))
-        except Exception:
-            self.log.exception("sending {} to {} failed.".format(data, addr))
+        with self.lock:
+            self.requests[tid] = Request(tid, time.time(), addr, type)
 
         return bytes_sent
 
@@ -129,7 +121,8 @@ class DHT:
         """
 
         """
-        self.log.debug("Sender thread started.")
+        logger = logging.getLogger("qofspider")
+        logger.debug("Sender thread started.")
 
         max_bandwidth = 5*1024 # bytes/sec
 
@@ -143,9 +136,10 @@ class DHT:
         while self.running:
             tnow = time.time()
 
-            if last != int(tnow):
+            bandwidth = amount/1024/slot_time
+            if last != int(tnow) and bandwidth > 0:
                 last = int(tnow)
-                self.log.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, timeout/success rate: {:0.0%}".format(amount/1024/slot_time, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, float(self.requests_timeout) / (self.requests_success+1)))
+                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, self.requests_success / (self.requests_timeout + self.requests_success)))
 
             # cleanup bandwidth track
             while len(track) > 0:
@@ -174,7 +168,7 @@ class DHT:
                 continue
 
             # am i below maximum requests running?
-            if len(self.requests) > 10:
+            if len(self.requests) > 100:
                 time.sleep(QUEUE_SLEEP)
                 continue
 
@@ -192,15 +186,25 @@ class DHT:
                     self.addr_pool.append(addr)
 
             # send request
-            bytes_sent = self.find_node(addr, create_id())
-            track.append((time.time(), bytes_sent))
-            amount += bytes_sent
+
+            try:
+                bytes_sent = self.find_node(addr, create_id())
+            except bencodepy.EncodingError:
+                logger.exception("encoding packet failed.")
+            except Exception:
+                logger.exception("sending {} failed.".format(addr))
+            else:
+                track.append((time.time(), bytes_sent))
+                amount += bytes_sent
+
+            time.sleep(0.01)
 
     def receiver(self):
         """
 
         """
-        self.log.info("Receiver thread started.")
+        logger = logging.getLogger("torrent-dht")
+        logger.info("Receiver thread started.")
         while self.running:
             try:
                 recvd = bencodepy.decode(self.sock4.recv(4096))
@@ -213,7 +217,7 @@ class DHT:
                         try:
                             req = self.requests[tid]
                         except KeyError:
-                            self.log.warning("Received response to unknown request.")
+                            logger.warning("Received response to unknown request.")
                         else:
                             del self.requests[tid]
 
@@ -228,17 +232,17 @@ class DHT:
                             elif req.type == REQUEST_TYPE_PING:
                                 print("addr: {}, id: {}".format(req.addr, response[b'id']))
                             else:
-                                self.log.warning("Unknown request type: {}. Seems like I've created a Request record with a unexpected request type.".format(req.type))
+                                logger.warning("Unknown request type: {}. Seems like I've created a Request record with a unexpected request type.".format(req.type))
             except socket.timeout:
                 continue
             except bencodepy.DecodingError:
-                self.log.exception("bencode decoding of incoming packet failed.")
+                logger.exception("bencode decoding of incoming packet failed.")
             except KeyError:
-                self.log.exception("Malformed? packet received.")
+                logger.exception("Malformed? packet received.")
             except Exception:
-                self.log.exception("Other exception...")
+                logger.exception("Other exception...")
 
-        self.log.info("Shutting down receiver.")
+        logger.info("Shutting down receiver.")
         self.sock4.close()
         #self.sock6.close()
 
