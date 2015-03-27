@@ -139,7 +139,8 @@ class DHT:
             bandwidth = amount/1024/slot_time
             if last != int(tnow) and bandwidth > 0:
                 last = int(tnow)
-                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, self.requests_success / (self.requests_timeout + self.requests_success)))
+                success_rate = self.requests_success / (self.requests_timeout + self.requests_success) if self.requests_success > 0 else 0
+                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, success_rate))
 
             # cleanup bandwidth track
             while len(track) > 0:
@@ -163,12 +164,12 @@ class DHT:
                     del self.requests[key]
 
             # are there enough addresses in the cache?
-            if self.addr_cache.qsize() > 1000:
+            if self.addr_cache.qsize() > 10:
                 time.sleep(QUEUE_SLEEP)
                 continue
 
             # am i below maximum requests running?
-            if len(self.requests) > 100:
+            if len(self.requests) > 10:
                 time.sleep(QUEUE_SLEEP)
                 continue
 
@@ -196,8 +197,6 @@ class DHT:
             else:
                 track.append((time.time(), bytes_sent))
                 amount += bytes_sent
-
-            time.sleep(0.01)
 
     def receiver(self):
         """
