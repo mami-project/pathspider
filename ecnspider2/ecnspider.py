@@ -72,7 +72,7 @@ SpiderRecord = collections.namedtuple("SpiderRecord",
 FlowRecord = collections.namedtuple("FlowRecord",
     ["ip","port","octets","fif","fsf","fuf","fir","fsr","fur"])
 
-MergedRecord = collections.namedtuple("MergeRecord",
+MergedRecord = collections.namedtuple("MergedRecord",
     ["ip","host","port","rport","ecnstate","connstate","httpstatus",
      "octets","fif","fsf","fuf","fir","fsr","fur"])
 
@@ -301,9 +301,7 @@ def main():
     ipfix.ie.use_iana_default()
     ipfix.ie.use_specfile("qof.iespec")
 
-    dht = torrent.DHT(('0.0.0.0', 6881), ('::', 6881))
-    dht.addr_pool.append(("dht.transmissionbt.com", 6881))
-
+    dht = torrent.TorrentDhtSpider()
 
     if sys.platform == 'linux':
         configurator_hooks = EcnSpider2ConfigLinux()

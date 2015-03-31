@@ -26,8 +26,8 @@ REQUEST_TYPE_FIND_NODE = 0x02
 Request = collections.namedtuple("Request", ['tid', 'time', 'addr', 'type'])
 QUEUE_SLEEP = 0.1
 
-class DHT:
-    def __init__(self, bindaddr, bindaddr6):
+class TorrentDhtSpider:
+    def __init__(self, bindaddr4=('0.0.0.0', 6881), bindaddr6=('::', 6881), bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881))):
         self.tid = 0
 
         self.myid = create_id()
@@ -42,13 +42,13 @@ class DHT:
         self.requests_success = 0
 
         # addresses to ask for more addresses
-        self.addr_pool = collections.deque()
+        self.addr_pool = collections.deque(bootstrap)
 
         self.running = False
 
         self.sock4 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.sock4.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 100000)
-        self.sock4.bind(bindaddr)
+        self.sock4.bind(bindaddr4)
         self.sock4.settimeout(1)
 
         self.sock6 = None
@@ -246,7 +246,7 @@ class DHT:
         #self.sock6.close()
 
 if __name__ == "__main__":
-    dht = DHT(('0.0.0.0', 3710), ('::', 3710))
+    dht = TorrentDhtSpider(('0.0.0.0', 3710), ('::', 3710))
     dht.addr_pool.append(("dht.transmissionbt.com", 6881))
 
     for addr in dht:
