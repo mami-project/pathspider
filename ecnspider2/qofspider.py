@@ -420,6 +420,8 @@ def log_to_console(verbosity):
 
     logger.info("Logging started")
 
+    return consoleHandler
+
 def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
     if ipv == 4:
         af = socket.AF_INET
