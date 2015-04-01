@@ -85,13 +85,13 @@ class Master:
         logger.info('jobreceiver started')
 
         while self.running or all([slave.finished >= self.count for slave in self.slaves]):
-            for slave in self.slaves:
+            for idx, slave in enumerate(self.slaves):
                 try:
                     while True:
                         result = slave.results.get_nowait()
                         with self.lock:
                             slave.finished += 1
-                        logger.debug("Got result: {}".format(result))
+                        logger.debug("Got result from {}: {}".format(idx, result))
                 except queue.Empty:
                     continue
 
