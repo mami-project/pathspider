@@ -15,10 +15,11 @@ import collections
 import time
 
 class Slave:
-    def __init__(self, jobs, results, stop):
+    def __init__(self, jobs, results, run, stop):
         self.jobs = jobs
         self.results = results
         self.stop = stop
+        self.run = run
 
         self.ordered = 0
         self.finished = 0
@@ -46,6 +47,7 @@ class Master:
         QueueManager.register('get_results_queue')
         QueueManager.register('get_jobs_queue')
         QueueManager.register('stop')
+        QueueManager.register('run')
 
         self.slaves = []
         for slave in args.slaves:
@@ -55,7 +57,7 @@ class Master:
             logger.debug('connecting to {}'.format(addr))
             m = QueueManager(address=addr, authkey=b'whatever')
             m.connect()
-            self.slaves.append(Slave(m.get_jobs_queue(), m.get_results_queue(), m.stop))
+            self.slaves.append(Slave(m.get_jobs_queue(), m.get_results_queue(), m.run, m.stop))
 
     def jobcreator(self):
         logger = logging.getLogger('master')
@@ -105,6 +107,9 @@ class Master:
 
         jr = threading.Thread(target=self.jobreceiver, name='ĵobreceiver')
         jr.start()
+
+        for slave in self.slaves:
+            slave.run()
 
         while self.running:
             time.sleep(1)

@@ -35,11 +35,10 @@ def main():
         configurator_hooks=configurator_hooks,
         qof_port=54739)
 
-    ecn.run()
-
     class QueueManager(multiprocessing.managers.BaseManager): pass
     QueueManager.register('get_results_queue', callable=lambda:results)
     QueueManager.register('get_jobs_queue', callable=lambda:jobs)
+    QueueManager.register('run', callable=ecn.run)
     QueueManager.register('stop', callable=ecn.stop)
 
     #jobadder = threading.Thread(target=lambda:ecn.add_job(jobs.get(True)), daemon=True)
