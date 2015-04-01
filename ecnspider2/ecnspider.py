@@ -125,6 +125,7 @@ class EcnSpider2(qofspider.QofSpider):
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == Connection.OK:
+            conn.client.close()
             return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0)
         else:
             return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, False, 0)
