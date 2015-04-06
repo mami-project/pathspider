@@ -15,11 +15,10 @@ import collections
 import time
 
 class Slave:
-    def __init__(self, jobs, results, run, stop):
+    def __init__(self, id, jobs, results):
+        self.id = id
         self.jobs = jobs
         self.results = results
-        self.stop = stop
-        self.run = run
 
         self.ordered = 0
         self.finished = 0
@@ -32,9 +31,10 @@ class Master:
         logger.debug("Started")
 
         parser = argparse.ArgumentParser(description='Ecnspider2 master. Manages ecnspider slaves.')
-        parser.add_argument('slaves', metavar='HOST:PORT', nargs='+',
-                       help='host:port of slave to manage.')
-        parser.add_argument('--count', '-N', dest='count', metavar='N', type=int, default=1000, help='Count of addresses to test.')
+        parser.add_argument('slaves', metavar='ID:HOST:PORT', nargs='+',
+                       help='id:host:port of slave to manage, where id is an arbitrary string to distinguish them in the csv file.')
+        parser.add_argument('--file', '-f', metavar='FILENAME', help='Write results into CSV-File.', dest='outfile', required=True, type=argparse.FileType('w'))
+        parser.add_argument('--count', '-N', dest='count', metavar='N', type=int, default=10, help='Count of addresses to test.')
         args = parser.parse_args()
 
         self.lock = threading.Lock()
@@ -43,21 +43,22 @@ class Master:
 
         self.running = False
 
+        self.outfile = args.outfile
+
         class QueueManager(multiprocessing.managers.BaseManager): pass
         QueueManager.register('get_results_queue')
         QueueManager.register('get_jobs_queue')
-        QueueManager.register('stop')
-        QueueManager.register('run')
+        QueueManager.register('shutdown')
 
         self.slaves = []
         for slave in args.slaves:
-            ip, port = slave.split(':')
+            id, ip, port = slave.split(':')
             addr = (ip, int(port))
 
             logger.debug('connecting to {}'.format(addr))
             m = QueueManager(address=addr, authkey=b'whatever')
             m.connect()
-            self.slaves.append(Slave(m.get_jobs_queue(), m.get_results_queue(), m.run, m.stop))
+            self.slaves.append(Slave(id, m.get_jobs_queue(), m.get_results_queue()))
 
     def jobcreator(self):
         logger = logging.getLogger('master')
@@ -74,7 +75,7 @@ class Master:
             if addr[0] not in ips:
                 ips.add(addr[0])
 
-                logger.debug("Send job: {}".format(addr))
+                logger.debug("Send ({} of {}): {}".format(len(ips), self.count, addr))
 
                 for slave in self.slaves:
                     slave.jobs.put(ecnspider.Job(ip_address(addr[0]), addr[0], addr[1]))
@@ -82,18 +83,26 @@ class Master:
                     with self.lock:
                         slave.ordered += 1
 
+        # mark end of jobs
+        for slave in self.slaves:
+            slave.jobs.put(None)
+
+        logger.info('jobcreator finished')
+
     def jobreceiver(self):
         logger = logging.getLogger('master')
         logger.info('jobreceiver started')
 
-        while self.running or all([slave.finished >= self.count for slave in self.slaves]):
+        while self.running or all([slave.finished >= 2*self.count for slave in self.slaves]):
+            print("Received", [slave.finished for slave in self.slaves], "of", 2*self.count)
             for idx, slave in enumerate(self.slaves):
                 try:
                     while True:
                         result = slave.results.get_nowait()
                         with self.lock:
                             slave.finished += 1
-                        logger.debug("Got result from {}: {}".format(idx, result))
+                        self.outfile.write("{s},{r.ip},{r.port},{r.rport},{r.ecnstate},{r.connstate},{r.fif},{r.fsf},{r.fuf},{r.fir},{r.fsr},{r.fur}\n".format(s=slave.id, r=result))
+
                 except queue.Empty:
                     continue
 
@@ -108,19 +117,15 @@ class Master:
         jr = threading.Thread(target=self.jobreceiver, name='ĵobreceiver')
         jr.start()
 
-        for slave in self.slaves:
-            slave.run()
-
         while self.running:
             time.sleep(1)
 
 def main():
-    handler = qofspider.log_to_console(logging.DEBUG)
+    handler = ecnspider.log_to_console(logging.DEBUG)
     ipfix.ie.use_iana_default()
     ipfix.ie.use_specfile("qof.iespec")
 
-    logger = logging.getLogger('master')
-    logger.addHandler(handler)
+    logging.getLogger('master').addHandler(handler)
 
     master = Master()
 

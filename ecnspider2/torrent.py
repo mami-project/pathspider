@@ -9,6 +9,8 @@ import queue
 import sys
 import collections
 import time
+import itertools
+from ipaddress import ip_address
 
 def create_id():
     h = hashlib.sha1()
@@ -21,13 +23,18 @@ def parse_compact_node_info(data):
         # (id, (ip, port))
         yield {'id':frame[0], 'addr':("{}.{}.{}.{}".format(frame[1], frame[2], frame[3], frame[4]), frame[5])}
 
+def parse_compact_node6_info(data):
+    for frame in struct.iter_unpack("!20s8HH", data):
+        # (id, (ipv6, port))
+        yield {'id':frame[0], 'addr':('{:04X}:{:04X}:{:04X}:{:04X}:{:04X}:{:04X}:{:04X}:{:04X}'.format(*frame[1:9]), frame[9])}
+
 REQUEST_TYPE_PING = 0x01
 REQUEST_TYPE_FIND_NODE = 0x02
 Request = collections.namedtuple("Request", ['tid', 'time', 'addr', 'type'])
 QUEUE_SLEEP = 0.1
 
 class TorrentDhtSpider:
-    def __init__(self, bindaddr4=('0.0.0.0', 6881), bindaddr6=('::', 6881), bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881))):
+    def __init__(self, bindaddr=('', 6881), ip_version=4, bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881))):
         self.tid = 0
 
         self.myid = create_id()
@@ -46,14 +53,19 @@ class TorrentDhtSpider:
 
         self.running = False
 
-        self.sock4 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self.sock4.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 100000)
-        self.sock4.bind(bindaddr4)
-        self.sock4.settimeout(1)
+        self.ip_version = ip_version
 
-        self.sock6 = None
-        #self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        #self.sock6.bind(bindaddr6)
+        if self.ip_version != 4 and self.ip_version != 6:
+            raise ValueError('ip_version needs to be either 4 or 6.')
+
+        if self.ip_version == 4:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        else:
+            self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 100000)
+        self.sock.bind(bindaddr)
+        self.sock.settimeout(0.1)
 
         #self.thread = threading.Thread(target=self._serverproc, daemon=True)
         #self.thread.start()
@@ -78,10 +90,7 @@ class TorrentDhtSpider:
         return struct.pack("H", self.tid)
 
     def _send(self, tid, data, addr, type):
-        # TODO: determine if ipv4 or ipv6 address
-        bytes_sent = self.sock4.sendto(bencodepy.encode(data), addr)
-
-        #self.sock6.sendto(bencodepy.encode(data), addr)
+        bytes_sent = self.sock.sendto(bencodepy.encode(data), addr)
 
         with self.lock:
             self.requests[tid] = Request(tid, time.time(), addr, type)
@@ -105,7 +114,7 @@ class TorrentDhtSpider:
             "t": tid,
             "y": "q",
             "q": "find_node",
-            "want": ['n4', 'n6'],
+            #"want": ['n4', 'n6'],
             "a": {"id": self.myid, "target": target}
         }
 
@@ -121,7 +130,7 @@ class TorrentDhtSpider:
         """
 
         """
-        logger = logging.getLogger("qofspider")
+        logger = logging.getLogger("torrent-dht")
         logger.debug("Sender thread started.")
 
         max_bandwidth = 5*1024 # bytes/sec
@@ -169,7 +178,7 @@ class TorrentDhtSpider:
                 continue
 
             # am i below maximum requests running?
-            if len(self.requests) > 10:
+            if len(self.requests) > 100:
                 time.sleep(QUEUE_SLEEP)
                 continue
 
@@ -206,7 +215,13 @@ class TorrentDhtSpider:
         logger.info("Receiver thread started.")
         while self.running:
             try:
-                recvd = bencodepy.decode(self.sock4.recv(4096))
+                data = self.sock.recv(4096)
+            except OSError:
+                time.sleep(QUEUE_SLEEP)
+                continue
+
+            try:
+                recvd = bencodepy.decode(data)
                 if recvd[b'y'] == b'r':
                     tid = recvd[b't']
 
@@ -221,19 +236,24 @@ class TorrentDhtSpider:
                             del self.requests[tid]
 
                             if req.type == REQUEST_TYPE_FIND_NODE:
-                                for node in parse_compact_node_info(response[b'nodes']):
+                                if self.ip_version == 4:
+                                    nodes = parse_compact_node_info(response[b'nodes'])
+                                else:
+                                    nodes = parse_compact_node6_info(response[b'nodes6'])
+
+                                for node in nodes:
+                                #for node in nodes:
                                     self.addr_cache.put(node['addr'])
                                     self.requests_success += 1
 
                                     if len(self.addr_pool) > 100:
                                         self.addr_pool.popleft()
                                     self.addr_pool.append(node['addr'])
+
                             elif req.type == REQUEST_TYPE_PING:
                                 print("addr: {}, id: {}".format(req.addr, response[b'id']))
                             else:
                                 logger.warning("Unknown request type: {}. Seems like I've created a Request record with a unexpected request type.".format(req.type))
-            except socket.timeout:
-                continue
             except bencodepy.DecodingError:
                 logger.exception("bencode decoding of incoming packet failed.")
             except KeyError:
@@ -241,13 +261,24 @@ class TorrentDhtSpider:
             except Exception:
                 logger.exception("Other exception...")
 
+
         logger.info("Shutting down receiver.")
-        self.sock4.close()
-        #self.sock6.close()
+        self.sock.close()
 
 if __name__ == "__main__":
-    dht = TorrentDhtSpider(('0.0.0.0', 3710), ('::', 3710))
-    dht.addr_pool.append(("dht.transmissionbt.com", 6881))
+    logger = logging.getLogger('torrent-dht')
+    logger.setLevel(logging.DEBUG)
+
+    consoleHandler = logging.StreamHandler(sys.stderr)
+    consoleFormatter = logging.Formatter('%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
+    consoleHandler.setFormatter(consoleFormatter)
+    consoleHandler.setLevel(logging.DEBUG)
+    logger.addHandler(consoleHandler)
+
+    logger.info("Logging started")
+
+    dht = TorrentDhtSpider(('', 3710), ip_version=4)
 
     for addr in dht:
+        print(addr)
         time.sleep(random.uniform(0.01, 0.1))

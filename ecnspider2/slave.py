@@ -3,20 +3,23 @@ __author__ = 'elio'
 import ecnspider
 import multiprocessing.managers
 import queue
-import qofspider
 import ipfix
 import logging
 import sys
 import argparse
 import threading
+import time
 
 def main():
-    qofspider.log_to_console(logging.DEBUG)
+    handler = ecnspider.log_to_console(logging.DEBUG)
+    logger = logging.getLogger('slave')
+    logger.addHandler(handler)
+
     ipfix.ie.use_iana_default()
     ipfix.ie.use_specfile("qof.iespec")
 
     parser = argparse.ArgumentParser(description='Ecnspider2 slave. Executes ecnspider jobs.')
-    parser.add_argument('--interface-uri', '-i', metavar='INTERFACE', dest='interface_uri', required=True, help='Libtrace input source URI. (e.g. int:eth0)')
+    parser.add_argument('interface_uri', metavar='URI', help='Libtrace input source URI. (e.g. int:eth0)')
     args = parser.parse_args()
 
     if sys.platform == 'linux':
@@ -38,24 +41,39 @@ def main():
     class QueueManager(multiprocessing.managers.BaseManager): pass
     QueueManager.register('get_results_queue', callable=lambda:results)
     QueueManager.register('get_jobs_queue', callable=lambda:jobs)
-    QueueManager.register('run', callable=ecn.run)
-    QueueManager.register('stop', callable=ecn.stop)
+
+    m = QueueManager(address=('', 49999), authkey=b'whatever')
+
+    def shutdown():
+        logging.info("shutdown step 1 of 3: waiting for ecn to finish...")
+        ecn.stop()
+        logging.info("shutdown step 2 of 3: waiting for result queue to be empty...")
+        while results.qsize() > 0:
+            time.sleep(1)
+        logging.info("shutdown step 3 of 3: teardown multiprocessing manager...")
+        m.shutdown()
+        logging.info("graceful shutdown complete.")
 
     #jobadder = threading.Thread(target=lambda:ecn.add_job(jobs.get(True)), daemon=True)
     #jobadder.start()
     def adder():
         while True:
-            ecn.add_job(jobs.get(True))
+            job = jobs.get(True)
+
+            if job is None:
+                logger.info('Received end of job notification. Initiate shutdown')
+                shutdown()
+                return
+
+            ecn.add_job(job)
 
     jobadder = threading.Thread(target=adder, daemon=True)
     jobadder.start()
 
+    ecn.run()
 
-    m = QueueManager(address=('127.0.0.1', 49999), authkey=b'whatever')
     s = m.get_server()
     s.serve_forever()
-
-
 
 if __name__ == "__main__":
     main()
