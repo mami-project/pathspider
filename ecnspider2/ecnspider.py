@@ -156,7 +156,8 @@ class EcnSpider2(qofspider.QofSpider):
                  'lastSynTcpFlags',
                  'reverseLastSynTcpFlags',
                  'qofTcpCharacteristics',
-                 'reverseQofTcpCharacteristics']}
+                 'reverseQofTcpCharacteristics'],
+                 'force-biflow': 1}
 
     def ignore_flow(self, flow):
         # Short-circuit non-TCP flows, and reset storms
@@ -192,19 +193,13 @@ class EcnSpider2(qofspider.QofSpider):
         fuf = (flow["unionTCPFlags"] |
               ((flow["qofTcpCharacteristics"] & 0xFF) << 8))
 
-        if 'reverseInitialTCPFlags' in flow:
-            fir = flow["reverseInitialTCPFlags"]
-            fsr = (flow["reverseLastSynTcpFlags"] |
-                  (flow["reverseQofTcpCharacteristics"] & 0xFF00))
-            fur = (flow["reverseUnionTCPFlags"] |
-                  ((flow["reverseQofTcpCharacteristics"] & 0xFF) << 8))
+        fir = flow["reverseInitialTCPFlags"]
+        fsr = (flow["reverseLastSynTcpFlags"] |
+              (flow["reverseQofTcpCharacteristics"] & 0xFF00))
+        fur = (flow["reverseUnionTCPFlags"] |
+              ((flow["reverseQofTcpCharacteristics"] & 0xFF) << 8))
 
-            rtodc = flow["reverseTransportOctetDeltaCount"]
-        else:
-            fir = None
-            fsr = None
-            fur = None
-            rtodc = None
+        rtodc = flow["reverseTransportOctetDeltaCount"]
 
         # Export record
         return FlowRecord(ip,
@@ -381,6 +376,11 @@ def main():
         success_none, success_none / total
         ))
 
+def log_to_console(verbosity):
+    handler = qofspider.log_to_console(verbosity)
+    logging.getLogger('ecnspider').addHandler(handler)
+    logging.getLogger('torrent-dht').addHandler(handler)
+    return handler
 
 if __name__ == "__main__":
     main()
