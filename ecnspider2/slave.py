@@ -35,7 +35,7 @@ def main():
     result_cache = queue.Queue()
 
     ecn = ecnspider.EcnSpider2(result_sink=result_cache.put,
-        worker_count=50, conn_timeout=5,
+        worker_count=200, conn_timeout=5,
         interface_uri=args.interface_uri,
         configurator_hooks=configurator_hooks,
         qof_port=54739)
@@ -67,14 +67,15 @@ def main():
 
     def job_receiver():
         while True:
-            job = pipe.recv()
+            jobs = pipe.recv()
 
-            if job is None:
+            if jobs is None:
                 logger.info('Received end of job notification. Initiate shutdown')
                 shutdown()
                 return
 
-            ecn.add_job(job)
+            for job in jobs:
+                ecn.add_job(job)
 
     job_receiver_thread = threading.Thread(target=job_receiver, daemon=True)
     job_receiver_thread.start()

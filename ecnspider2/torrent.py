@@ -34,7 +34,7 @@ Request = collections.namedtuple("Request", ['tid', 'time', 'addr', 'type'])
 QUEUE_SLEEP = 0.1
 
 class TorrentDhtSpider:
-    def __init__(self, bindaddr=('', 6881), ip_version=4, bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881))):
+    def __init__(self, bindaddr=('', 6881), ip_version=4, unique=False, bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881))):
         self.tid = 0
 
         self.myid = create_id()
@@ -44,6 +44,8 @@ class TorrentDhtSpider:
 
         # addresses for the user
         self.addr_cache = queue.Queue()
+
+        self.unique = set() if unique else None
 
         self.requests_timeout = 0
         self.requests_success = 0
@@ -67,21 +69,21 @@ class TorrentDhtSpider:
         self.sock.bind(bindaddr)
         self.sock.settimeout(0.1)
 
-        #self.thread = threading.Thread(target=self._serverproc, daemon=True)
-        #self.thread.start()
-
-    def __iter__(self):
+    def start(self):
         self.running = True
         threading.Thread(name="dht sender", target=self.sender, daemon=True).start()
         threading.Thread(name="dht receiver", target=self.receiver, daemon=True).start()
 
+    def stop(self):
+        self.running = False
+
+    def __iter__(self):
         return self
 
     def __next__(self):
-        return self.addr_cache.get()
+        addr = self.addr_cache.get()
 
-    def close(self):
-        self.running = False
+        return addr
 
     def _generate_tid(self):
         self.tid += 1
@@ -242,13 +244,20 @@ class TorrentDhtSpider:
                                     nodes = parse_compact_node6_info(response[b'nodes6'])
 
                                 for node in nodes:
-                                #for node in nodes:
-                                    self.addr_cache.put(node['addr'])
+                                    addr = node['addr']
+
+                                    # if the unique option is enabled, ignore duplicates
+                                    if self.unique is not None:
+                                        if addr[0] in self.unique:
+                                            continue
+                                        self.unique.add(addr[0])
+
+                                    self.addr_cache.put(addr)
                                     self.requests_success += 1
 
                                     if len(self.addr_pool) > 100:
                                         self.addr_pool.popleft()
-                                    self.addr_pool.append(node['addr'])
+                                    self.addr_pool.append(addr)
 
                             elif req.type == REQUEST_TYPE_PING:
                                 print("addr: {}, id: {}".format(req.addr, response[b'id']))
@@ -277,7 +286,8 @@ if __name__ == "__main__":
 
     logger.info("Logging started")
 
-    dht = TorrentDhtSpider(('', 3710), ip_version=4)
+    dht = TorrentDhtSpider(('', 3710), ip_version=4, unique=True)
+    dht.start()
 
     for addr in dht:
         print(addr)

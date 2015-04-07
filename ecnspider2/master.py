@@ -1,6 +1,7 @@
 __author__ = 'elio'
 
 from ecnspider import MergedRecord
+import itertools
 import ecnspider
 import multiprocessing.managers
 import multiprocessing.connection
@@ -61,25 +62,22 @@ class Master:
     def jobcreator(self):
         logger = logging.getLogger('master')
         logger.info('jobcreator started')
-        dht = torrent.TorrentDhtSpider()
-        ips = set()
-        for addr in dht:
-            if not self.running:
-                return
+        dht = torrent.TorrentDhtSpider(unique=True)
+        dht.start()
+        jobs_sent = 0
+        while self.running and jobs_sent < self.count:
+            # package jobs togheter
+            jobs = [ecnspider.Job(ip_address(addr[0]), addr[0], addr[1]) for addr, _ in zip(dht, range(200))]
 
-            if len(ips) >= self.count:
-                break
+            # send to each slave
+            for slave in self.slaves:
+                slave.pipe.send(jobs)
 
-            if addr[0] not in ips:
-                ips.add(addr[0])
+                with self.lock:
+                    slave.ordered += len(jobs)
 
-                logger.debug("Send ({} of {}): {}".format(len(ips), self.count, addr))
-
-                for slave in self.slaves:
-                    slave.pipe.send(ecnspider.Job(ip_address(addr[0]), addr[0], addr[1]))
-
-                    with self.lock:
-                        slave.ordered += 1
+            jobs_sent += len(jobs)
+            logger.debug("Send ({} of {})".format(jobs_sent, self.count))
 
         # mark end of jobs
         for slave in self.slaves:
