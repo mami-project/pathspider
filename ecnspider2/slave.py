@@ -1,6 +1,7 @@
 __author__ = 'elio'
 
 import ecnspider
+import multiprocessing
 import multiprocessing.managers
 import queue
 import ipfix
@@ -29,36 +30,44 @@ def main():
     else:
         raise NotImplemented("Configurator for your system {} is not implemented.".format(sys.platform))
 
-    results = queue.Queue()
-    jobs = queue.Queue()
+    pipe, pipe_remote = multiprocessing.Pipe(True)
 
-    ecn = ecnspider.EcnSpider2(result_sink=results.put,
+    result_cache = queue.Queue()
+
+    ecn = ecnspider.EcnSpider2(result_sink=result_cache.put,
         worker_count=50, conn_timeout=5,
         interface_uri=args.interface_uri,
         configurator_hooks=configurator_hooks,
         qof_port=54739)
 
     class QueueManager(multiprocessing.managers.BaseManager): pass
-    QueueManager.register('get_results_queue', callable=lambda:results)
-    QueueManager.register('get_jobs_queue', callable=lambda:jobs)
+    QueueManager.register('pipe', callable=lambda:pipe_remote)
 
     m = QueueManager(address=('', 49999), authkey=b'whatever')
 
     def shutdown():
-        logging.info("shutdown step 1 of 3: waiting for ecn to finish...")
+        logging.info("shutdown step 1 of 2: waiting for ecn to finish...")
         ecn.stop()
-        logging.info("shutdown step 2 of 3: waiting for result queue to be empty...")
-        while results.qsize() > 0:
+        logging.info("shutdown step 2 of 2: waiting for result queue to be empty...")
+        while pipe_remote.poll():
             time.sleep(1)
-        logging.info("shutdown step 3 of 3: teardown multiprocessing manager...")
-        m.shutdown()
-        logging.info("graceful shutdown complete.")
+        logging.info("bye.")
+        exit()
 
-    #jobadder = threading.Thread(target=lambda:ecn.add_job(jobs.get(True)), daemon=True)
-    #jobadder.start()
-    def adder():
+    def result_sender():
         while True:
-            job = jobs.get(True)
+            to_send = []
+            while result_cache.qsize() > 0:
+                to_send.append(result_cache.get(False))
+
+            if len(to_send) > 0:
+                pipe.send(to_send)
+            else:
+                time.sleep(0.1)
+
+    def job_receiver():
+        while True:
+            job = pipe.recv()
 
             if job is None:
                 logger.info('Received end of job notification. Initiate shutdown')
@@ -67,8 +76,11 @@ def main():
 
             ecn.add_job(job)
 
-    jobadder = threading.Thread(target=adder, daemon=True)
-    jobadder.start()
+    job_receiver_thread = threading.Thread(target=job_receiver, daemon=True)
+    job_receiver_thread.start()
+
+    results_sender_thread = threading.Thread(target=result_sender, daemon=True)
+    results_sender_thread.start()
 
     ecn.run()
 
