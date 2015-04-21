@@ -17,6 +17,7 @@ def main():
     logger.addHandler(handler)
 
     ipfix.ie.use_iana_default()
+    ipfix.ie.use_5103_default()
     ipfix.ie.use_specfile("qof.iespec")
 
     parser = argparse.ArgumentParser(description='Ecnspider2 slave. Executes ecnspider jobs.')

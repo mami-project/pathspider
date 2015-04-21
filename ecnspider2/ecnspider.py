@@ -170,7 +170,7 @@ class EcnSpider2(qofspider.QofSpider):
                  'qofTcpCharacteristics',
                  'reverseQofTcpCharacteristics',
                  'minimumTTL',
-                 'maximumTTL'],
+                 'reverseMinimumTTL'],
                  'force-biflow': 1}
 
     def ignore_flow(self, flow):
@@ -213,7 +213,7 @@ class EcnSpider2(qofspider.QofSpider):
         fur = (flow["reverseUnionTCPFlags"] |
               ((flow["reverseQofTcpCharacteristics"] & 0xFF) << 8))
 
-        ttl = flow["minimumTTL"]
+        ttl = flow["reverseMinimumTTL"]
 
         rtodc = flow["reverseTransportOctetDeltaCount"]
 
@@ -311,6 +311,7 @@ class EcnSpider2ConfigDarwin:
 def main():
     qofspider.log_to_console(logging.DEBUG)
     ipfix.ie.use_iana_default()
+    ipfix.ie.use_5103_default()
     ipfix.ie.use_specfile("qof.iespec")
 
     dht = torrent.TorrentDhtSpider()
