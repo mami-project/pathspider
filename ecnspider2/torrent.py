@@ -1,4 +1,3 @@
-import hashlib
 import random
 import struct
 import socket
@@ -12,11 +11,14 @@ import time
 import itertools
 from ipaddress import ip_address
 
+def randbytes(num):
+    return struct.pack('{}B'.format(num), *[random.randint(0, 255) for _ in range(0, num)])
+
 def create_id():
-    h = hashlib.sha1()
-    for _ in range(0, 20):
-        h.update(struct.pack('B', random.randint(0, 255)))
-    return h.digest()
+    #rest = randbytes(12)
+    #id = b'-TR2480-'+rest
+    #print(id, len(id))
+    return randbytes(20)
 
 def parse_compact_node_info(data):
     for frame in struct.iter_unpack("!20s4BH", data):
@@ -245,6 +247,7 @@ class TorrentDhtSpider:
 
                                 for node in nodes:
                                     addr = node['addr']
+                                    nodeid = node['id']
 
                                     # if the unique option is enabled, ignore duplicates
                                     if self.unique is not None:
@@ -252,7 +255,7 @@ class TorrentDhtSpider:
                                             continue
                                         self.unique.add(addr[0])
 
-                                    self.addr_cache.put(addr)
+                                    self.addr_cache.put((addr, nodeid))
                                     self.requests_success += 1
 
                                     if len(self.addr_pool) > 100:
@@ -289,6 +292,6 @@ if __name__ == "__main__":
     dht = TorrentDhtSpider(('', 3710), ip_version=4, unique=True)
     dht.start()
 
-    for addr in dht:
+    for addr, nodeid in dht:
         print(addr)
         time.sleep(random.uniform(0.01, 0.1))

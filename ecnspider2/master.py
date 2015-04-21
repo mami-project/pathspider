@@ -15,6 +15,7 @@ import torrent
 import threading
 import collections
 import time
+import codecs
 
 class Slave:
     def __init__(self, id, pipe):
@@ -67,7 +68,7 @@ class Master:
         jobs_sent = 0
         while self.running and jobs_sent < self.count:
             # package jobs togheter
-            jobs = [ecnspider.Job(ip_address(addr[0]), addr[0], addr[1]) for addr, _ in zip(dht, range(200))]
+            jobs = [ecnspider.Job(ip_address(addr[0]), addr[0], addr[1], nodeid) for (addr, nodeid), _ in zip(dht, range(min(200, self.count - jobs_sent)))]
 
             # send to each slave
             for slave in self.slaves:
@@ -79,6 +80,7 @@ class Master:
             jobs_sent += len(jobs)
             logger.debug("Send ({} of {})".format(jobs_sent, self.count))
 
+        time.sleep(10)
         # mark end of jobs
         for slave in self.slaves:
             slave.pipe.send(None)
@@ -88,6 +90,7 @@ class Master:
     def jobreceiver(self):
         logger = logging.getLogger('master')
         logger.info('jobreceiver started')
+        self.outfile.write("site,ip,port,rport,ecnstate,connstate,nodeid,fif,fsf,fuf,fir,fsr,fur,ttl\n")
 
         while self.running and not all([slave.finished >= 2*self.count for slave in self.slaves]):
             for slave in self.slaves:
@@ -98,7 +101,9 @@ class Master:
                 for result in results:
                     with self.lock:
                         slave.finished += 1
-                    self.outfile.write("{s},{r.ip},{r.port},{r.rport},{r.ecnstate},{r.connstate},{r.fif},{r.fsf},{r.fuf},{r.fir},{r.fsr},{r.fur}\n".format(s=slave.id, r=result))
+
+                    nodeid = codecs.encode(result.nodeid, 'hex').decode('utf-8')
+                    self.outfile.write("{s},{r.ip},{r.port},{r.rport},{r.ecnstate},{r.connstate},\"{nodeid}\",{r.fif},{r.fsf},{r.fuf},{r.fir},{r.fsr},{r.fur},{r.ttl}\n".format(s=slave.id, r=result, nodeid=nodeid))
 
             print("Received", [slave.finished for slave in self.slaves], "of", 2*self.count)
 

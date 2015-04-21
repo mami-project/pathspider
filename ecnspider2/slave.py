@@ -46,12 +46,12 @@ def main():
     m = QueueManager(address=('', 49999), authkey=b'whatever')
 
     def shutdown():
-        logging.info("shutdown step 1 of 2: waiting for ecn to finish...")
+        logger.info("shutdown step 1 of 2: waiting for ecn to finish...")
         ecn.stop()
-        logging.info("shutdown step 2 of 2: waiting for result queue to be empty...")
+        logger.info("shutdown step 2 of 2: waiting for result queue to be empty...")
         while pipe_remote.poll():
             time.sleep(1)
-        logging.info("bye.")
+        logger.info("bye.")
         exit()
 
     def result_sender():
@@ -63,7 +63,7 @@ def main():
             if len(to_send) > 0:
                 pipe.send(to_send)
             else:
-                time.sleep(0.1)
+                time.sleep(1)
 
     def job_receiver():
         while True:

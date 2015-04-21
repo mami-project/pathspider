@@ -163,7 +163,7 @@ def derive_flag_strings(df):
 ###
 
 def start_qof(yaml_path, libtrace_uri, filename):
-
+    pass
 
 def stop_qof(qof):
     qof.terminate()

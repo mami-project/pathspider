@@ -67,16 +67,16 @@ Connection.TIMEOUT = 2
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0'
 
 SpiderRecord = collections.namedtuple("SpiderRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus"])
+    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "nodeid"])
 
 FlowRecord = collections.namedtuple("FlowRecord",
-    ["ip","port","octets","fif","fsf","fuf","fir","fsr","fur"])
+    ["ip","port","octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
 
 MergedRecord = collections.namedtuple("MergedRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus",
-     "octets","fif","fsf","fuf","fir","fsr","fur"])
+    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "nodeid",
+     "octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
 
-Job = collections.namedtuple("Job", ["ip", "host", "rport"])
+Job = collections.namedtuple("Job", ["ip", "host", "rport", "nodeid"])
 
 class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
@@ -116,19 +116,31 @@ class EcnSpider2(qofspider.QofSpider):
         try:
             sock.settimeout(self.conn_timeout)
             sock.connect((str(job.ip), job.rport))
-        except TimeoutError:
-            return Connection(None, sock.getsockname()[1], Connection.TIMEOUT)
-        except OSError as e:
-            return Connection(None, sock.getsockname()[1], Connection.FAILED)
-        else:
+
             return Connection(sock, sock.getsockname()[1], Connection.OK)
+        except TimeoutError:
+            return Connection(sock, sock.getsockname()[1], Connection.TIMEOUT)
+        except OSError as e:
+            return Connection(sock, sock.getsockname()[1], Connection.FAILED)
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == Connection.OK:
-            conn.client.close()
-            return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0)
+            sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, job.nodeid)
+
         else:
-            return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, False, 0)
+            sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, False, 0, job.nodeid)
+
+        try:
+            conn.client.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
+
+        try:
+            conn.client.close()
+        except:
+            pass
+
+        return sr
 
     def qof_config(self):
         return { 'template' : [
@@ -156,7 +168,9 @@ class EcnSpider2(qofspider.QofSpider):
                  'lastSynTcpFlags',
                  'reverseLastSynTcpFlags',
                  'qofTcpCharacteristics',
-                 'reverseQofTcpCharacteristics'],
+                 'reverseQofTcpCharacteristics',
+                 'minimumTTL',
+                 'maximumTTL'],
                  'force-biflow': 1}
 
     def ignore_flow(self, flow):
@@ -199,20 +213,22 @@ class EcnSpider2(qofspider.QofSpider):
         fur = (flow["reverseUnionTCPFlags"] |
               ((flow["reverseQofTcpCharacteristics"] & 0xFF) << 8))
 
+        ttl = flow["minimumTTL"]
+
         rtodc = flow["reverseTransportOctetDeltaCount"]
 
         # Export record
         return FlowRecord(ip,
                           flow["sourceTransportPort"],
                           rtodc,
-                          fif, fsf, fuf, fir, fsr, fur)
+                          fif, fsf, fuf, fir, fsr, fur, ttl)
 
 
     def merge(self, flow, res):
         self.result_sink(MergedRecord(res.ip, res.host, res.port, res.rport,
-                res.ecnstate, res.connstate, res.httpstatus,
+                res.ecnstate, res.connstate, res.httpstatus, res.nodeid,
                 flow.octets, flow.fif, flow.fsf, flow.fuf,
-                flow.fir, flow.fsr, flow.fur))
+                flow.fir, flow.fsr, flow.fur, flow.ttl))
 
 
 
@@ -246,13 +262,13 @@ class EcnSpider2Http(EcnSpider2):
                 res = conn.client.getresponse()
                 conn.client.close()
 
-                return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, res.status)
+                return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, res.status, None)
             except:
-                return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0)
+                return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, None)
             finally:
                 conn.client.close()
         else:
-            return SpiderRecord(job.ip, job.host, 0, job.rport, config, False, 0)
+            return SpiderRecord(job.ip, job.host, 0, job.rport, config, False, 0, None)
 
     def ignore_flow(self, flow):
         # Short-circuit non-HTTP over TCP flows, and reset storms
