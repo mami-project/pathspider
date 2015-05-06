@@ -102,9 +102,11 @@ class QofSpider:
 
     """
 
-    def __init__(self, worker_count, interface_uri, qof_port=4739):
+    def __init__(self, worker_count, interface_uri, qof_port=4739, check_interrupt=None):
         self.running = False
         self.stopping = False
+
+        self.check_interrupt = check_interrupt
 
         self.worker_count = worker_count
         self.interface_uri = interface_uri
@@ -162,6 +164,22 @@ class QofSpider:
 
     def config_one(self):
         raise NotImplemented("Cannot instantiate an abstract Qofspider")
+
+    def interrupter(self):
+        if self.check_interrupt is None:
+            return
+
+        logger = logging.getLogger('qofspider')
+        while self.running:
+            if self.check_interrupt():
+                logger.warn("qofspider is being interrupted")
+                logger.warn("trying to abort %d jobs", self.jobqueue.qsize())
+                while not self.jobqueue.empty():
+                    self.jobqueue.get()
+                    self.jobqueue.task_done()
+                self.stop()
+                break
+            time.sleep(5)
 
     def worker(self):
         logger = logging.getLogger('qofspider')
@@ -360,6 +378,10 @@ class QofSpider:
             for i in range(self.worker_count):
                 threading.Thread(target=self.worker, name='worker_{}'.format(i), daemon=True).start()
             logger.debug("workers up")
+
+            if self.check_interrupt is not None:
+                threading.Thread(target=self.interrupter, name="interrupter", daemon=True).start()
+                logger.debug("interrupter up")
 
     def stop(self):
         logger = logging.getLogger('qofspider')

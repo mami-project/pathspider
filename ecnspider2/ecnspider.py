@@ -83,8 +83,9 @@ class EcnSpider2(qofspider.QofSpider):
                  worker_count, conn_timeout,
                  interface_uri,
                  local_ip4 = None, local_ip6 = None,
-                 qof_port=4739):
-        super().__init__(worker_count, interface_uri, qof_port)
+                 qof_port=4739,
+                 check_interrupt=None):
+        super().__init__(worker_count=worker_count, interface_uri=interface_uri, qof_port=qof_port, check_interrupt=check_interrupt)
 
         self.conn_timeout = conn_timeout
         self.result_sink = result_sink

@@ -20,8 +20,10 @@ class EcnspiderClient():
 
         dht = torrent.TorrentDhtSpider(unique=True)
         dht.start()
-        addrs = [next(dht) for _ in range(0, 100)]
+        addrs = [next(dht) for _ in range(0, 200)]
         dht.stop()
+
+        print("got addresses")
 
         params = {
             "list.destination.ip4": [addr[0][0] for addr in addrs],
@@ -38,6 +40,7 @@ class EcnspiderClient():
         self.receiver()
 
     def receiver(self):
+        i = 0
         while True:
             for label in self._client.receipt_labels():
                 rec = self._client.result_for(label)
@@ -64,7 +67,19 @@ class EcnspiderClient():
                 elif res.get_label() is None:
                     print("Result  (token %s): %s" % (token, res.when()))
 
-            time.sleep(0.5)
+            for token in self._client.result_tokens():
+                res = self._client.result_for(token)
+                if isinstance(res, mplane.model.Exception):
+                    print(res.__repr__())
+                else:
+                    print("Result  (token %s): %s" % (token, res.when()))
+                    for row in res.schema_dict_iterator():
+                        print(row)
+
+                self._client.forget(token)
+            time.sleep(1)
+
+
 
 if __name__ == "__main__":
     mplane.model.initialize_registry()

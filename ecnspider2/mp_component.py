@@ -48,9 +48,6 @@ ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
 ecnspider.log_to_console('DEBUG')
 
-class AlreadyRunnningException(Exception):
-    pass
-
 def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739):
     """
     Return a list of mplane.scheduler.Service instances implementing 
@@ -111,7 +108,7 @@ class EcnspiderService(mplane.scheduler.Service):
     def run(self, spec, check_interrupt):
         # try to acquire lock or immediately return error
         if not self.singleton_lock.acquire(blocking=False):
-            raise AlreadyRunnningException("An instance of ecnspider is already running.")
+            raise Exception("An instance of ecnspider is already running.")
 
         try:
             # wrap the spec in a job source, either ipv4 or ipv6
@@ -128,7 +125,7 @@ class EcnspiderService(mplane.scheduler.Service):
                      worker_count=self.worker_count, conn_timeout=self.connection_timeout,
                      interface_uri=self.interface_uri,
                      local_ip4 = self.ip4addr, local_ip6 = self.ip6addr,
-                     qof_port=self.qof_port)
+                     qof_port=self.qof_port, check_interrupt=check_interrupt)
 
             # formulate jobs
             ports = spec.get_parameter_value("list.destination.port")
@@ -142,10 +139,7 @@ class EcnspiderService(mplane.scheduler.Service):
 
             # run measurement
             starttime = datetime.utcnow()
-
-            # FIXME: Add check_interrupt to qofspider
             ecn.run()
-            time.sleep(10)
             ecn.stop()
             stoptime = datetime.utcnow()
 
