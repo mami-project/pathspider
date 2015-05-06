@@ -417,7 +417,7 @@ def log_to_console(verbosity):
     consoleFormatter = logging.Formatter('%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
     consoleHandler.setFormatter(consoleFormatter)
     consoleHandler.setLevel(verbosity)
-    logger.addHandler(consoleHandler)
+    logging.basicConfig(handlers=[consoleHandler])
 
     logger.info("Logging started")
 

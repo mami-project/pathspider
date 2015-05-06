@@ -97,12 +97,12 @@ class EcnSpider2(qofspider.QofSpider):
             raise NotImplemented("ECN configurator for your system {} is not implemented.".format(sys.platform))
 
         if local_ip4:
-            self.local_ip4 = local_ip4
+            self.local_ip4 = ip_address(local_ip4) if isinstance(local_ip4, str) else local_ip4
         else:
             self.local_ip4 = qofspider.local_address(ipv=4)
 
         if local_ip6:
-            self.local_ip6 = local_ip6
+            self.local_ip6 = ip_address(local_ip4) if isinstance(local_ip6, str) else local_ip6
         else:
             self.local_ip6 = qofspider.local_address(ipv=6)
 

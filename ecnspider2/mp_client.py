@@ -4,7 +4,7 @@ import mplane.client
 import argparse
 import configparser
 import time
-
+import torrent
 
 class EcnspiderClient():
     def __init__(self, config, url):
@@ -18,17 +18,21 @@ class EcnspiderClient():
 
         self._client.retrieve_capabilities(url)
 
+        dht = torrent.TorrentDhtSpider(unique=True)
+        dht.start()
+        addrs = [next(dht) for _ in range(0, 100)]
+        dht.stop()
 
         params = {
-            "list.destination.ip4": ["195.186.145.90",],
-            "list.destination.port": [80,],
-            "btdhtspider.nodeid": ["AA",]
+            "list.destination.ip4": [addr[0][0] for addr in addrs],
+            "list.destination.port": [addr[0][1] for addr in addrs],
+            "btdhtspider.nodeid": ["whatever" for _ in addrs]
         }
 
         try:
-            self.spec = self._client.invoke_capability('ecnspider', "now ... future", params)
+            self.spec = self._client.invoke_capability('ecnspider-ip4', "now ... future", params)
         except KeyError:
-            print("Specified URL does not support 'ecnspider' capability.")
+            print("Specified URL does not support 'ecnspider-ip4' capability.")
             exit(1)
 
         self.receiver()
