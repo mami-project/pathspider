@@ -386,6 +386,7 @@ class QofSpider:
             time.sleep(QOF_FINAL_SLEEP)
 
             self.listener.shutdown()
+            self.listener.server_close()
             logger.debug("QoF shutdown complete")
 
 
