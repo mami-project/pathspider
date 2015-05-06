@@ -1,6 +1,5 @@
 __author__ = 'elio'
 
-import ecnspider
 import multiprocessing
 import multiprocessing.managers
 import queue
@@ -10,6 +9,8 @@ import sys
 import argparse
 import threading
 import time
+import os.path
+from . import ecnspider
 
 def main():
     handler = ecnspider.log_to_console(logging.DEBUG)
@@ -18,18 +19,12 @@ def main():
 
     ipfix.ie.use_iana_default()
     ipfix.ie.use_5103_default()
-    ipfix.ie.use_specfile("qof.iespec")
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
     parser = argparse.ArgumentParser(description='Ecnspider2 slave. Executes ecnspider jobs.')
     parser.add_argument('interface_uri', metavar='URI', help='Libtrace input source URI. (e.g. int:eth0)')
     args = parser.parse_args()
-
-    if sys.platform == 'linux':
-        configurator_hooks = ecnspider.EcnSpider2ConfigLinux()
-    elif sys.platform == 'darwin':
-        configurator_hooks = ecnspider.EcnSpider2ConfigDarwin()
-    else:
-        raise NotImplemented("Configurator for your system {} is not implemented.".format(sys.platform))
 
     pipe, pipe_remote = multiprocessing.Pipe(True)
 
@@ -38,7 +33,6 @@ def main():
     ecn = ecnspider.EcnSpider2(result_sink=result_cache.put,
         worker_count=200, conn_timeout=5,
         interface_uri=args.interface_uri,
-        configurator_hooks=configurator_hooks,
         qof_port=54739)
 
     class QueueManager(multiprocessing.managers.BaseManager): pass

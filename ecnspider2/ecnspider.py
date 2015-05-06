@@ -21,7 +21,6 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 """
 
 from ipaddress import ip_address
-import qofspider
 import http.client
 import collections
 import socket
@@ -31,8 +30,9 @@ import logging
 import time
 import sys
 import ipfix
-import torrent
 import itertools
+from . import qofspider
+from . import torrent
 
 # Flags constants
 TCP_CWR = 0x80
@@ -82,14 +82,19 @@ class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
                  interface_uri,
-                 configurator_hooks,
                  local_ip4 = None, local_ip6 = None,
                  qof_port=4739):
         super().__init__(worker_count, interface_uri, qof_port)
 
         self.conn_timeout = conn_timeout
         self.result_sink = result_sink
-        self.configurator_hooks = configurator_hooks
+
+        if sys.platform == 'linux':
+            self.configurator_hooks = EcnSpider2ConfigLinux()
+        elif sys.platform == 'darwin':
+            self.configurator_hooks = EcnSpider2ConfigDarwin()
+        else:
+            raise NotImplemented("ECN configurator for your system {} is not implemented.".format(sys.platform))
 
         if local_ip4:
             self.local_ip4 = local_ip4
@@ -316,19 +321,11 @@ def main():
 
     dht = torrent.TorrentDhtSpider()
 
-    if sys.platform == 'linux':
-        configurator_hooks = EcnSpider2ConfigLinux()
-    elif sys.platform == 'darwin':
-        configurator_hooks = EcnSpider2ConfigDarwin()
-    else:
-        raise NotImplemented("Configurator for your system {} is not implemented.".format(sys.platform))
-
     results = []
 
     ecn = EcnSpider2(result_sink=results.append,
         worker_count=50, conn_timeout=5,
         interface_uri='int:wlan0',
-        configurator_hooks=configurator_hooks,
         qof_port=54739)
 
     ecn.run()

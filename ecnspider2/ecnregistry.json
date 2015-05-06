@@ -1,0 +1,55 @@
+{ "registry-format": "mplane-0",
+    "registry-uri": "",
+    "registry-revision": 0,
+    "includes": ["mplane/registry.json"],
+    "elements": [
+        { "name": "list.destination.ip4",
+            "prim": "string",
+            "desc": "asdf"
+        },
+        { "name": "list.destination.ip6",
+            "prim": "string",
+            "desc": "asdf"
+        },
+        { "name": "list.destination.port",
+            "prim": "string",
+            "desc": "asdf"
+        },
+        { "name": "btdhtspider.nodeid",
+            "prim": "string",
+            "desc": "BitTorrent Distributed Hash Table node identifier (in hex)."
+        },
+        { "name": "ecnspider.ecnstate",
+            "prim": "boolean",
+            "desc": "Assertion (or negation) that ECN negotiation is enabled in the OS."
+        },
+        { "name": "ecnspider.initflags.fwd",
+            "prim": "natural",
+            "desc": "TCP initialization flags in forward direction."
+        },
+        { "name": "ecnspider.synflags.fwd",
+            "prim": "natural",
+            "desc": "TCP SYN flags in forward direction."
+        },
+        { "name": "ecnspider.unionflags.fwd",
+            "prim": "natural",
+            "desc": "TCP flags in forward direction."
+        },
+        { "name": "ecnspider.initflags.rev",
+            "prim": "natural",
+            "desc": "TCP initialization flags in reverse direction."
+        },
+        { "name": "ecnspider.synflags.rev",
+            "prim": "natural",
+            "desc": "TCP SYN flags in reverse direction."
+        },
+        { "name": "ecnspider.unionflags.rev",
+            "prim": "natural",
+            "desc": "TCP flags in reverse direction."
+        },
+        { "name": "ecnspider.ttl.rev.min",
+            "prim": "natural",
+            "desc": "Minimum TTL seen in reverse direction."
+        }
+    ]
+}

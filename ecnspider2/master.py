@@ -1,21 +1,20 @@
 __author__ = 'elio'
 
-from ecnspider import MergedRecord
 import itertools
-import ecnspider
 import multiprocessing.managers
 import multiprocessing.connection
 from ipaddress import ip_address
 import queue
-import qofspider
 import ipfix
 import logging
 import argparse
-import torrent
 import threading
 import collections
 import time
 import codecs
+import os.path
+from . import ecnspider
+from . import torrent
 
 class Slave:
     def __init__(self, id, pipe):
@@ -128,7 +127,8 @@ class Master:
 def main():
     handler = ecnspider.log_to_console(logging.DEBUG)
     ipfix.ie.use_iana_default()
-    ipfix.ie.use_specfile("qof.iespec")
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+    ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
     logging.getLogger('master').addHandler(handler)
 
