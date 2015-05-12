@@ -1,16 +1,52 @@
 import mplane
 import mplane.tls
+import mplane.utils
 import mplane.client
 import argparse
 import configparser
 import time
-import torrent
 
-class EcnspiderClient():
+def retrieve_addresses(count, url, config, when = "now ... future"):
+    tls_state = mplane.tls.TlsState(config)
+
+    client = mplane.client.HttpInitiatorClient(tls_state)
+
+    client.retrieve_capabilities(url)
+
+    cap_label = 'btdhtspider-ip4'
+
+    try:
+        spec = client.invoke_capability(cap_label, when, { "btdhtspider.count": count })
+        token_label = spec.get_token()
+    except KeyError as e:
+        print("Specified URL does not support '"+label+"' capability.")
+        raise e
+
+    addrs = []
+
+    while True:
+        time.sleep(0.5)
+        try:
+            res = client.result_for(token_label)
+        except KeyError:
+            continue
+
+        if isinstance(res, mplane.model.Exception):
+            print(res.__repr__())
+        elif isinstance(res, mplane.model.Receipt):
+            continue
+        elif isinstance(res, mplane.model.Result):
+            for row in res.schema_dict_iterator():
+                addrs.append((row['destination.ip4'], row['destination.port'], row['btdhtspider.nodeid']))
+        else:
+            print(res)
+
+        return addrs
+
+
+class EcnspiderClient:
     def __init__(self, config, url):
         # boot the model
-        mplane.model.initialize_registry()
-        self._caps = []
         self.config = config
         tls_state = mplane.tls.TlsState(config)
 
@@ -18,24 +54,20 @@ class EcnspiderClient():
 
         self._client.retrieve_capabilities(url)
 
-        dht = torrent.TorrentDhtSpider(unique=True)
-        dht.start()
-        addrs = [next(dht) for _ in range(0, 200)]
-        dht.stop()
-
+        addrs = retrieve_addresses(200, url, config)
         print("got addresses")
 
         params = {
-            "list.destination.ip4": [addr[0][0] for addr in addrs],
-            "list.destination.port": [addr[0][1] for addr in addrs],
-            "btdhtspider.nodeid": ["whatever" for _ in addrs]
+            "destination.ip4": [addr[0] for addr in addrs],
+            "destination.port": [addr[1] for addr in addrs],
+            "dhtbtspider.nodeid": [addr[2] for addr in addrs]
         }
 
         try:
             self.spec = self._client.invoke_capability('ecnspider-ip4', "now ... future", params)
-        except KeyError:
+        except KeyError as e:
             print("Specified URL does not support 'ecnspider-ip4' capability.")
-            exit(1)
+            raise e
 
         self.receiver()
 
@@ -101,5 +133,7 @@ if __name__ == "__main__":
     config.optionxform = str
     config.read(mplane.utils.search_path(args.config))
 
+    addrs = retrieve_addresses(200, config['client'].get('dhtbtspider_url'), config)
+    print(len(addrs), addrs)
     # Start the supervisor
-    supervisor = EcnspiderClient(config, "localhost:8888")
+    #supervisor = EcnspiderClient(config, "localhost:8888")

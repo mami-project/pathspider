@@ -320,7 +320,7 @@ def main():
     ipfix.ie.use_5103_default()
     ipfix.ie.use_specfile("qof.iespec")
 
-    dht = torrent.TorrentDhtSpider()
+    dht = torrent.BtDhtSpider()
 
     results = []
 

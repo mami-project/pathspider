@@ -3,21 +3,17 @@
     "registry-revision": 0,
     "includes": ["mplane/registry.json"],
     "elements": [
-        { "name": "list.destination.ip4",
-            "prim": "string",
-            "desc": "asdf"
-        },
-        { "name": "list.destination.ip6",
-            "prim": "string",
-            "desc": "asdf"
-        },
-        { "name": "list.destination.port",
-            "prim": "string",
-            "desc": "asdf"
-        },
         { "name": "btdhtspider.nodeid",
             "prim": "string",
             "desc": "BitTorrent Distributed Hash Table node identifier (in hex)."
+        },
+        { "name": "btdhtspider.unique",
+            "prim": "boolean",
+            "desc": "Assertion (or negation) that only unique addresses should be returned"
+        },
+        { "name": "btdhtspider.count",
+            "prim": "natural",
+            "desc": "Count of addresses to collect"
         },
         { "name": "ecnspider.ecnstate",
             "prim": "boolean",

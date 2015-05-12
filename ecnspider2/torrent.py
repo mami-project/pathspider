@@ -1,6 +1,6 @@
 """
 Algorithm for collecting IP addresses and ports of computers using
-the BitTorrent Distributed Hash Table (DHT) network.
+the BitTorrent Distributed Hash Table (DHT) protocol.
 
 .. moduleauthor:: Elio Gubser <elio.gubser@alumni.ethz.ch>
 
@@ -61,7 +61,7 @@ def parse_compact_node6_info(data):
         # (id, (ipv6, port))
         yield {'id':frame[0], 'addr':('{:04X}:{:04X}:{:04X}:{:04X}:{:04X}:{:04X}:{:04X}:{:04X}'.format(*frame[1:9]), frame[9])}
 
-class TorrentDhtSpider:
+class BtDhtSpider:
     """
     Perform requests to nodes in the BitTorrent DHT network in order to collect
     IP address, port and node id of participants in the network.
@@ -72,14 +72,15 @@ class TorrentDhtSpider:
     Log messages are sent to the logger 'torrent-dht'
 
     Example usage::
-        dht = TorrentDhtSpider(unique=True)
+        dht = BtDhtSpider(unique=True)
         dht.start()
         addrs = [next(dht) for i in range(0, 100)]
         print(addrs)
         dht.stop()
     """
 
-    def __init__(self, bindaddr=('', 6881), ip_version=4, unique=False, bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881))):
+    def __init__(self, bindaddr=('', 6881), ip_version=4, unique=False, bootstrap=(('router.bittorrent.com', 6881), ('dht.transmissionbt.com', 6881)),
+                bandwidth = 5*1024, max_addr_cache_size = 100, max_requests_running = 100, max_addr_pool_size = 100, request_timeout = 15, slot_time = 0.1):
         """
         :param bindaddr: Address to bind to. (Needs to contain either an IPv4 or IPv6 address depending on parameter ip_version)
         :param ip_version: Of which IP version addresses should be collected. ip_version=4 or ip_version=6.
@@ -94,12 +95,12 @@ class TorrentDhtSpider:
         self.requests = collections.OrderedDict()
 
         # sender and receiver parameters
-        self.max_bandwidth = 5*1024 # bytes/sec
-        self.max_addr_cache_size = 100
-        self.max_requests_running = 100
-        self.max_addr_pool_size = 100
-        self.request_timeout = 15
-        self.slot_time = 0.1
+        self.max_bandwidth = bandwidth
+        self.max_addr_cache_size = max_addr_cache_size
+        self.max_requests_running = max_requests_running
+        self.max_addr_pool_size = max_addr_pool_size
+        self.request_timeout = request_timeout
+        self.slot_time = slot_time
 
         # addresses for the user
         self.addr_cache = queue.Queue()
@@ -330,7 +331,7 @@ if __name__ == "__main__":
 
     logger.info("Logging started")
 
-    dht = TorrentDhtSpider(ip_version=4, unique=True)
+    dht = BtDhtSpider(ip_version=4, unique=True)
     dht.start()
 
     for addr, nodeid in dht:

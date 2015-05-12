@@ -62,7 +62,7 @@ class Master:
     def jobcreator(self):
         logger = logging.getLogger('master')
         logger.info('jobcreator started')
-        dht = torrent.TorrentDhtSpider(unique=True)
+        dht = torrent.BtDhtSpider(unique=True)
         dht.start()
         jobs_sent = 0
         while self.running and jobs_sent < self.count:
