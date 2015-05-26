@@ -6,17 +6,9 @@ import argparse
 import configparser
 import time
 
-def retrieve_addresses(count, url, config, when = "now ... future"):
-    tls_state = mplane.tls.TlsState(config)
-
-    client = mplane.client.HttpInitiatorClient(tls_state)
-
-    client.retrieve_capabilities(url)
-
-    cap_label = 'btdhtspider-ip4'
-
+def retrieve_addresses(client, ipv, count, label, url, unique = True, when = "now ... future"):
     try:
-        spec = client.invoke_capability(cap_label, when, { "btdhtspider.count": count })
+        spec = client.invoke_capability(label, when, { "btdhtspider.count": count, "btdhtspider.unique": unique })
         token_label = spec.get_token()
     except KeyError as e:
         print("Specified URL does not support '"+label+"' capability.")
@@ -25,7 +17,7 @@ def retrieve_addresses(count, url, config, when = "now ... future"):
     addrs = []
 
     while True:
-        time.sleep(0.5)
+        time.sleep(1)
         try:
             res = client.result_for(token_label)
         except KeyError:
@@ -37,103 +29,141 @@ def retrieve_addresses(count, url, config, when = "now ... future"):
             continue
         elif isinstance(res, mplane.model.Result):
             for row in res.schema_dict_iterator():
-                addrs.append((row['destination.ip4'], row['destination.port'], row['btdhtspider.nodeid']))
+                addrs.append((row['destination.'+ipv], row['destination.port'], row['btdhtspider.nodeid']))
         else:
             print(res)
 
         return addrs
 
+def perform_measurement(clients, ipv, addrs, when = "now ... future"):
+    # invoke on all probes
+    ips = [str(addr[0]) for addr in addrs]
+    ports = [addr[1] for addr in addrs]
 
-class EcnspiderClient:
-    def __init__(self, config, url):
-        # boot the model
-        self.config = config
-        tls_state = mplane.tls.TlsState(config)
-
-        self._client = mplane.client.HttpInitiatorClient(tls_state)
-
-        self._client.retrieve_capabilities(url)
-
-        addrs = retrieve_addresses(200, url, config)
-        print("got addresses")
-
-        params = {
-            "destination.ip4": [addr[0] for addr in addrs],
-            "destination.port": [addr[1] for addr in addrs],
-            "dhtbtspider.nodeid": [addr[2] for addr in addrs]
-        }
-
+    tokens = []
+    for label, client in clients:
         try:
-            self.spec = self._client.invoke_capability('ecnspider-ip4', "now ... future", params)
+            spec = client.invoke_capability('ecnspider-'+ipv, when, { 'destination.'+ipv: ips, 'destination.port': ports })
+            tokens.append((spec.get_token(), label, client))
         except KeyError as e:
-            print("Specified URL does not support 'ecnspider-ip4' capability.")
+            print("Specified URL does not support '"+label+"' capability.")
             raise e
 
-        self.receiver()
-
-    def receiver(self):
-        i = 0
+    addrs = []
+    for token, label, client in tokens:
         while True:
-            for label in self._client.receipt_labels():
-                rec = self._client.result_for(label)
-                if isinstance(rec, mplane.model.Receipt):
-                    print("Receipt %s (token %s): %s" %
-                        (label, rec.get_token(), rec.when()))
-
-            for token in self._client.receipt_tokens():
-                rec = self._client.result_for(token)
-                if isinstance(rec, mplane.model.Receipt):
-                    if rec.get_label() is None:
-                        print("Receipt (token %s): %s" % (token, rec.when()))
-
-            for label in self._client.result_labels():
-                res = self._client.result_for(label)
-                if not isinstance(res, mplane.model.Exception):
-                    print("Result  %s (token %s): %s" %
-                          (label, res.get_token(), res.when()))
-
-            for token in self._client.result_tokens():
-                res = self._client.result_for(token)
-                if isinstance(res, mplane.model.Exception):
-                    print(res.__repr__())
-                elif res.get_label() is None:
-                    print("Result  (token %s): %s" % (token, res.when()))
-
-            for token in self._client.result_tokens():
-                res = self._client.result_for(token)
-                if isinstance(res, mplane.model.Exception):
-                    print(res.__repr__())
-                else:
-                    print("Result  (token %s): %s" % (token, res.when()))
-                    for row in res.schema_dict_iterator():
-                        print(row)
-
-                self._client.forget(token)
             time.sleep(1)
+            try:
+                res = client.result_for(token)
+            except KeyError:
+                continue
 
+            if isinstance(res, mplane.model.Exception):
+                print(res.__repr__())
+            elif isinstance(res, mplane.model.Receipt):
+                continue
+            elif isinstance(res, mplane.model.Result):
+                print("Receiving data from "+label)
+                for row in res.schema_dict_iterator():
+                    yield (label, row)
+            else:
+                print(res)
 
+            break
 
 if __name__ == "__main__":
     mplane.model.initialize_registry()
 
     # look for TLS configuration
     parser = argparse.ArgumentParser(description="mPlane ecnspider client")
-    parser.add_argument('--config', metavar="config-file",
+    parser.add_argument('--config', metavar="config-file", required=True,
                         help="Configuration file")
+    parser.add_argument('--count', metavar="N", type=int, required=True,
+                        help="Number of test subjects for the measurement. (N > 0)")
+    parser.add_argument('--file', '-f', metavar='FILENAME', help='Write results into CSV-File.', dest='outfile', required=True, type=argparse.FileType('w'))
     args = parser.parse_args()
 
-    # check if conf file parameter has been inserted in the command line
-    if not args.config:
-        print('\nERROR: missing --config\n')
-        parser.print_help()
+    # check arguments
+    if args.count < 1:
+        print('\nERROR: Number of test subjects (--count) must be integer greater than 0.)')
         exit(1)
 
-    # Read the configuration file
+    # read the configuration file
     config = configparser.ConfigParser()
     config.optionxform = str
     config.read(mplane.utils.search_path(args.config))
 
-    addrs = retrieve_addresses(200, config['client'].get('dhtbtspider_url'), config)
-    print(len(addrs), addrs)
-    # Start the supervisor
-    #supervisor = EcnspiderClient(config, "localhost:8888")
+    tls_state = mplane.tls.TlsState(config)
+    chunk_size = config['client'].getint('chunk_size')
+    outfile = args.outfile
+
+    # setup address collector
+    if 'btdhtspider-ip6' in config['client']:
+        ipv = 'ip6'
+        btdht_label = 'btdhtspider-ip6'
+        btdht_url = config['client'].get('btdhtspider-ip6')
+    else:
+        ipv = 'ip4'
+        btdht_label = 'btdhtspider-ip4'
+        btdht_url = config['client'].get('btdhtspider-ip4')
+
+    btdhtspider = mplane.client.HttpInitiatorClient(tls_state)
+    btdhtspider.retrieve_capabilities(btdht_url)
+
+    # setup ecnspider probes
+    probes_config = config.items('ecnspider')
+    if len(probes_config) == 0:
+        print('\nERROR: no ecnspider probes specified in configuration file.')
+        exit(1)
+
+    probes = []
+    column_names = None
+    for probe_label, probe_url in probes_config:
+        probe_client = mplane.client.HttpInitiatorClient(tls_state)
+        probe_client.retrieve_capabilities(probe_url)
+
+        if column_names == None:
+            cap = probe_client.capability_for('ecnspider-'+ipv)
+            column_names = cap.result_column_names()
+
+        probes.append((probe_label, probe_client))
+
+
+    # write file header
+    outfile.write("site,ip,port,rport,ecnstate,connstate,fif,fsf,fuf,fir,fsr,fur,ttl\n")
+
+    recorded = 0
+    try:
+        while recorded < args.count:
+            num_request = chunk_size if recorded + chunk_size < args.count else args.count - recorded
+            assert(num_request > 0)
+
+            print("Retrieving the next {} addresses.\n".format(num_request))
+            addrs = retrieve_addresses(btdhtspider, ipv, num_request, btdht_label, btdht_url, unique=True)
+
+            print("Performing measurement.")
+            results = perform_measurement(probes, ipv, addrs)
+            for label, result in results:
+                outfile.write('{label},{ip},{port},{rport},{ecnstate},{connstate},{fif},{fsf},{fuf},{fir},{fsr},{fur},{ttl}\n'.format(
+                    label=label,
+                    ip=result['destination.'+ipv],
+                    port=result['source.port'],
+                    rport=result['destination.port'],
+                    ecnstate=result['ecnspider.ecnstate'],
+                    connstate=result['connectivity.ip'],
+                    fif=result['ecnspider.initflags.fwd'],
+                    fsf=result['ecnspider.synflags.fwd'],
+                    fuf=result['ecnspider.unionflags.fwd'],
+                    fir=result['ecnspider.initflags.rev'],
+                    fsr=result['ecnspider.synflags.rev'],
+                    fur=result['ecnspider.unionflags.rev'],
+                    ttl=result['ecnspider.ttl.rev.min']
+                ))
+
+            recorded += num_request
+            print("Finished {} of {}".format(recorded, args.count))
+    except KeyboardInterrupt:
+        print("Keyboard interrupt, closing file...")
+    finally:
+        outfile.close()
+

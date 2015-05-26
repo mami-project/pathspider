@@ -60,30 +60,28 @@ def services(ip4addr = None, ip6addr = None, worker_count = None, connection_tim
     # global lock, only one ecnspider instance may run at a time.
     lock = threading.Lock()
 
-    # FIXME: move connection_timeout as parameter
+    # TODO: move connection_timeout as parameter
     servicelist = []
-    servicelist.append(EcnspiderService(ecnspider_torrent_cap(4), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
+    servicelist.append(EcnspiderService(ecnspider_cap(4), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
     servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4)))
 
-    servicelist.append(EcnspiderService(ecnspider_torrent_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
+    servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
     servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip6addr or '::'), btdhtport6)))
 
     return servicelist
 
-def ecnspider_torrent_cap(ip_version):
+def ecnspider_cap(ip_version):
     ipv = "ip"+str(ip_version)
 
     cap = mplane.model.Capability(label='ecnspider-'+ipv, when='now ... future', reguri=reguri)
 
     cap.add_parameter("destination."+ipv, "[*]")
     cap.add_parameter("destination.port", "[*]")
-    cap.add_parameter("btdhtspider.nodeid", "[*]")
 
     cap.add_result_column("source.port")
     cap.add_result_column("destination."+ipv)
     cap.add_result_column("destination.port")
     cap.add_result_column("connectivity.ip")
-    cap.add_result_column("btdhtspider.nodeid")
     cap.add_result_column("ecnspider.ecnstate")
     cap.add_result_column("ecnspider.initflags.fwd")
     cap.add_result_column("ecnspider.synflags.fwd")
@@ -131,11 +129,10 @@ class EcnspiderService(mplane.scheduler.Service):
 
             # formulate jobs
             ports = spec.get_parameter_value("destination.port")
-            nodeids = spec.get_parameter_value("btdhtspider.nodeid")
             if len(ports) != len(ips):
                 raise ValueError("destination.ip4/6, destination.port and torrentspider.nodeid don't have same amount of elements.")
 
-            jobs = [ecnspider.Job(ip_address(ip), ip, port, nodeid) for ip, port, nodeid in zip(ips, ports, nodeids)]
+            jobs = [ecnspider.Job(ip_address(ip), ip, port, None) for ip, port in zip(ips, ports)]
             for job in jobs:
                 ecn.add_job(job)
 
@@ -152,7 +149,6 @@ class EcnspiderService(mplane.scheduler.Service):
                 res.set_result_value("source.port",                 result.port, i)
                 res.set_result_value("destination."+ipv,            result.ip, i)
                 res.set_result_value("destination.port",            result.rport, i)
-                res.set_result_value("btdhtspider.nodeid",          result.nodeid, i)
                 res.set_result_value("connectivity.ip",             result.connstate, i)
                 res.set_result_value("ecnspider.ecnstate",          result.ecnstate, i)
                 res.set_result_value("ecnspider.initflags.fwd",     result.fif, i)
@@ -180,6 +176,7 @@ def btdhtspider_cap(ipaddr, port):
     cap.add_metadata("source.port", port)
 
     cap.add_parameter("btdhtspider.count")
+    cap.add_parameter("btdhtspider.unique")
 
     cap.add_result_column("destination."+ipv)
     cap.add_result_column("destination.port")
@@ -205,20 +202,29 @@ class BtDhtSpiderService(mplane.scheduler.Service):
 
     def run(self, spec, check_interrupt):
         count = spec.get_parameter_value("btdhtspider.count")
+        if spec.has_parameter("btdhtspider.unique"):
+            unique = spec.get_parameter_value("btdhtspider.unique")
+        else:
+            unique = False
+
         starttime = datetime.utcnow()
 
         res = mplane.model.Result(specification=spec)
 
         ipset = set()
         checkcount = 0
+        result_idx = 0
         for addr in self.dht:
-            ipset.add(addr[0][0])
+            if not unique or addr[0][0] not in ipset:
+                ipset.add(addr[0][0])
 
-            res.set_result_value("destination."+self.ipv, addr[0][0], len(ipset)-1)
-            res.set_result_value("destination.port", addr[0][1], len(ipset)-1)
-            res.set_result_value("btdhtspider.nodeid", addr[1], len(ipset)-1)
+                res.set_result_value("destination."+self.ipv, addr[0][0], result_idx)
+                res.set_result_value("destination.port", addr[0][1], result_idx)
+                res.set_result_value("btdhtspider.nodeid", addr[1], result_idx)
 
-            if len(ipset) >= count:
+                result_idx += 1
+
+            if result_idx >= count:
                 break
 
             checkcount += 1
@@ -226,6 +232,7 @@ class BtDhtSpiderService(mplane.scheduler.Service):
                 checkcount = 0
                 if check_interrupt():
                     break
+
 
         stoptime = datetime.utcnow()
 
