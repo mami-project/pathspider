@@ -37,11 +37,6 @@ from datetime import datetime
 import threading
 import ipfix
 
-
-scriptdir = os.path.dirname(os.path.abspath(__file__))
-reguri = os.path.join(scriptdir, "ecnregistry.json")
-mplane.model.initialize_registry(reguri)
-
 ipfix.ie.use_iana_default()
 ipfix.ie.use_5103_default()
 scriptdir = os.path.dirname(os.path.abspath(__file__))
@@ -50,27 +45,28 @@ ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 ecnspider.log_to_console('DEBUG')
 
 def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
-            btdhtport4 = 9881, btdhtport6 = 9882):
+            btdhtport4 = 9881, btdhtport6 = 9882, reguri = None):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for ecnspider.
 
     """
+    mplane.model.initialize_registry(reguri)
 
     # global lock, only one ecnspider instance may run at a time.
     lock = threading.Lock()
 
     # TODO: move connection_timeout as parameter
     servicelist = []
-    servicelist.append(EcnspiderService(ecnspider_cap(4), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
-    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4)))
+    servicelist.append(EcnspiderService(ecnspider_cap(4, reguri), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
+    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4, reguri)))
 
-    servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
-    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip6addr or '::'), btdhtport6)))
+    servicelist.append(EcnspiderService(ecnspider_cap(6, reguri), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
+    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip6addr or '::'), btdhtport6, reguri)))
 
     return servicelist
 
-def ecnspider_cap(ip_version):
+def ecnspider_cap(ip_version, reguri):
     ipv = "ip"+str(ip_version)
 
     cap = mplane.model.Capability(label='ecnspider-'+ipv, when='now ... future', reguri=reguri)
@@ -167,7 +163,7 @@ class EcnspiderService(mplane.scheduler.Service):
             return res
 
 
-def btdhtspider_cap(ipaddr, port):
+def btdhtspider_cap(ipaddr, port, reguri):
     ipv = "ip"+str(ipaddr.version)
 
     cap = mplane.model.Capability(label='btdhtspider-'+ipv, when='now ... future', reguri=reguri)

@@ -1,7 +1,7 @@
 { "registry-format": "mplane-0",
     "registry-uri": "",
     "registry-revision": 0,
-    "includes": ["mplane/registry.json"],
+    "includes": ["https://n.ethz.ch/~egubser/registry.json"],
     "elements": [
         { "name": "btdhtspider.nodeid",
             "prim": "string",
