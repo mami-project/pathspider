@@ -3,6 +3,7 @@ Ecnspider2: Qofspider-based tool for measuring ECN-linked connectivity
 Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 
 .. moduleauthor:: Brian Trammell <brian@trammell.ch>
+.. moduleauthor:: Elio Gubser <elio.gubser@alumni.ethz.ch>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -67,16 +68,16 @@ Connection.TIMEOUT = 2
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0'
 
 SpiderRecord = collections.namedtuple("SpiderRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "nodeid"])
+    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "userval"])
 
 FlowRecord = collections.namedtuple("FlowRecord",
     ["ip","port","octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
 
 MergedRecord = collections.namedtuple("MergedRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "nodeid",
+    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "userval",
      "octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
 
-Job = collections.namedtuple("Job", ["ip", "host", "rport", "nodeid"])
+Job = collections.namedtuple("Job", ["ip", "host", "rport", "userval"])
 
 class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
@@ -131,10 +132,10 @@ class EcnSpider2(qofspider.QofSpider):
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == Connection.OK:
-            sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, job.nodeid)
+            sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, job.userval)
 
         else:
-            sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, False, 0, job.nodeid)
+            sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, False, 0, job.userval)
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
@@ -232,7 +233,7 @@ class EcnSpider2(qofspider.QofSpider):
 
     def merge(self, flow, res):
         self.result_sink(MergedRecord(res.ip, res.host, res.port, res.rport,
-                res.ecnstate, res.connstate, res.httpstatus, res.nodeid,
+                res.ecnstate, res.connstate, res.httpstatus, res.userval,
                 flow.octets, flow.fif, flow.fsf, flow.fuf,
                 flow.fir, flow.fsr, flow.fur, flow.ttl))
 
