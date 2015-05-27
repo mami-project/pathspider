@@ -54,7 +54,6 @@ def services(ip4addr = None, ip6addr = None, worker_count = None, connection_tim
     # global lock, only one ecnspider instance may run at a time.
     lock = threading.Lock()
 
-    # TODO: move connection_timeout as parameter
     servicelist = []
     servicelist.append(EcnspiderService(ecnspider_cap(4, reguri), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
     servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4, reguri)))
