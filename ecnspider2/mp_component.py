@@ -1,13 +1,11 @@
 """
-ECN-Spider: Large-scale ECN connectivity probe for mPlane
+Ecnspider2: Qofspider-based tool for measuring ECN-linked connectivity
+Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 
-This module implements the mPlane component module interface and 
-wraps a modified the ecn_spider.py and resolution.py modules of
-ECN-Spider to allow remote control of ECN-Spider instances via 
-client-initiated mPlane connections.
+This module implements the mPlane component module interface for the ecnspider.py and
+torrent.py modules.
 
     Copyright 2015 Elio Gubser <elio.gubser@alumni.ethz.ch>
-    ECN-Spider core Copyright 2014 Damiano Boppart
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
