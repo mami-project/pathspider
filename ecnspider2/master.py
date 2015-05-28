@@ -37,7 +37,7 @@ import time
 import codecs
 import os.path
 from . import ecnspider
-from . import torrent
+from ../btdhtresolver/ import torrent
 
 class Slave:
     def __init__(self, id, pipe):
