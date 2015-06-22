@@ -17,12 +17,12 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-with open(os.path.join(here, 'VERSION')) as version_file:
+with open(path.join(here, 'pathspider', 'VERSION')) as version_file:
     version = version_file.read().strip()
 
 
 setup(
-    name='pathtools',
+    name='pathspider',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -69,7 +69,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['ipfix'],
+    install_requires=['ipfix', 'bencodepy', 'numpy', 'pandas'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -90,7 +90,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'cli=pathspider:main',
+            'pathspider=pathspider:main',
         ],
     },
 )
