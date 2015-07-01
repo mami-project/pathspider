@@ -55,7 +55,7 @@ def services(ip4addr = None, ip6addr = None):
 def webresolver_cap(ipaddr, reguri):
     ipv = "ip"+str(ipaddr.version)
 
-    cap = mplane.model.Capability(label='webresolver-'+ipv, when='now ... future', reguri=reguri)
+    cap = mplane.model.Capability(label='webresolver-'+ipv, when='now ... future', registry_uri=reguri)
 
     cap.add_metadata("source."+ipv, ipaddr)
     cap.add_metadata("source.port", port)

@@ -26,7 +26,6 @@ from ipaddress import ip_address
 
 import mplane
 from . import ecnspider
-from . import torrent
 import collections
 
 import os.path
@@ -40,31 +39,28 @@ ipfix.ie.use_5103_default()
 scriptdir = os.path.dirname(os.path.abspath(__file__))
 ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
-ecnspider.log_to_console('DEBUG')
-
 def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
-            btdhtport4 = 9881, btdhtport6 = 9882, reguri = None):
+            btdhtport4 = 9881, btdhtport6 = 9882):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for ecnspider.
 
     """
-    mplane.model.initialize_registry(reguri)
 
     # global lock, only one ecnspider instance may run at a time.
     lock = threading.Lock()
 
     servicelist = []
-    servicelist.append(EcnspiderService(ecnspider_cap(4, reguri), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
+    servicelist.append(EcnspiderService(ecnspider_cap(4), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
     
-    servicelist.append(EcnspiderService(ecnspider_cap(6, reguri), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
+    servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
     
     return servicelist
 
-def ecnspider_cap(ip_version, reguri):
+def ecnspider_cap(ip_version):
     ipv = "ip"+str(ip_version)
 
-    cap = mplane.model.Capability(label='ecnspider-'+ipv, when='now ... future', reguri=reguri)
+    cap = mplane.model.Capability(label='ecnspider-'+ipv, when='now ... future')
 
     cap.add_parameter("destination."+ipv, "[*]")
     cap.add_parameter("destination.port", "[*]")

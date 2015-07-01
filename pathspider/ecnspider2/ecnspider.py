@@ -33,7 +33,6 @@ import sys
 import ipfix
 import itertools
 from . import qofspider
-from . import torrent
 
 # Flags constants
 TCP_CWR = 0x80

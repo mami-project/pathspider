@@ -1,0 +1,1017 @@
+{
+  "registry-format": "mplane-0",
+  "registry-revision": 0,
+  "registry-uri": "registry.json",
+  "elements": [
+    {
+      "name": "start",
+      "prim": "time",
+      "desc": "Start time of an event/flow that may have a non-zero duration"
+    },
+    {
+      "name": "end",
+      "prim": "time",
+      "desc": "End time of an event/flow that may have a non-zero duration"
+    },
+    {
+      "name": "time",
+      "prim": "time",
+      "desc": "Time at which an single event occurred"
+    },
+    {
+      "name": "duration.s",
+      "prim": "natural",
+      "desc": "Duration of an event/flow in seconds"
+    },
+    {
+      "name": "duration.ms",
+      "prim": "natural",
+      "desc": "Duration of an event/flow in milliseconds"
+    },
+    {
+      "name": "duration.us",
+      "prim": "natural",
+      "desc": "Duration of an event/flow in microseconds"
+    },
+    {
+      "name": "duration.ns",
+      "prim": "natural",
+      "desc": "Duration of an event/flow in nanoseconds"
+    },
+    {
+      "name": "source.ip4",
+      "prim": "address",
+      "desc": "Source IPv4 address of an event/flow, or the IPv4 address from which an active measurement was taken"
+    },
+    {
+      "name": "source.ip6",
+      "prim": "address",
+      "desc": "Source IPv6 address of an event/flow, or the IPv6 address from which an active measurement was taken"
+    },
+    {
+      "name": "source.port",
+      "prim": "natural",
+      "desc": "Source layer 4 port of an event/flow, or the port from which packets were sent when an active measurement was taken"
+    },
+    {
+      "name": "source.interface",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of an interface to which the source of an event/flow is attached, or from which an active measurement was taken"
+    },
+    {
+      "name": "source.device",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of a source device of an event/flow, or from which an active measurement was taken"
+    },
+    {
+      "name": "source.as",
+      "prim": "natural",
+      "desc": "BGP AS number of the source of an event/flow, or AS originating an active measurement"
+    },
+    {
+      "name": "destination.ip4",
+      "prim": "address",
+      "desc": "The destination IPv4 address of an event/flow, or the IPv4 address of the target of an active measurement"
+    },
+    {
+      "name": "destination.ip6",
+      "prim": "address",
+      "desc": "The destination IPv6 address of an event/flow, or the IPv6 address of the target of an active measurement"
+    },
+    {
+      "name": "destination.port",
+      "prim": "natural",
+      "desc": "The destination layer 4 port of an event/flow, or the port to which packets were sent when an active measurement was taken"
+    },
+    {
+      "name": "destination.interface",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of an interface to which the destination of an event/flow is attached, or the target interface of an active measurement"
+    },
+    {
+      "name": "destination.device",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of a destination device of an event/flow, or the target of an active measurement"
+    },
+    {
+      "name": "destination.as",
+      "prim": "natural",
+      "desc": "BGP AS number of the destination of an event/flow, or AS target of an active measurement"
+    },
+    {
+      "name": "destination.url",
+      "prim": "url",
+      "desc": "A URL identifying a target of an active measurement"
+    },
+    {
+      "name": "observer.ip4",
+      "prim": "address",
+      "desc": "The IPv4 address of the observation point of a passive measurement"
+    },
+    {
+      "name": "observer.ip6",
+      "prim": "address",
+      "desc": "The IPv6 address of the observation point of a passive measurement"
+    },
+    {
+      "name": "observer.link",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of the link on which a passive measurement was observed"
+    },
+    {
+      "name": "observer.interface",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of the interface on which a passive measurement was observed"
+    },
+    {
+      "name": "observer.device",
+      "prim": "string",
+      "desc": "A locally-scoped identifier of the device on which a passive measurement was observed"
+    },
+    {
+      "name": "observer.as",
+      "prim": "natural",
+      "desc": "BGP AS number of the observer of a passive measurement or looking glass"
+    },
+    {
+      "name": "intermediate.ip4",
+      "prim": "address",
+      "desc": "IPv4 address of a given entity along the path of a measurement; often scoped by hops.ip"
+    },
+    {
+      "name": "intermediate.ip6",
+      "prim": "address",
+      "desc": "IPv6 address of a given entity along the path of a measurement; often scoped by hops.ip"
+    },
+    {
+      "name": "intermediate.port",
+      "prim": "natural",
+      "desc": "Layer 4 port on which a flow/event was observed on a given entity along the path; used for NAPT applications"
+    },
+    {
+      "name": "intermedate.as",
+      "prim": "natural",
+      "desc": "BGP AS number of a given entity along the path of a measurement; often scoped by hops.as"
+    },
+    {
+      "name": "octets.ip",
+      "prim": "natural",
+      "desc": "Count of octets at layer 3 (including IP headers) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "octets.tcp",
+      "prim": "natural",
+      "desc": "Count of octets at layer 4 (including TCP headers) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "octets.udp",
+      "prim": "natural",
+      "desc": "Count of octets at layer 4 (including UDP headers) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "octets.transport",
+      "prim": "natural",
+      "desc": "Count of octets at layer 4 (including all sub-network-layer headers) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "octets.layer5",
+      "prim": "natural",
+      "desc": "Count of octets at layer 5 (i.e., excluding network and transport layer headers) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "octets.layer7",
+      "prim": "natural",
+      "desc": "Count of octets at layer 7 (i.e., passed up to the application, excluding network and transport layer headers and octets in retransmitted packets) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "packets.ip",
+      "prim": "natural",
+      "desc": "Count of IP packets associated with flow, event, or measurement"
+    },
+    {
+      "name": "packets.tcp",
+      "prim": "natural",
+      "desc": "Count of TCP segments associated with flow, event, or measurement"
+    },
+    {
+      "name": "packets.udp",
+      "prim": "natural",
+      "desc": "Count of UDP segments associated with flow, event, or measurement"
+    },
+    {
+      "name": "packets.transport",
+      "prim": "natural",
+      "desc": "Count of packets with a transport-layer header associated with a flow, event, or measurement"
+    },
+    {
+      "name": "packets.layer5",
+      "prim": "natural",
+      "desc": "Count of packets with non-empty transport-layer payload associated with a flow, event, or measurement"
+    },
+    {
+      "name": "packets.layer7",
+      "prim": "natural",
+      "desc": "Count of packets carrying unique data at layer 7 (i.e., packets.layer5 minus retransmissions) associated with a flow, event, or measurement"
+    },
+    {
+      "name": "packets.duplicate",
+      "prim": "natural",
+      "desc": "Count of duplicated packets observed in a flow, event, or measurement"
+    },
+    {
+      "name": "packets.outoforder",
+      "prim": "natural",
+      "desc": "Count of out-of-order packets observed in a flow, event, or measurement"
+    },
+    {
+      "name": "packets.lost",
+      "prim": "natural",
+      "desc": "Count of packets observed or inferred as lost in a flow, event, or measurement"
+    },
+    {
+      "name": "packets.unobserved",
+      "prim": "natural",
+      "desc": "Count of packets observed or inferred as delivered but unobserved in a flow, event, or measurement"
+    },
+    {
+      "name": "flows",
+      "prim": "natural",
+      "desc": "Count of unidirectional flows (see RFC 7011) associated with an event or measurement"
+    },
+    {
+      "name": "flows.bidirectional",
+      "prim": "natural",
+      "desc": "Count of bidirectional flows (see RFC 7011 and 5103) associated with an event or measurement"
+    },
+    {
+      "name": "delay.twoway.icmp.us",
+      "prim": "natural",
+      "desc": "Singleton two-way delay in microseconds as measured by ICMP Echo Request/Reply (see RFC 792)"
+    },
+    {
+      "name": "delay.twoway.icmp.us.min",
+      "prim": "natural",
+      "desc": "Minimum two-way delay in microseconds as measured by ICMP Echo Request/Reply (see RFC 792)"
+    },
+    {
+      "name": "delay.twoway.icmp.us.mean",
+      "prim": "natural",
+      "desc": "Mean two-way delay as in microseconds measured by ICMP Echo Request/Reply (see RFC 792)"
+    },
+    {
+      "name": "delay.twoway.icmp.us.50pct",
+      "prim": "natural",
+      "desc": "Median two-way delay in microseconds as measured by ICMP Echo Request/Reply (see RFC 792)"
+    },
+    {
+      "name": "delay.twoway.icmp.us.max",
+      "prim": "natural",
+      "desc": "Maximum two-way delay in microseconds as measured by ICMP Echo Request/Reply (see RFC 792)"
+    },
+    {
+      "name": "delay.twoway.icmp.count",
+      "prim": "natural",
+      "desc": "Count of valid ICMP Echo Replies received when measuring two-way delay using ICMP Echo Request/Reply (see RFC 792)"
+    },
+    {
+      "name": "delay.oneway.owamp.us",
+      "prim": "natural",
+      "desc": "Singleton one-way delay along a path as measured by OWAMP (see RFC 3763) in microseconds"
+    },
+    {
+      "name": "delay.oneway.owamp.us.min",
+      "prim": "natural",
+      "desc": "Minimum one-way delay along a path as measured by OWAMP (see RFC 3763) in microseconds"
+    },
+    {
+      "name": "delay.oneway.owamp.us.mean",
+      "prim": "natural",
+      "desc": "Mean one-way delay along a path as measured by OWAMP (see RFC 3763) in microseconds"
+    },
+    {
+      "name": "delay.oneway.owamp.us.50pct",
+      "prim": "natural",
+      "desc": "Median one-way delay along a path as measured by OWAMP (see RFC 3763) in microseconds"
+    },
+    {
+      "name": "delay.oneway.owamp.us.max",
+      "prim": "natural",
+      "desc": "Maximum one-way delay along a path as measured by OWAMP (see RFC 3763) in microseconds"
+    },
+    {
+      "name": "delay.oneway.owamp.count",
+      "prim": "natural",
+      "desc": "Count of samples for one-way delay measurements using OWAMP (see RFC 3763)"
+    },
+    {
+      "name": "delay.queue.us",
+      "prim": "natural",
+      "desc": "Singleton measured or inferred delay attributable to queueing along a path in microseconds"
+    },
+    {
+      "name": "delay.queue.us.min",
+      "prim": "natural",
+      "desc": "Minimum measured or inferred delay attributable to queueing along a path in microseconds"
+    },
+    {
+      "name": "delay.queue.us.mean",
+      "prim": "natural",
+      "desc": "Mean measured or inferred delay attributable to queueing along a path in microseconds"
+    },
+    {
+      "name": "delay.queue.us.50pct",
+      "prim": "natural",
+      "desc": "Median measured or inferred delay attributable to queueing along a path in microseconds"
+    },
+    {
+      "name": "delay.queue.us.max",
+      "prim": "natural",
+      "desc": "Maximum measured or inferred delay attributable to queueing along a path in microseconds"
+    },
+    {
+      "name": "delay.buffer.us",
+      "prim": "natural",
+      "desc": "Delay attributable to buffering at an endpoint in microseconds"
+    },
+    {
+      "name": "delay.resolution.ms",
+      "prim": "natural",
+      "desc": "Delay from transaction start to completion of resolution of a name or URL to an address, in milliseconds"
+    },
+    {
+      "name": "delay.firstbyte.ms",
+      "prim": "natural",
+      "desc": "Delay from transaction start to receipt of first byte of content at the initiator, in milliseconds"
+    },
+    {
+      "name": "rtt.ms",
+      "prim": "natural",
+      "desc": "Round-trip time as measured or estimated at the sender in milliseconds"
+    },
+    {
+      "name": "rtt.us",
+      "prim": "natural",
+      "desc": "Round-trip time as measured or estimated at the sender in microseconds"
+    },
+    {
+      "name": "iat.ms",
+      "prim": "natural",
+      "desc": "Packet interarrival or event interoccurance time in milliseconds"
+    },
+    {
+      "name": "iat.us",
+      "prim": "natural",
+      "desc": "Packet interarrival or event interoccurance time in microseconds"
+    },
+    {
+      "name": "connectivity.ip",
+      "prim": "boolean",
+      "desc": "Assertion (or negation) that layer 3 connectivity between the identified source and destination is available"
+    },
+    {
+      "name": "connectivity.as",
+      "prim": "boolean",
+      "desc": "Assertion (or negation) that control plane connectivity (i.e. BGP routability) between the identified source and destination is available"
+    },
+    {
+      "name": "hops.ip",
+      "prim": "natural",
+      "desc": "Count of layer 3 hops or subhops along the identified path"
+    },
+    {
+      "name": "hops.as",
+      "prim": "natural",
+      "desc": "Count of control-plane hops or subhops along the identified path"
+    },
+    {
+      "name": "bandwidth.nominal.bps",
+      "prim": "natural",
+      "desc": "Nominal (advertised) bandwidth at a point or along a path in bits per second"
+    },
+    {
+      "name": "bandwidth.nominal.kbps",
+      "prim": "natural",
+      "desc": "Nominal (advertised) bandwidth at a point or along a path in kilobits per second"
+    },
+    {
+      "name": "bandwidth.nominal.Mbps",
+      "prim": "natural",
+      "desc": "Nominal (advertised) bandwidth at a point or along a path in megabits per second"
+    },
+    {
+      "name": "bandwidth.partial.bps",
+      "prim": "natural",
+      "desc": "Partial bandwidth attributable to a given flow in bits per second"
+    },
+    {
+      "name": "bandwidth.partial.kbps",
+      "prim": "natural",
+      "desc": "Partial bandwidth attributable to a given flow in kilobits per second"
+    },
+    {
+      "name": "bandwidth.partial.Mbps",
+      "prim": "natural",
+      "desc": "Partial bandwidth attributable to a given flow in megabits per second"
+    },
+    {
+      "name": "bandwidth.imputed.bps",
+      "prim": "natural",
+      "desc": "Bandwidth assumed to be available along a path according to measurement and heuristics in bits per second"
+    },
+    {
+      "name": "bandwidth.imputed.kbps",
+      "prim": "natural",
+      "desc": "Bandwidth assumed to be available along a path according to measurement and heuristics in kilobits per second"
+    },
+    {
+      "name": "bandwidth.imputed.Mbps",
+      "prim": "natural",
+      "desc": "Bandwidth assumed to be available along a path according to measurement and heuristics in megabits per second"
+    },
+    {
+      "name": "content.url",
+      "prim": "url",
+      "desc": "A URL identifying some content, access to which is passively or actively measured"
+    },
+    {
+      "name": "fps.nominal",
+      "prim": "real",
+      "desc": "Nominal frame rate in frames per second of the identified audio/video content"
+    },
+    {
+      "name": "fps.achieved",
+      "prim": "real",
+      "desc": "Achieved frame rate in frames per second of the identified audio/video content"
+    },
+    {
+      "name": "fps.achieved.min",
+      "prim": "real",
+      "desc": "Minumum achieved frame rate in frames per second of the identified audio/video content"
+    },
+    {
+      "name": "fps.achieved.mean",
+      "prim": "real",
+      "desc": "Mean achieved frame rate in frames per second of the identified audio/video content"
+    },
+    {
+      "name": "fps.achieved.max",
+      "prim": "real",
+      "desc": "Maximum achieved frame rate in frames per second of the identified audio/video content"
+    },
+    {
+      "name": "sessions.transport",
+      "prim": "natural",
+      "desc": "Count of transport-layer sessions associated with an event"
+    },
+    {
+      "name": "sessions.layer7",
+      "prim": "natural",
+      "desc": "Count of application-layer sessions associated with an event"
+    },
+    {
+      "name": "cpuload",
+      "prim": "real",
+      "desc": "Normalized CPU load on the identified device"
+    },
+    {
+      "name": "memload",
+      "prim": "real",
+      "desc": "Normalized memory load on the identified device"
+    },
+    {
+      "name": "linkload",
+      "prim": "real",
+      "desc": "Normalized link load on the identified interface or link"
+    },
+    {
+      "name": "bufferload",
+      "prim": "real",
+      "desc": "Normalized buffer load on the identified device"
+    },
+    {
+      "name": "bufferstalls",
+      "prim": "natural",
+      "desc": "Count of buffer stalls (imputed playback quality degradation) associated with a flow/event"
+    },
+    {
+      "name": "snr",
+      "prim": "real",
+      "desc": "Signal to noise ratio in decibels, either in a radio access network or in an audio transmission context"
+    },
+    {
+      "name": "period.s",
+      "prim": "natural",
+      "desc": "DEPRECATED and to be removed before D1.4. Use temporal scopes instead."
+    },
+    {
+      "name": "period.ms",
+      "prim": "natural",
+      "desc": "DEPRECATED and to be removed before D1.4. Use temporal scopes instead."
+    },
+    {
+      "name": "period.us",
+      "prim": "natural",
+      "desc": "DEPRECATED and to be removed before D1.4. Use temporal scopes instead."
+    },
+    {
+      "name": "period.ns",
+      "prim": "natural",
+      "desc": "DEPRECATED and to be removed before D1.4. Use temporal scopes instead."
+    },
+    {
+      "name": "measurement.identifier",
+      "prim": "string",
+      "desc": "Free-form string identifying the implementation of the measurement on the component; often the name of the external program"
+    },
+    {
+      "name": "measurement.revision",
+      "prim": "natural",
+      "desc": "Release or deployment serial number of the implementation of the measurement on the component"
+    },
+    {
+      "name": "measurement.algorithm",
+      "prim": "string",
+      "desc": "Free-form string identifying the algorithm used for the measurement on the component"
+    },
+    {
+      "name": "location.latitude",
+      "prim": "real",
+      "desc": "The latitude of the component expressed as a floating point number of degrees north of the equator"
+    },
+    {
+      "name": "location.longitude",
+      "prim": "real",
+      "desc": "The longitude of the component expressed as a floating point number of degrees east of the standard meridian (on Earth, the Prime Meridian at Greenwich)"
+    },
+    {
+      "name": "location.altitude",
+      "prim": "real",
+      "desc": "The altitude of the component expressed as a floating point number of meters above the standard zero altitude (on Earth, mean sea level)"
+    },
+    {
+      "name": "location.civil",
+      "prim": "string",
+      "desc": "A free-form identifier of the civil location (postal address, city name, building name, etc) of the component"
+    },
+    {
+      "name": "packets.forward",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.syn",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.fin",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.rst",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.ack",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.pure_ack",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.with_payload",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.rxmit",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.forward.outseq",
+      "prim": "natural"
+    },
+    {
+      "name": "bytes.forward",
+      "prim": "natural"
+    },
+    {
+      "name": "bytes.forward.unique",
+      "prim": "natural"
+    },
+    {
+      "name": "bytes.forward.rxmit",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.syn",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.fin",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.rst",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.ack",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.pure_ack",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.with_payload",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.rxmit",
+      "prim": "natural"
+    },
+    {
+      "name": "packets.backward.outseq",
+      "prim": "natural"
+    },
+    {
+      "name": "bytes.backward",
+      "prim": "natural"
+    },
+    {
+      "name": "bytes.backward.unique",
+      "prim": "natural"
+    },
+    {
+      "name": "bytes.backward.rxmit",
+      "prim": "natural"
+    },
+    {
+      "name": "duration.ms",
+      "prim": "time"
+    },
+    {
+      "name": "responder.ip4",
+      "prim": "address"
+    },
+    {
+      "name": "responder.port",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.TTFP.ms",
+      "prim": "time"
+    },
+    {
+      "name": "responder.TTLP.ms",
+      "prim": "time"
+    },
+    {
+      "name": "responder.TTFA.ms",
+      "prim": "time"
+    },
+    {
+      "name": "responder.ip4.isinternal",
+      "prim": "boolean"
+    },
+    {
+      "name": "initiator.ip4",
+      "prim": "address"
+    },
+    {
+      "name": "initiator.port",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.TTFP.ms",
+      "prim": "time"
+    },
+    {
+      "name": "initiator.TTLP.ms",
+      "prim": "time"
+    },
+    {
+      "name": "initiator.TTFA.ms",
+      "prim": "time"
+    },
+    {
+      "name": "initiator.ip4.isinternal",
+      "prim": "boolean"
+    },
+    {
+      "name": "tstat.flow.class.conn",
+      "prim": "string"
+    },
+    {
+      "name": "tstat.flow.class.p2p",
+      "prim": "string"
+    },
+    {
+      "name": "tstat.flow.class.http",
+      "prim": "string"
+    },
+    {
+      "name": "rtt.average.ms",
+      "prim": "time"
+    },
+    {
+      "name": "rtt.min.ms",
+      "prim": "time"
+    },
+    {
+      "name": "rtt.max.ms",
+      "prim": "time"
+    },
+    {
+      "name": "rtt.stddev",
+      "prim": "real"
+    },
+    {
+      "name": "rtt.samples",
+      "prim": "natural"
+    },
+    {
+      "name": "ttl.min",
+      "prim": "natural"
+    },
+    {
+      "name": "ttl.max",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.RFC1323.ws",
+      "prim": "boolean"
+    },
+    {
+      "name": "initiator.RFC1323.ts",
+      "prim": "boolean"
+    },
+    {
+      "name": "initiator.win_scale",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.SACK_set",
+      "prim": "boolean"
+    },
+    {
+      "name": "initiator.SACK",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.MSS.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.segment.max.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.segment.min.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.window.max.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.window.min.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.window.zero",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.cwin.max.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.cwin.min.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.cwin.first.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.rxmit.RTO",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.rxmit.RTO.unnecessary",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.rxmit.FR",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.rxmit.FR.unnecessary",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.reordering",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.net_dup",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.unknown",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.flow_control",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.SYN.equal_seqno",
+      "prim": "boolean"
+    },
+    {
+      "name": "responder.RFC1323.ws",
+      "prim": "boolean"
+    },
+    {
+      "name": "responder.RFC1323.ts",
+      "prim": "boolean"
+    },
+    {
+      "name": "responder.win_scale",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.SACK_set",
+      "prim": "boolean"
+    },
+    {
+      "name": "responder.SACK",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.MSS.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.segment.max.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.segment.min.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.window.max.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.window.min.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.window.zero",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.cwin.max.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.cwin.min.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.cwin.first.bytes",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.rxmit.RTO",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.rxmit.RTO.unnecessary",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.rxmit.FR",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.rxmit.FR.unnecessary",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.reordering",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.net_dup",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.unknown",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.flow_control",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.SYN.equal_seqno",
+      "prim": "boolean"
+    },
+    {
+      "name": "p2p.subtype",
+      "prim": "string"
+    },
+    {
+      "name": "ed2k.data",
+      "prim": "natural"
+    },
+    {
+      "name": "ed2k.signaling",
+      "prim": "natural"
+    },
+    {
+      "name": "ed2k.i2r",
+      "prim": "natural"
+    },
+    {
+      "name": "ed2k.r2i",
+      "prim": "natural"
+    },
+    {
+      "name": "ed2k.chat",
+      "prim": "natural"
+    },
+    {
+      "name": "initiator.psh_separated",
+      "prim": "natural"
+    },
+    {
+      "name": "responder.psh_separated",
+      "prim": "natural"
+    },
+    {
+      "name": "ssl.hello.client",
+      "prim": "string"
+    },
+    {
+      "name": "ssl.hello.server",
+      "prim": "string"
+    },
+    {
+      "name": "subnet.ip4",
+      "prim": "address"
+    },
+    {
+      "name": "subnet.netmask",
+      "prim": "natural"
+    },
+    {
+      "name": "aggregate.ip4",
+      "prim": "string"
+    },
+    {
+      "name": "destination.ip",
+      "prim": "address"
+    },
+    {
+      "name": "delay.twoway",
+      "prim": "natural"
+    },
+    {
+      "name": "delay.twoway.min",
+      "prim": "natural"
+    },
+    {
+      "name": "delay.twoway.max",
+      "prim": "natural"
+    },
+    {
+      "name": "delay.twoway.mean",
+      "prim": "natural"
+    },
+    {
+      "name": "System_type",
+      "prim": "string"
+    },
+    {
+      "name": "System_ID",
+      "prim": "string"
+    },
+    {
+      "name": "System_version",
+      "prim": "string"
+    },
+    {
+      "name": "probe.DN",
+      "prim": "string"
+    }
+  ]
+}

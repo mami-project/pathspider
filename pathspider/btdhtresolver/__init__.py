@@ -25,7 +25,6 @@ torrent.py modules.
 from ipaddress import ip_address
 
 import mplane
-from . import ecnspider
 from . import torrent
 import collections
 
@@ -40,33 +39,30 @@ ipfix.ie.use_5103_default()
 scriptdir = os.path.dirname(os.path.abspath(__file__))
 ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
-ecnspider.log_to_console('DEBUG')
-
 def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
-            btdhtport4 = 9881, btdhtport6 = 9882, reguri = None):
+            btdhtport4 = 9881, btdhtport6 = 9882):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for btdhtresolver.
 
     """
-    mplane.model.initialize_registry(reguri)
 
     # global lock, only one btdhtresolver instance may run at a time.
     lock = threading.Lock()
 
     servicelist = []
 
-    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4, reguri)))
+    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4)))
 
-    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip6addr or '::'), btdhtport6, reguri)))
+    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip6addr or '::'), btdhtport6)))
 
     return servicelist
 
 
-def btdhtspider_cap(ipaddr, port, reguri):
+def btdhtspider_cap(ipaddr, port):
     ipv = "ip"+str(ipaddr.version)
 
-    cap = mplane.model.Capability(label='btdhtspider-'+ipv, when='now ... future', reguri=reguri)
+    cap = mplane.model.Capability(label='btdhtspider-'+ipv, when='now ... future')
 
     cap.add_metadata("source."+ipv, ipaddr)
     cap.add_metadata("source.port", port)

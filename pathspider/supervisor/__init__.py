@@ -27,9 +27,34 @@ import mplane
 import mplane.tls
 import mplane.utils
 import mplane.client
+import mplane.supervisor
 import argparse
 import configparser
 import time
+
+class Supervisor(mplane.supervisor.BaseSupervisor):
+    def __init__(self, args, config):
+        super(Supervisor, self).__init__(config)
+
+    def handle_message(self, msg, identity):
+        if isinstance(msg, mplane.model.Capability):
+            pass
+
+        elif isinstance(msg, mplane.model.Receipt):
+            pass
+
+        elif (isinstance(msg, mplane.model.Result) or
+            isinstance(msg, mplane.model.Exception)):
+            pass
+
+        elif isinstance(msg, mplane.model.Withdrawal):
+            pass
+
+        elif isinstance(msg, mplane.model.Envelope):
+            for imsg in msg.messages():
+                self.handle_message(imsg, identity)
+        else:
+            raise ValueError("Internal error: unknown message "+repr(msg))
 
 def retrieve_addresses(client, ipv, count, label, url, unique = True, when = "now ... future"):
     try:
