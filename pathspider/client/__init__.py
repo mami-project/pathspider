@@ -144,8 +144,8 @@ class EcnSpiderImp:
                     label = 'ecnspider-'+self.pending.ipv
                     try:
                         spec = self.client.invoke_capability(label, self.pending.when,
-                                                             { "destination."+self.pending.ipv: [addr[0] for addr in self.pending.addrs],
-                                                               "destination.port": [addr[1] for addr in self.pending.addrs]})
+                                                             { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
+                                                               "destination.port": [int(addr[1]) for addr in self.pending.addrs]})
                         self.pending_token = spec.get_token()
                     except KeyError as e:
                         print("Specified URL does not support '"+label+"' capability.")
