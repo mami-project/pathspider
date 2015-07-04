@@ -79,11 +79,11 @@ class BtDhtSpider:
         dht.stop()
     """
 
-    def __init__(self, bindaddr=('', 6881), ip_version=4, unique=False, bootstrap=(('dht.transmissionbt.com', 6881),),
+    def __init__(self, bindaddr=('', 6881), ip_version='ip4', unique=False, bootstrap=(('dht.transmissionbt.com', 6881),),
                 bandwidth = 5*1024, max_addr_cache_size = 100, max_requests_running = 100, max_addr_pool_size = 100, request_timeout = 15, slot_time = 0.1):
         """
         :param bindaddr: Address to bind to. (Needs to contain either an IPv4 or IPv6 address depending on parameter ip_version)
-        :param ip_version: Of which IP version addresses should be collected. ip_version=4 or ip_version=6.
+        :param ip_version: Of which IP version addresses should be collected. ip_version='ip4' or ip_version='ip6'.
         :param unique: If True, returns no duplicates. Note: Maintains a set of IP addresses and thus increases memory usage over time.
         :param bootstrap: Addresses of DHT nodes to contact first.
         """
@@ -115,12 +115,12 @@ class BtDhtSpider:
 
         self.running = False
 
-        self.ip_version = ip_version
+        self.ipv = ip_version
 
-        if self.ip_version != 4 and self.ip_version != 6:
-            raise ValueError('ip_version needs to be either 4 or 6.')
+        if self.ipv != 'ip4' and self.ipv != 'ip6':
+            raise ValueError('ip_version needs to be either ip4 or ip6.')
 
-        if self.ip_version == 4:
+        if self.ipv == 'ip4':
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         else:
             self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -285,7 +285,7 @@ class BtDhtSpider:
                             del self.requests[tid]
 
                             if req.type == REQUEST_TYPE_FIND_NODE:
-                                if self.ip_version == 4:
+                                if self.ipv == 'ip4':
                                     nodes = parse_compact_node_info(response[b'nodes'])
                                 else:
                                     nodes = parse_compact_node6_info(response[b'nodes6'])

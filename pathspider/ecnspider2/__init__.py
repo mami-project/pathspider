@@ -39,8 +39,15 @@ ipfix.ie.use_5103_default()
 scriptdir = os.path.dirname(os.path.abspath(__file__))
 ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
+def strbool(s):
+    if s is None:
+        return False
+    if isinstance(s, bool):
+        return s
+    return s.lower() == "true" or s == "1" or s.lower() == "y" or s.lower() == "yes"
+
 def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
-            btdhtport4 = 9881, btdhtport6 = 9882):
+            btdhtport4 = 9881, btdhtport6 = 9882, enable_ipv6=True):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for ecnspider.
@@ -52,8 +59,8 @@ def services(ip4addr = None, ip6addr = None, worker_count = None, connection_tim
 
     servicelist = []
     servicelist.append(EcnspiderService(ecnspider_cap(4), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
-    
-    servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
+    if strbool(enable_ipv6):
+        servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
     
     return servicelist
 

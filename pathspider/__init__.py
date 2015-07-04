@@ -5,6 +5,8 @@ import mplane.component
 import mplane.tls
 import mplane.utils
 import threading
+import pathspider.client
+import time
 
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
@@ -29,13 +31,20 @@ def run_standalone(args, config):
 
 
 def run_client(args, config):
-    pass
+    tls_state = mplane.tls.TlsState(config)
+    resolver = pathspider.client.BtDhtResolverClient(tls_state, "http://localhost:18888/")
+
+    ecnspider = pathspider.client.EcnSpiderClient(1000, tls_state, [('local', "http://localhost:18888/")], resolver)
+
+    while True:
+        time.sleep(10)
+
 
 def main():
     # parse command line
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
-    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service', 'supervisor'], required=True, help='Set the operating mode.')
+    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service'], required=True, help='Set the operating mode.')
     parser.add_argument('--config', '-c', default='AUTO', help='Set pathspider configuration file.')
 
     args = parser.parse_args()
@@ -47,8 +56,6 @@ def main():
             args.config = 'client.conf'
         elif args.mode == 'service':
             args.config = 'service.conf'
-        elif args.mode == 'supervisor':
-            args.config = 'supervisor.conf'
 
     # read the configuration file
     config = configparser.ConfigParser()

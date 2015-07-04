@@ -26,50 +26,38 @@ from ipaddress import ip_address
 
 import mplane
 from . import torrent
-import collections
-
-import os.path
-import time
 from datetime import datetime
 import threading
-import ipfix
 
-ipfix.ie.use_iana_default()
-ipfix.ie.use_5103_default()
-scriptdir = os.path.dirname(os.path.abspath(__file__))
-ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
+def strbool(s):
+    if s is None:
+        return False
+    if isinstance(s, bool):
+        return s
+    return s.lower() == "true" or s == "1" or s.lower() == "y" or s.lower() == "yes"
 
-def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
-            btdhtport4 = 9881, btdhtport6 = 9882):
+def services(ip4addr = '0.0.0.0', ip6addr = '::', worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
+            port4 = '9881', port6 = '6882', enable_ipv6=True):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for btdhtresolver.
 
     """
-
-    # global lock, only one btdhtresolver instance may run at a time.
-    lock = threading.Lock()
-
     servicelist = []
-
-    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip4addr or '0.0.0.0'), btdhtport4)))
-
-    servicelist.append(BtDhtSpiderService(btdhtspider_cap(ip_address(ip6addr or '::'), btdhtport6)))
+    servicelist.append(BtDhtSpiderService(btdhtspider_cap('ip4'), (ip4addr, int(port4))))
+    if strbool(enable_ipv6):
+        servicelist.append(BtDhtSpiderService(btdhtspider_cap('ip6'), (ip6addr, int(port6))))
 
     return servicelist
 
 
-def btdhtspider_cap(ipaddr, port):
-    ipv = "ip"+str(ipaddr.version)
-
+def btdhtspider_cap(ipv):
     cap = mplane.model.Capability(label='btdhtspider-'+ipv, when='now ... future')
 
-    cap.add_metadata("source."+ipv, ipaddr)
-    cap.add_metadata("source.port", port)
-
     cap.add_parameter("btdhtspider.count")
-    cap.add_parameter("btdhtspider.unique")
 
+    cap.add_result_column("source."+ipv)
+    cap.add_result_column("source.port")
     cap.add_result_column("destination."+ipv)
     cap.add_result_column("destination.port")
     cap.add_result_column("btdhtspider.nodeid")
@@ -77,46 +65,34 @@ def btdhtspider_cap(ipaddr, port):
     return cap
 
 class BtDhtSpiderService(mplane.scheduler.Service):
-    def __init__(self, cap):
+    def __init__(self, cap, bindaddr):
         super().__init__(cap)
 
-        if cap.has_metadata("source.ip4"):
-            bindaddr = (str(cap.get_metadata_value("source.ip4")), cap.get_metadata_value("source.port"))
-            ip_version = 4
-            self.ipv = "ip4"
-        else:
-            bindaddr = (str(cap.get_metadata_value("source.ip6")), cap.get_metadata_value("source.port"))
-            ip_version = 6
-            self.ipv = "ip6"
+        self.ipv = 'ip4' if cap.has_result_column("source.ip4") else 'ip6'
 
-        self.dht = torrent.BtDhtSpider(bindaddr=bindaddr, ip_version=ip_version, unique=False)
+        self.source_ip = ip_address(bindaddr[0])
+        self.source_port = bindaddr[1]
+
+        self.dht = torrent.BtDhtSpider(bindaddr=bindaddr, ip_version=self.ipv, unique=False)
         self.dht.start()
 
     def run(self, spec, check_interrupt):
         count = spec.get_parameter_value("btdhtspider.count")
-        if spec.has_parameter("btdhtspider.unique"):
-            unique = spec.get_parameter_value("btdhtspider.unique")
-        else:
-            unique = False
 
         starttime = datetime.utcnow()
 
         res = mplane.model.Result(specification=spec)
 
-        ipset = set()
         checkcount = 0
-        result_idx = 0
-        for addr in self.dht:
-            if not unique or addr[0][0] not in ipset:
-                ipset.add(addr[0][0])
+        for idx, addr in enumerate(self.dht):
+            res.set_result_value("destination."+self.ipv, addr[0][0], idx)
+            res.set_result_value("destination.port", addr[0][1], idx)
+            res.set_result_value("btdhtspider.nodeid", addr[1], idx)
+            res.set_result_value("source."+self.ipv, self.source_ip, idx)
+            res.set_result_value("source.port", self.source_port, idx)
 
-                res.set_result_value("destination."+self.ipv, addr[0][0], result_idx)
-                res.set_result_value("destination.port", addr[0][1], result_idx)
-                res.set_result_value("btdhtspider.nodeid", addr[1], result_idx)
 
-                result_idx += 1
-
-            if result_idx >= count:
+            if idx >= count:
                 break
 
             checkcount += 1
@@ -124,7 +100,6 @@ class BtDhtSpiderService(mplane.scheduler.Service):
                 checkcount = 0
                 if check_interrupt():
                     break
-
 
         stoptime = datetime.utcnow()
 
