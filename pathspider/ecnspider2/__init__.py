@@ -25,6 +25,7 @@ torrent.py modules.
 from ipaddress import ip_address
 
 import mplane
+from . import qofspider
 from . import ecnspider
 import collections
 
@@ -33,11 +34,14 @@ import time
 from datetime import datetime
 import threading
 import ipfix
+import logging
 
 ipfix.ie.use_iana_default()
 ipfix.ie.use_5103_default()
 scriptdir = os.path.dirname(os.path.abspath(__file__))
 ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
+
+qofspider.log_to_console(logging.DEBUG)
 
 def strbool(s):
     if s is None:
