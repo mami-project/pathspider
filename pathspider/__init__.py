@@ -4,7 +4,6 @@ import os
 import mplane.component
 import mplane.tls
 import mplane.utils
-import threading
 import pathspider.client
 import time
 
@@ -20,15 +19,18 @@ def run_service(args, config):
     else:
         raise ValueError("workflow setting in " + args.config + " can only be 'client-initiated' or 'component-initiated'")
 
+    while True:
+        time.sleep(10)
+
 def run_standalone(args, config):
     config["component"]["workflow"] = "client-initiated"
 
     # run service
-    tc = threading.Thread(target=mplane.component.ListenerHttpComponent, args=(config,), daemon=True)
-    tc.start()
+    mplane.component.ListenerHttpComponent(config)
 
     # run supervisor locally
-
+    while True:
+        time.sleep(10)
 
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
