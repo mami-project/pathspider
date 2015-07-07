@@ -52,15 +52,15 @@ def services(ip4addr = '0.0.0.0', ip6addr = '::', worker_count = None, connectio
 
 
 def btdhtspider_cap(ipv):
-    cap = mplane.model.Capability(label='btdhtspider-'+ipv, when='now ... future')
+    cap = mplane.model.Capability(label='btdhtresolver-'+ipv, when='now ... future')
 
-    cap.add_parameter("btdhtspider.count")
+    cap.add_parameter("btdhtresolver.count")
 
     cap.add_result_column("source."+ipv)
     cap.add_result_column("source.port")
     cap.add_result_column("destination."+ipv)
     cap.add_result_column("destination.port")
-    cap.add_result_column("btdhtspider.nodeid")
+    cap.add_result_column("btdhtresolver.nodeid")
 
     return cap
 
@@ -77,23 +77,28 @@ class BtDhtSpiderService(mplane.scheduler.Service):
         self.dht.start()
 
     def run(self, spec, check_interrupt):
-        count = spec.get_parameter_value("btdhtspider.count")
+        count = spec.get_parameter_value("btdhtresolver.count")
 
         starttime = datetime.utcnow()
 
         res = mplane.model.Result(specification=spec)
 
         checkcount = 0
-        for idx, addr in enumerate(self.dht):
-            res.set_result_value("destination."+self.ipv, addr[0][0], idx)
-            res.set_result_value("destination.port", addr[0][1], idx)
-            res.set_result_value("btdhtspider.nodeid", addr[1], idx)
-            res.set_result_value("source."+self.ipv, self.source_ip, idx)
-            res.set_result_value("source.port", self.source_port, idx)
+        idx = 0
+        unique = set()
+        for addr in self.dht:
+            # do not repeat addresses in result
+            if addr not in unique:
+                unique.add(addr)
+                res.set_result_value("destination."+self.ipv, addr[0][0], idx)
+                res.set_result_value("destination.port", addr[0][1], idx)
+                res.set_result_value("btdhtresolver.nodeid", addr[1], idx)
+                res.set_result_value("source."+self.ipv, self.source_ip, idx)
+                res.set_result_value("source.port", self.source_port, idx)
 
-
-            if idx >= count:
-                break
+                idx+=1
+                if idx >= count:
+                    break
 
             checkcount += 1
             if checkcount >= 200:

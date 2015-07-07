@@ -3,15 +3,11 @@
     "registry-revision": 0,
     "includes": ["registry.json"],
     "elements": [
-        { "name": "btdhtspider.nodeid",
+        { "name": "btdhtresolver.nodeid",
             "prim": "string",
             "desc": "BitTorrent Distributed Hash Table node identifier (in hex)."
         },
-        { "name": "btdhtspider.unique",
-            "prim": "boolean",
-            "desc": "Assertion (or negation) that only unique addresses should be returned"
-        },
-        { "name": "btdhtspider.count",
+        { "name": "btdhtresolver.count",
             "prim": "natural",
             "desc": "Count of addresses to collect"
         },

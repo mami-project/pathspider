@@ -45,6 +45,16 @@ STATUS_RUNNING = 0x01
 STATUS_FINISHED = 0x02
 STATUS_ERROR = 0xFF
 
+def take(count, iterable):
+    """
+    Iterate over at most count elements in iterable.
+    """
+    it = iter(iterable)
+    for index in range(0, count):
+        if index >= count:
+            break
+        yield next(it)
+
 class NotFinishedException(Exception):
     pass
 
@@ -95,6 +105,9 @@ class ResolverClient:
 
         raise TimeoutException("Could not complete address retrieval within timeout period.")
 
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+        raise NotImplementedError("You have to implement the generator() function in your subclass of ResolverClient.")
+
 class BtDhtResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url):
         super(BtDhtResolverClient, self).__init__(tls_state, resolver_url)
@@ -102,9 +115,9 @@ class BtDhtResolverClient(ResolverClient):
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
         token = None
         with self.lock:
-            label = 'btdhtspider-'+ipv
+            label = 'btdhtresolver-'+ipv
             try:
-                spec = self.client.invoke_capability(label, when, { "btdhtspider.count": count, "btdhtspider.unique": True })
+                spec = self.client.invoke_capability(label, when, { "btdhtresolver.count": count })
                 token = spec.get_token()
             except KeyError as e:
                 print("Specified URL does not support '"+label+"' capability.")
@@ -113,7 +126,39 @@ class BtDhtResolverClient(ResolverClient):
         if token is None:
             raise ValueError("Could not acquire request token.")
 
-        return self._fetch_result(token, request_timeout)
+        return [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
+
+class WebResolverClient(ResolverClient):
+    def __init__(self, tls_state, resolver_url, urls = None):
+        super(WebResolverClient, self).__init__(tls_state, resolver_url)
+        self.lock = threading.RLock()
+        self.queued = collections.deque()
+        if urls is not None:
+            self.queued.extend(urls)
+
+    def extend(self, urls):
+        with self.lock:
+            self.queued.extend(urls)
+
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+        token = None
+        with self.lock:
+            label = 'btdhtresolver-'+ipv
+            try:
+                urls = list(take(count, self.queued))
+                spec = self.client.invoke_capability(label, when, { "destination.url": urls })
+                token = spec.get_token()
+            except KeyError as e:
+                print("Specified URL does not support '"+label+"' capability.")
+                raise e
+
+        if token is None:
+            raise ValueError("Could not acquire request token.")
+
+        return [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
+
+
+
 
 class EcnSpiderImp:
     QUEUED_MIN_LENGTH = 10
@@ -167,7 +212,8 @@ class EcnSpiderImp:
                     if isinstance(result, mplane.model.Exception):
                         # upon exception, add to queued again.
                         print(result.__repr__())
-                        self.client.forget(self.pending_token)
+                        #TODO: mplane doesn't like to forget exceptions??
+                        #self.client.forget(self.pending_token)
                         self.queued.append(self.pending)
                         self.pending_token = None
                         self.pending = None
@@ -194,6 +240,71 @@ class EcnSpiderImp:
         with self.lock:
             self.queued.append(EcnSpiderImp.ChunkJob(chunk_id, addrs, ipv, when, None))
 
+class TraceboxImp:
+    def __init__(self, name, tls_state, url):
+        self.name = name
+        self.url = url
+        self.client = mplane.client.HttpInitiatorClient(tls_state)
+        self.client.retrieve_capabilities(self.url)
+        self.queued = collections.deque()
+        self.pending_token = None
+        self.pending = None
+        self.finished = {}
+
+    def worker(self):
+        while True:
+            with self.lock:
+                if self.pending_token is None and len(self.queued) > 0:
+                    print("sending tracebox request")
+                    self.pending = self.queued.popleft()
+                    label = ''
+                    try:
+                        spec = self.client.invoke_capability(label, self.pending.when,
+                                                             { } )
+                        self.pending_token = spec.get_token()
+                    except KeyError as e:
+                        print("Specified URL does not support '"+label+"' capability.")
+
+                    if self.pending_token is None:
+                        print("Could not acquire request token.")
+                        self.finished[self.pending.url] = None
+                        self.pending = None
+
+                    continue
+                elif self.pending_token is not None:
+                    try:
+                        self.client.retrieve_capabilities(self.url)
+                    except:
+                        print(str(self.url) + " unreachable. Retrying in 5 seconds")
+
+                    # check results
+                    result = self.client.result_for(self.pending_token)
+                    if isinstance(result, mplane.model.Exception):
+                        # upon exception, add to queued again.
+                        print(result.__repr__())
+                        self.client.forget(self.pending_token)
+                        self.queued.append(self.pending)
+                        self.pending_token = None
+                        self.pending = None
+                    elif isinstance(result, mplane.model.Receipt):
+                        pass
+                    elif isinstance(result, mplane.model.Result):
+                        print("received result for chunk id: ", self.pending.chunk_id)
+                        # add to results
+                        self.client.forget(self.pending_token)
+                        self.finished[self.pending.url] = list(result.schema_dict_iterator())
+                        self.pending_token = None
+                        self.pending = None
+                    else:
+                        # other result, just print it out
+                        print(result)
+
+            time.sleep(5)
+
+
+    def add(self, url):
+        self.queued.append(url)
+
 class EcnSpiderClient:
     # queued chunks - in queue to be sent to ecnspider component, feeder thread loads addresses
     # pending chunks - currently processing
@@ -206,24 +317,24 @@ class EcnSpiderClient:
 
         self.lock = threading.RLock()
 
-        self.feeder_thread = threading.Thread(target=self.feeder, daemon=True, name="feeder")
-        self.consumer_thread = threading.Thread(target=self.consumer, daemon=True, name="consumer")
+        self.imp_feeder_thread = threading.Thread(target=self.imp_feeder, daemon=True, name="feeder")
+        self.imp_merger_thread = threading.Thread(target=self.imp_merger, daemon=True, name="consumer")
 
         self.resolver = resolver
 
         self.count = 0
 
 
-        self.feeder_thread.start()
-        self.consumer_thread.start()
+        self.imp_feeder_thread.start()
+        self.imp_merger_thread.start()
 
-    def feeder(self):
+    def imp_feeder(self):
         print("feeder started")
         next_chunk_id = 0
         while True:
             if any([imp.need_chunk() for imp in self.imps]):
                 print("adding chunk")
-                addrs = [(row['destination.'+self.ipv], row['destination.port']) for row in self.resolver.request(self.chunk_size, ipv=self.ipv)]
+                addrs = self.resolver.request(self.chunk_size, ipv=self.ipv)
 
                 for imp in self.imps:
                     imp.add_chunk(addrs, next_chunk_id, self.ipv, "now ... future")
@@ -232,7 +343,7 @@ class EcnSpiderClient:
 
             time.sleep(1)
 
-    def consumer(self):
+    def imp_merger(self):
         print("consumer started")
         while True:
             chunks_finished = None
