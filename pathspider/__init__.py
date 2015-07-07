@@ -5,6 +5,7 @@ import mplane.component
 import mplane.tls
 import mplane.utils
 import pathspider.client
+import pathspider.client.resolver
 import time
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -34,9 +35,19 @@ def run_standalone(args, config):
 
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
-    resolver = pathspider.client.BtDhtResolverClient(tls_state, "http://localhost:18888/")
+    resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, "http://localhost:18888/")
+    reasoner = pathspider.client.Reasoner()
 
-    ecnspider = pathspider.client.EcnSpiderClient(1000, tls_state, [('local', "http://localhost:18888/")], resolver)
+    if False:
+        ecnspider = pathspider.client.EcnSpiderClient(1000, tls_state, [('local', "http://localhost:18888/")], resolver, reasoner)
+    elif False:
+        import pickle
+        chunk = pickle.load(open('compiled_chunk.pickle', 'rb'))
+        reasoner.process(chunk)
+        print("done")
+    else:
+        imp = pathspider.client.TraceboxImp('local', tls_state, "http://localhost:18888/")
+        imp.add('192.33.91.96', 22)
 
     while True:
         time.sleep(10)
@@ -46,7 +57,7 @@ def main():
     # parse command line
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
-    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service'], required=True, help='Set the operating mode.')
+    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service', 'reasoner'], required=True, help='Set the operating mode.')
     parser.add_argument('--config', '-c', default='AUTO', help='Set pathspider configuration file.')
 
     args = parser.parse_args()
