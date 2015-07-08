@@ -172,7 +172,7 @@ class EcnspiderService(mplane.scheduler.Service):
                 res.set_result_value("ecnspider.synflags.rev",      result.fsr, i)
                 res.set_result_value("ecnspider.unionflags.rev",    result.fur, i)
                 res.set_result_value("ecnspider.ttl.rev.min",       result.ttl, i)
-
+            print("ecnspider2: returning {} records".format(len(result_sink)))
         except Exception as e:
             self.singleton_lock.release()
             raise e
@@ -280,6 +280,7 @@ class EcnspiderHttpService(mplane.scheduler.Service):
                 res.set_result_value("ecnspider.unionflags.rev",    result.fur, i)
                 res.set_result_value("ecnspider.ttl.rev.min",       result.ttl, i)
 
+            print("ecnspider2: returning {} records".format(len(result_sink)))
         except Exception as e:
             self.singleton_lock.release()
             raise e

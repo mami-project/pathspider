@@ -59,6 +59,7 @@ RESULT_OTHER = 1
 RESULT_BROKEN = 2
 RESULT_WORKS = 3
 
+QUEUE_SLEEP = 0.5
 
 class NotFinishedException(Exception):
     pass
@@ -116,7 +117,6 @@ class EcnSpiderImp:
                         self.finished[self.pending.chunk_id] = None
                         self.pending = None
 
-                    continue
                 elif self.pending_token is not None:
                     try:
                         self.client.retrieve_capabilities(self.url)
@@ -136,17 +136,17 @@ class EcnSpiderImp:
                     elif isinstance(result, mplane.model.Receipt):
                         pass
                     elif isinstance(result, mplane.model.Result):
-                        print("imp-{}: received result for chunk id: {}".format(self.name, self.pending.chunk_id))
                         # add to results
                         self.client.forget(self.pending_token)
                         self.finished[self.pending.chunk_id] = list(result.schema_dict_iterator())
+                        print("imp-{}: received result for chunk id: {} ({} result rows)".format(self.name, self.pending.chunk_id, len(self.finished[self.pending.chunk_id])))
                         self.pending_token = None
                         self.pending = None
                     else:
                         # other result, just print it out
                         print("imp-{}".format(self.name), result)
 
-            time.sleep(5)
+            time.sleep(2.5)
 
     def need_chunk(self):
         with self.lock:
@@ -221,7 +221,7 @@ class TraceboxImp:
                         # other result, just print it out
                         print(result)
 
-            time.sleep(5)
+            time.sleep(QUEUE_SLEEP)
 
 
     def add(self, ip, port, when='now ... future', mode='tcp'):
@@ -239,7 +239,7 @@ class PathSpiderClient:
 
     ReasonerResult = collections.namedtuple('ReasonerResult', ['offline', 'always_works', 'always_broken', 'works_per_site', 'other'])
 
-    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 100, ipv='ip4'):
+    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 1000, ipv='ip4'):
         self.chunk_size = chunk_size
         self.ipv = ipv
         self.imps = [EcnSpiderImp(name, tls_state, url) for name, url in ecnspiders_name_and_urls]
@@ -260,7 +260,7 @@ class PathSpiderClient:
         next_chunk_id = 0
         while True:
             if any([imp.need_chunk() for imp in self.imps]):
-                print("resolver: requesting addresses")
+                print("resolver: requesting {} addresses from resolver. This may take some time.".format(self.chunk_size))
                 try:
                     addrs = self.resolver.request(self.chunk_size, ipv=self.ipv)
                 except resolver.TimeoutException as e:
@@ -278,7 +278,7 @@ class PathSpiderClient:
 
                 next_chunk_id += 1
 
-            time.sleep(1)
+            time.sleep(QUEUE_SLEEP)
 
     def analyzer_func(self):
         print("analyzer started")
@@ -297,7 +297,7 @@ class PathSpiderClient:
                         chunks_finished &= set(imp.finished.keys())
 
             if len(chunks_finished) == 0:
-                time.sleep(5)
+                time.sleep(QUEUE_SLEEP)
                 continue
 
             print("analyzer: all ecnspiders have finished chunks {} now".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
@@ -353,6 +353,9 @@ class PathSpiderClient:
         # convert to dataframe
         merged_results = pd.DataFrame(merged_results).T
         sites = pd.Series(sites)
+
+        for site, incom in incomplete.items():
+            print("analyzer: number incomplete measurements from {} = {}".format(site, len(incom)))
 
         if merged_results.shape[1] == 0:
             print("analyzer: no usable results in this chunk.")
@@ -415,7 +418,7 @@ class PathSpiderClient:
     def trackdown_func(self):
         print("trackdown: started")
         while True:
-            time.sleep(5)
+            time.sleep(QUEUE_SLEEP)
 
 """
 def retrieve_addresses(client, ipv, count, label, url, unique = True, when = "now ... future"):

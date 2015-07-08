@@ -153,7 +153,7 @@ class WebResolverClient(ResolverClient):
 class IPListDummyResolver:
     def __init__(self, addrs = ()):
         self.addrs = collections.deque([ResolverResult(ip, port, None) for ip, port in addrs])
-        self.flavor = 'http'
+        self.flavor = 'tcp'
 
     def __len__(self):
         return len(self.addrs)
