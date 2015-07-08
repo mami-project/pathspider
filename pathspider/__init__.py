@@ -36,14 +36,16 @@ def run_standalone(args, config):
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
     resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, "http://localhost:18888/")
-    reasoner = pathspider.client.Reasoner()
 
-    if False:
-        ecnspider = pathspider.client.EcnSpiderClient(1000, tls_state, [('local', "http://localhost:18888/")], resolver, reasoner)
+    if True:
+        ecnspider = pathspider.client.PathSpiderClient(100000, tls_state, [('local', "http://localhost:18888/")], resolver)
     elif False:
         import pickle
         chunk = pickle.load(open('compiled_chunk.pickle', 'rb'))
-        reasoner.process(chunk)
+        ecnspider = pathspider.client.PathSpiderClient(0, tls_state, [('local', "http://localhost:18888/")], resolver)
+
+        ecnspider.reasoner_process_chunk({'local': chunk})
+
         print("done")
     else:
         imp = pathspider.client.TraceboxImp('local', tls_state, "http://localhost:18888/")

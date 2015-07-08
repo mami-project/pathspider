@@ -31,8 +31,33 @@ import itertools
 import numpy as np
 import pandas as pd
 from ipaddress import ip_address
+from . import resolver
 
-import pickle
+# Flags constants
+TCP_CWR = 0x80
+TCP_ECE = 0x40
+TCP_URG = 0x20
+TCP_ACK = 0x10
+TCP_PSH = 0x08
+TCP_RST = 0x04
+TCP_SYN = 0x02
+TCP_FIN = 0x01
+
+# QoF TCP Characteristics constants
+QOF_ECT0 =    0x01
+QOF_ECT1 =    0x02
+QOF_CE   =    0x04
+QOF_TSOPT =   0x10
+QOF_SACKOPT = 0x20
+QOF_WSOPT =   0x40
+
+SAE = (TCP_SYN | TCP_ECE | TCP_ACK)
+SAEW = (TCP_SYN | TCP_ECE | TCP_ACK | TCP_CWR)
+
+RESULT_NOBODYHOME = 0
+RESULT_OTHER = 1
+RESULT_BROKEN = 2
+RESULT_WORKS = 3
 
 
 class NotFinishedException(Exception):
@@ -194,37 +219,41 @@ class TraceboxImp:
 
         self.queued.append(TraceboxImp.TraceboxJob(ip, port, 'ip'+str(ip_address(ip).version), probe, when))
 
-class EcnSpiderClient:
+class PathSpiderClient:
     # queued chunks - in queue to be sent to ecnspider component, feeder thread loads addresses
     # pending chunks - currently processing
     # finished chunks - finished, interrupted chunks or chunks which encountered an exception, consumer thread takes finished chunks and do further investigation
 
-    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, reasoner, chunk_size = 200, ipv='ip4'):
+    ReasonerResult = collections.namedtuple('ReasonerResult', ['offline', 'always_works', 'always_broken', 'works_per_site', 'other'])
+
+    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 1000, ipv='ip4'):
         self.chunk_size = chunk_size
         self.ipv = ipv
         self.imps = [EcnSpiderImp(name, tls_state, url) for name, url in ecnspiders_name_and_urls]
 
         self.lock = threading.RLock()
 
-        self.imp_feeder_thread = threading.Thread(target=self.imp_feeder, daemon=True, name="feeder")
-        self.imp_merger_thread = threading.Thread(target=self.imp_merger, daemon=True, name="consumer")
+        self.resolver_thread = threading.Thread(target=self.resolver_func, daemon=True, name="resolver")
+        self.reasoner_thread = threading.Thread(target=self.reasoner_func, daemon=True, name="reasoner")
+        self.trackdown_thread = threading.Thread(target=self.trackdown_func, daemon=True, name="trackdown")
 
         self.resolver = resolver
-        self.reasoner = reasoner
+        self.resolver_thread.start()
+        self.reasoner_thread.start()
+        self.trackdown_thread.start()
 
-        self.count = 0
-
-
-        self.imp_feeder_thread.start()
-        self.imp_merger_thread.start()
-
-    def imp_feeder(self):
-        print("feeder started")
+    def resolver_func(self):
+        print("resolver started")
         next_chunk_id = 0
         while True:
             if any([imp.need_chunk() for imp in self.imps]):
                 print("adding chunk")
-                addrs = self.resolver.request(self.chunk_size, ipv=self.ipv)
+                try:
+                    addrs = self.resolver.request(self.chunk_size, ipv=self.ipv)
+                except resolver.TimeoutException as e:
+                    print("Got a timeout on resolving. Try later...")
+                    time.sleep(5)
+                    continue
 
                 for imp in self.imps:
                     imp.add_chunk(addrs, next_chunk_id, self.ipv, "now ... future")
@@ -233,8 +262,10 @@ class EcnSpiderClient:
 
             time.sleep(1)
 
-    def imp_merger(self):
-        print("consumer started")
+    def reasoner_func(self):
+        print("reasoner started")
+
+        statistics = {}
         while True:
             chunks_finished = None
             for imp in self.imps:
@@ -254,10 +285,109 @@ class EcnSpiderClient:
                     with imp.lock:
                         compiled_chunk[imp.name] = pd.DataFrame(imp.finished.pop(chunk_id))
 
-                pickle.dump(compiled_chunk, open("compiled_chunk.pickle", 'wb'))
-                exit(0)
+                statistics[chunk_id] = self.reasoner_process_chunk(compiled_chunk)
 
-                #self.reasoner.process(compiled_chunk)
+
+
+
+    def reasoner_process_chunk(self, compiled_chunk):
+        #
+        # first analyze each vantage point separately
+        incomplete = {}
+        merged_results = {}
+        sites = []
+        for site, chunk in compiled_chunk.items():
+            sites.append(site)
+            for ip, result in chunk.groupby('destination.'+self.ipv):
+                if result.shape[0] != 2:
+                    if site not in incomplete:
+                        incomplete[site] = {}
+                    incomplete[site][ip] = result
+                    continue
+
+                if result.iloc[0]['ecnspider.ecnstate'] == 1:
+                    ecn_on = result.iloc[0]
+                    ecn_off = result.iloc[1]
+                else:
+                    ecn_off = result.iloc[0]
+                    ecn_on = result.iloc[1]
+
+                nego = (ecn_on['ecnspider.synflags.rev'] & SAEW) == SAE
+
+                if ecn_off['connectivity.ip'] and ecn_on['connectivity.ip']:
+                    conn = RESULT_WORKS
+                elif ecn_off['connectivity.ip'] and not ecn_on['connectivity.ip']:
+                    conn = RESULT_BROKEN
+                elif not ecn_off['connectivity.ip'] and not ecn_on['connectivity.ip']:
+                    conn = RESULT_NOBODYHOME
+                else:
+                    conn = RESULT_OTHER
+
+                if ip not in merged_results:
+                    merged_results[ip] = {'destination.'+self.ipv: ip, 'destination.port': ecn_off['destination.port']}
+
+                merged_results[ip][site+':conn'] = conn
+                merged_results[ip][site+':nego'] = nego
+
+        # convert to dataframe
+        merged_results = pd.DataFrame(merged_results).T
+        sites = pd.Series(sites)
+
+
+        # # # # # # # # # # # # # # # # # # # # # # # # #
+        # offline: never made any successful connection #
+        mask_offline = merged_results[sites+':conn'].apply(lambda x: x == RESULT_NOBODYHOME, reduce=False).all(axis=1)
+        df_online = merged_results[-mask_offline]
+        df_offline = merged_results[mask_offline]
+
+        num_offline = (mask_offline.sum())
+        num_online = (-mask_offline).sum()
+        print("online: {} ({:.2%})".format(num_online, num_online/merged_results.shape[0]))
+
+        # # # # # # # # # # # # # # # # # # # # #
+        # always works without ECN and with ECN #
+        mask_works = df_online[sites+':conn'].apply(lambda x: x == RESULT_WORKS, reduce=False).all(axis=1)
+        df_works = df_online[mask_works]
+        num_works = mask_works.sum()
+
+        print("works all path: {} ({:.3%})".format(num_works, num_works/num_online))
+
+        # gather the rest
+        num_works_not = (np.logical_not(mask_works)).sum()
+        df_works_not = df_online[np.logical_not(mask_works)]
+
+        # # # # # # # # # # # # # # # # # # # # # # # #
+        # always works without ECN but never with ECN #
+        mask_totally_broken = df_works_not[sites+':conn'].apply(lambda x: x == RESULT_BROKEN, reduce=False).all(axis=1)
+        df_totally_broken = df_works_not[mask_totally_broken]
+        num_totally_broken = mask_totally_broken.sum()
+
+        print("always works without ECN but never with ECN: {} ({:.3%})".format(num_totally_broken, num_totally_broken/num_online))
+
+        # gather the rest
+        num_totally_broken_not = (np.logical_not(mask_totally_broken)).sum()
+        df_totally_broken_not = df_works_not[np.logical_not(mask_totally_broken)]
+
+        # # # # # # # # # # # # # # # # # # # # # # # # # #
+        # either works with and without ECN or not at all #
+        mask_works_per_site = df_totally_broken_not[sites+':conn'].apply(lambda x: (x == RESULT_WORKS) | (x == RESULT_NOBODYHOME), reduce=False).all(axis=1)
+        df_works_per_site = df_totally_broken_not[mask_works_per_site]
+        num_works_per_site = mask_works_per_site.sum()
+        print("either works with and without ECN or not at all: {} ({:.3%})".format(num_works_per_site, num_works_per_site/num_online))
+
+        # gather the rest
+        num_works_per_site_not = (np.logical_not(mask_works_per_site)).sum()
+        df_works_per_site_not = df_totally_broken_not[np.logical_not(mask_works_per_site)]
+
+        print("transient/other: {} ({:.3%})".format(num_works_per_site_not, num_works_per_site_not/num_online))
+
+
+        return PathSpiderClient.ReasonerResult(df_offline, df_works, df_totally_broken, df_works_per_site, df_works_per_site_not)
+
+    def trackdown_func(self):
+        print("trackdown started")
+        while True:
+            time.sleep(5)
 
 class Reasoner:
     def __init__(self):

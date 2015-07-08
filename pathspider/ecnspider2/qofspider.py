@@ -132,7 +132,10 @@ class QofSpider:
         self.qofproc = None
         self.owner = None
 
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
+
+        # set on terminate()
+        self.exception = None
 
     def configurator(self):
         """
@@ -141,17 +144,20 @@ class QofSpider:
         """
         logger = logging.getLogger('qofspider')
 
-        while self.running:
-            logger.debug("setting config zero")
-            self.config_zero()
-            logger.debug("config zero active")
-            self.sem_config_zero.release_n(self.worker_count)
-            self.sem_config_one_rdy.acquire_n(self.worker_count)
-            logger.debug("setting config one")
-            self.config_one()
-            logger.debug("config one active")
-            self.sem_config_one.release_n(self.worker_count)
-            self.sem_config_zero_rdy.acquire_n(self.worker_count)
+        try:
+            while self.running:
+                logger.debug("setting config zero")
+                self.config_zero()
+                logger.debug("config zero active")
+                self.sem_config_zero.release_n(self.worker_count)
+                self.sem_config_one_rdy.acquire_n(self.worker_count)
+                logger.debug("setting config one")
+                self.config_one()
+                logger.debug("config one active")
+                self.sem_config_one.release_n(self.worker_count)
+                self.sem_config_zero_rdy.acquire_n(self.worker_count)
+        except Exception as e:
+            self.terminate(e)
 
         # In case the master exits the run loop before all workers have,
         # these tokens will allow all workers to run through again,
@@ -170,59 +176,65 @@ class QofSpider:
             return
 
         logger = logging.getLogger('qofspider')
-        while self.running:
-            if self.check_interrupt():
-                logger.warn("qofspider is being interrupted")
-                logger.warn("trying to abort %d jobs", self.jobqueue.qsize())
-                while not self.jobqueue.empty():
-                    self.jobqueue.get()
-                    self.jobqueue.task_done()
-                self.stop()
-                break
-            time.sleep(5)
+        try:
+            while self.running:
+                if self.check_interrupt():
+                    logger.warn("qofspider is being interrupted")
+                    logger.warn("trying to abort %d jobs", self.jobqueue.qsize())
+                    while not self.jobqueue.empty():
+                        self.jobqueue.get()
+                        self.jobqueue.task_done()
+                    self.stop()
+                    break
+                time.sleep(5)
+        except Exception as e:
+            self.terminate(e)
 
     def worker(self):
         logger = logging.getLogger('qofspider')
 
-        while self.running:
-            try:
-                job = self.jobqueue.get_nowait()
-                logger.debug("got a job: "+repr(job))
-            except queue.Empty:
-                #logger.debug("no job available, sleeping")
-                # spin the semaphores
-                self.sem_config_zero.acquire()
-                time.sleep(QUEUE_SLEEP)
-                self.sem_config_one_rdy.release()
-                self.sem_config_one.acquire()
-                time.sleep(QUEUE_SLEEP)
-                self.sem_config_zero_rdy.release()
-            else:
-                # Hook for preconnection
-                pcs = self.pre_connect(job)
+        try:
+            while self.running:
+                try:
+                    job = self.jobqueue.get_nowait()
+                    logger.debug("got a job: "+repr(job))
+                except queue.Empty:
+                    #logger.debug("no job available, sleeping")
+                    # spin the semaphores
+                    self.sem_config_zero.acquire()
+                    time.sleep(QUEUE_SLEEP)
+                    self.sem_config_one_rdy.release()
+                    self.sem_config_one.acquire()
+                    time.sleep(QUEUE_SLEEP)
+                    self.sem_config_zero_rdy.release()
+                else:
+                    # Hook for preconnection
+                    pcs = self.pre_connect(job)
 
-                # Wait for configuration zero
-                self.sem_config_zero.acquire()
+                    # Wait for configuration zero
+                    self.sem_config_zero.acquire()
 
-                # Connect in configuration zero
-                conn0 = self.connect(job, pcs, 0)
+                    # Connect in configuration zero
+                    conn0 = self.connect(job, pcs, 0)
 
-                # Wait for configuration one
-                self.sem_config_one_rdy.release()
-                self.sem_config_one.acquire()
+                    # Wait for configuration one
+                    self.sem_config_one_rdy.release()
+                    self.sem_config_one.acquire()
 
-                # Connect in configuration one
-                conn1 = self.connect(job, pcs, 1)
+                    # Connect in configuration one
+                    conn1 = self.connect(job, pcs, 1)
 
-                # Signal okay to go to configuration zero
-                self.sem_config_zero_rdy.release()
+                    # Signal okay to go to configuration zero
+                    self.sem_config_zero_rdy.release()
 
-                # Pass results on for merge
-                self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
-                self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
+                    # Pass results on for merge
+                    self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
+                    self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
 
-                logger.debug("job complete: "+repr(job))
-                self.jobqueue.task_done()
+                    logger.debug("job complete: "+repr(job))
+                    self.jobqueue.task_done()
+        except Exception as e:
+            self.terminate(e)
 
     def pre_connect(self, job):
         pass
@@ -260,11 +272,11 @@ class QofSpider:
 
             if (rv > 0):
                 logger.error("qof terminated with error "+str(rv))
-                self.stop()
+                self.terminate(Exception("qof terminated with error "+str(rv)))
 
             if (rv < 0 and rv != -15):
                 logger.error("qof terminated with signal "+str(-rv))
-                self.stop()
+                self.terminate(Exception("qof terminated with signal "+str(-rv)))
 
     def qof_config(self):
         raise NotImplemented("Cannot instantiate an abstract Qofspider")
@@ -292,7 +304,10 @@ class QofSpider:
         logger = logging.getLogger('qofspider')
         self.listener = QofSpider.QofCollectorListener(("",self.qof_port), QofSpider.QofCollectorHandler, self)
         logger.error("starting listener: "+repr(self.listener))
-        self.listener.serve_forever()
+        try:
+            self.listener.serve_forever()
+        except Exception as e:
+            self.terminate(e)
         logger.error("listener stopped")
 
     def tupleize_flow(self, flow):
@@ -300,46 +315,49 @@ class QofSpider:
 
     def merger(self):
         logger = logging.getLogger('qofspider')
-        while self.running:
-            if self.flowqueue.qsize() >= self.resqueue.qsize():
-                try:
-                    flow = self.flowqueue.get_nowait()
-                except queue.Empty:
-                    time.sleep(QUEUE_SLEEP)
+        try:
+            while self.running:
+                if self.flowqueue.qsize() >= self.resqueue.qsize():
+                    try:
+                        flow = self.flowqueue.get_nowait()
+                    except queue.Empty:
+                        time.sleep(QUEUE_SLEEP)
 
-                else:
-                    flowkey = (flow.ip, flow.port)
-                    logger.debug("got a flow ("+str(flow.ip)+", "+str(flow.port)+")")
-
-                    if flowkey in self.restab:
-                        logger.debug("merging flow")
-                        self.merge(flow, self.restab[flowkey])
-                        del self.restab[flowkey]
-                    elif flowkey in self.flowtab:
-                        logger.debug("won't merge duplicate flow")
                     else:
-                        self.flowtab[flowkey] = flow
+                        flowkey = (flow.ip, flow.port)
+                        logger.debug("got a flow ("+str(flow.ip)+", "+str(flow.port)+")")
 
-                    self.flowqueue.task_done()
-            else:
-                try:
-                    res = self.resqueue.get_nowait()
-                except queue.Empty:
-                    time.sleep(QUEUE_SLEEP)
+                        if flowkey in self.restab:
+                            logger.debug("merging flow")
+                            self.merge(flow, self.restab[flowkey])
+                            del self.restab[flowkey]
+                        elif flowkey in self.flowtab:
+                            logger.debug("won't merge duplicate flow")
+                        else:
+                            self.flowtab[flowkey] = flow
+
+                        self.flowqueue.task_done()
                 else:
-                    reskey = (res.ip, res.port)
-                    logger.debug("got a result ("+str(res.ip)+", "+str(res.port)+")")
-
-                    if reskey in self.flowtab:
-                        logger.debug("merging result")
-                        self.merge(self.flowtab[reskey], res)
-                        del self.flowtab[reskey]
-                    elif reskey in self.restab:
-                        logger.debug("won't merge duplicate result")
+                    try:
+                        res = self.resqueue.get_nowait()
+                    except queue.Empty:
+                        time.sleep(QUEUE_SLEEP)
                     else:
-                        self.restab[reskey] = res
+                        reskey = (res.ip, res.port)
+                        logger.debug("got a result ("+str(res.ip)+", "+str(res.port)+")")
 
-                    self.resqueue.task_done()
+                        if reskey in self.flowtab:
+                            logger.debug("merging result")
+                            self.merge(self.flowtab[reskey], res)
+                            del self.flowtab[reskey]
+                        elif reskey in self.restab:
+                            logger.debug("won't merge duplicate result")
+                        else:
+                            self.restab[reskey] = res
+
+                        self.resqueue.task_done()
+        except Exception as e:
+            self.terminate(e)
 
     def merge(self, flow, res):
         raise NotImplemented("Cannot instantiate an abstract Qofspider")
@@ -383,12 +401,51 @@ class QofSpider:
                 threading.Thread(target=self.interrupter, name="interrupter", daemon=True).start()
                 logger.debug("interrupter up")
 
+    def terminate(self, exception):
+        logger = logging.getLogger('qofspider')
+
+        logger.error('terminating qofspider')
+
+        # empty queues
+        self.stopping = True
+        while not self.jobqueue.empty():
+            self.jobqueue.get()
+            self.jobqueue.task_done()
+
+        while not self.resqueue.empty():
+            self.resqueue.get()
+            self.resqueue.task_done()
+
+        while not self.flowqueue.empty():
+            self.flowqueue.get()
+            self.flowqueue.task_done()
+
+        with self.lock:
+            self.exception = exception
+            try:
+                self.terminate_qof()
+            except ProcessLookupError:
+                pass
+            self.running = False
+
+            if self.listener is not None:
+                self.listener.shutdown()
+                self.listener.server_close()
+
+            self.stopping = False
+
     def stop(self):
         logger = logging.getLogger('qofspider')
 
         logger.info("stopping qofspider")
 
         with self.lock:
+            # already stopped?
+            # note: if multiple threads call this function, it should block until
+            # the stopping procedure has finished.
+            if self.stopping:
+                return
+
             # Set stopping flag
             self.stopping = True
 
@@ -422,8 +479,11 @@ class QofSpider:
 
             # FIXME join configurator, merger, workers?
 
+
     def add_job(self, job):
-        assert not self.stopping, "Cannot add a job while waiting for shutdown"
+        if self.stopping:
+            return
+
         self.jobqueue.put(job)
 
     def terminate_qof(self):

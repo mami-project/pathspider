@@ -87,7 +87,7 @@ class BtDhtResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url):
         super(BtDhtResolverClient, self).__init__(tls_state, resolver_url)
 
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 300):
         token = None
         with self.lock:
             label = 'btdhtresolver-'+ipv
@@ -101,7 +101,17 @@ class BtDhtResolverClient(ResolverClient):
         if token is None:
             raise ValueError("Could not acquire request token.")
 
-        return [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
+        addrs = [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
+
+        # ensure ip-uniqueness
+        addrs_unique = []
+        ipset = set()
+        for addr in addrs:
+            if addr[0] not in ipset:
+                ipset.add(addr[0])
+                addrs_unique.append(addr)
+
+        return addrs_unique
 
 class WebResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url, urls = None):

@@ -138,6 +138,8 @@ class EcnspiderService(mplane.scheduler.Service):
             starttime = datetime.utcnow()
             ecn.run()
             ecn.stop()
+            if ecn.exception is not None:
+                raise ecn.exception
             stoptime = datetime.utcnow()
 
             res = mplane.model.Result(specification=spec)
