@@ -280,7 +280,7 @@ class BtDhtSpider:
                         try:
                             req = self.requests[tid]
                         except KeyError:
-                            logger.warning("Received response to unknown request.")
+                            logger.info("Received response to unknown request.")
                         else:
                             del self.requests[tid]
 
@@ -307,13 +307,13 @@ class BtDhtSpider:
                                         self.addr_pool.popleft()
                                     self.addr_pool.append(addr)
                             else:
-                                logger.warning("Unknown request type: {}. Seems like I've created a Request record with a unexpected request type.".format(req.type))
+                                logger.info("Unknown request type: {}. Seems like I've created a Request record with a unexpected request type.".format(req.type))
             except bencodepy.DecodingError:
-                logger.exception("bencode decoding of incoming packet failed.")
+                logger.info("bencode decoding of incoming packet failed.")
             except KeyError:
-                logger.exception("Malformed? packet received.")
+                logger.info("Malformed? packet received.")
             except Exception:
-                logger.exception("Other exception...")
+                logger.exception("Unknown error happened during response handling.")
 
 
         logger.info("Shutting down receiver.")

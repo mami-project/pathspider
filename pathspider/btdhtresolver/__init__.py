@@ -108,6 +108,8 @@ class BtDhtSpiderService(mplane.scheduler.Service):
 
         stoptime = datetime.utcnow()
 
+        print("btdhtresolver: sending back {} addresses".format(idx))
+
         res.set_when(mplane.model.When(a=starttime, b=stoptime))
 
         return res
