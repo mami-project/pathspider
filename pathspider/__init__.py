@@ -35,21 +35,25 @@ def run_standalone(args, config):
 
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
-    resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, "http://localhost:18888/")
 
-    if True:
-        ecnspider = pathspider.client.PathSpiderClient(100000, tls_state, [('local', "http://localhost:18888/")], resolver)
-    elif False:
-        import pickle
-        chunk = pickle.load(open('compiled_chunk.pickle', 'rb'))
-        ecnspider = pathspider.client.PathSpiderClient(0, tls_state, [('local', "http://localhost:18888/")], resolver)
+    ecnspider = None
 
-        ecnspider.reasoner_process_chunk({'local': chunk})
+    ecnspider_urls = config.items('probes')
+    print("Probes specified in configuration file:")
+    for name, url in ecnspider_urls:
+        print('label: {}, url: {}'.format(name, url))
 
-        print("done")
-    else:
-        imp = pathspider.client.TraceboxImp('local', tls_state, "http://localhost:18888/")
-        imp.add('192.33.91.96', 22)
+    if args.btdht_count is not None:
+        resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, config['main']['resolver'])
+        ecnspider = pathspider.client.PathSpiderClient(args.btdht_count, tls_state, ecnspider_urls, resolver)
+    elif args.hostnames_file is not None:
+        with open(config['main']['webresolver_urls']) as f:
+            resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=f.readlines())
+        ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver)
+    elif args.iplist_file is not None:
+        with open(config['main']['iplist']) as f:
+            resolver = pathspider.client.resolver.IPListDummyResolver(ips=[(ip, int(port)) for ip, port in [line.split(':', 1) for line in f.readlines()]])
+        ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver)
 
     while True:
         time.sleep(10)
@@ -61,6 +65,11 @@ def main():
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
     parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service', 'reasoner'], required=True, help='Set the operating mode.')
     parser.add_argument('--config', '-c', default='AUTO', help='Set pathspider configuration file.')
+
+    parser_client = parser.add_argument_group('Options for client and standalone mode')
+    parser_client.add_argument('--btdht-count', type=int, dest='btdht_count', metavar='NUM', help='Using IP/port addresses from the BitTorrent DHT network, tell pathspider how many ecnspider TCP measurements to perform.')
+    parser_client.add_argument('--hostnames-file', dest='hostnames_file', metavar='FILENAME', help='Using the hostnames specified in this file, pathspider will resolve them to ip addresses and perform ecnspider HTTP measurements.')
+    parser_client.add_argument('--iplist-file', dest='iplist_file', metavar='FILENAME', help='Perform ecnspider TCP measurements on ips specified in the given file (format: one \'ipaddress:port\' per line)')
 
     args = parser.parse_args()
 

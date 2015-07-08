@@ -81,7 +81,7 @@ class ResolverClient:
         raise TimeoutException("Could not complete address retrieval within timeout period.")
 
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
-        raise NotImplementedError("You have to implement the generator() function in your subclass of ResolverClient.")
+        raise NotImplementedError("You have to implement this function in your subclass of ResolverClient.")
 
 class BtDhtResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url):
@@ -125,6 +125,9 @@ class WebResolverClient(ResolverClient):
         with self.lock:
             self.queued.extend(urls)
 
+    def __len__(self):
+        return len(self.queued)
+
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
         token = None
         with self.lock:
@@ -142,3 +145,19 @@ class WebResolverClient(ResolverClient):
 
         return [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
 
+class IPListDummyResolver(ResolverClient):
+    def __init__(self, ips = []):
+        self.ips = collections.deque(ips)
+
+    def __len__(self):
+        return len(self.ips)
+
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+        taken = []
+        try:
+            for _ in range(0, count):
+                taken.append(self.ips.popleft())
+        except IndexError:
+            pass
+
+        return taken

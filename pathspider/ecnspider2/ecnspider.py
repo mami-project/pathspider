@@ -242,9 +242,12 @@ class EcnSpider2Http(EcnSpider2):
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
                  interface_uri,
-                 configurator_hooks,
-                 local_ip4=None, local_ip6=None, qof_port=4739):
-        super().__init__(result_sink, worker_count, conn_timeout, interface_uri, configurator_hooks, local_ip4, local_ip6, qof_port)
+                 local_ip4 = None, local_ip6 = None,
+                 qof_port=4739,
+                 check_interrupt=None):
+        super().__init__(result_sink=result_sink, worker_count=worker_count, conn_timeout=conn_timeout,
+                         interface_uri=interface_uri, local_ip4=local_ip4, local_ip6=local_ip6,
+                         qof_port=qof_port, check_interrupt=check_interrupt)
 
     def connect(self, job, pcs, config):
         client = http.client.HTTPConnection(str(job.ip), timeout=self.conn_timeout)

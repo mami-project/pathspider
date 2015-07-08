@@ -42,6 +42,14 @@
         { "name": "ecnspider.ttl.rev.min",
             "prim": "natural",
             "desc": "Minimum TTL seen in reverse direction."
+        },
+        { "name": "ecnspider.host",
+          "prim": "string",
+          "desc": "A hostname identifying a target of an active measurement."
+        },
+        { "name": "ecnspider.httpstatus",
+          "prim": "natural",
+          "desc": "Returned http status code of a target of an active measurement."
         }
     ]
 }
