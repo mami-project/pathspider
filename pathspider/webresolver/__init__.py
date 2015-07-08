@@ -45,9 +45,8 @@ def services(ip4addr = None, ip6addr = None):
 
     servicelist = []
 
-    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip4addr or '0.0.0.0'), reguri)))
-
-    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip6addr or '::'), reguri)))
+    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip4addr or '0.0.0.0')), 'ip4'))
+    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip6addr or '::')), 'ip6'))
 
     return servicelist
 
@@ -57,27 +56,34 @@ def webresolver_cap(ipaddr, reguri):
 
     cap = mplane.model.Capability(label='webresolver-'+ipv, when='now ... future', registry_uri=reguri)
 
-    cap.add_metadata("source."+ipv, ipaddr)
-    cap.add_metadata("source.port", port)
-
-    cap.add_parameter("btdhtspider.count")
-    cap.add_parameter("btdhtspider.unique")
+    cap.add_parameter("ecnspider.hostname")
+    cap.add_parameter("destination.port")
 
     cap.add_result_column("destination."+ipv)
     cap.add_result_column("destination.port")
-    cap.add_result_column("btdhtspider.nodeid")
+    cap.add_result_column("ecnspider.hostname")
 
     return cap
 
 class WebresolverService(mplane.scheduler.Service):
-    def __init__(self, cap):
+    def __init__(self, cap, ipv):
         super().__init__(cap)
+        self.ipv = ipv
 
     def run(self, spec, check_interrupt):
 
         starttime = datetime.utcnow()
 
         res = mplane.model.Result(specification=spec)
+
+        hostnames = spec.get_parameter_value("ecnspider.hostname")
+        ports = spec.get_parameter_value("destination.port")
+
+        for hostname, port in zip(hostnames, ports):
+            res.set_result_value("destination."+self.ipv, addr[0][0], idx)
+            res.set_result_value("destination.port", addr[0][1], idx)
+            res.set_result_value("ecnspider.hostname", addr[1], idx)
+
         stoptime = datetime.utcnow()
 
         res.set_when(mplane.model.When(a=starttime, b=stoptime))

@@ -43,7 +43,7 @@
             "prim": "natural",
             "desc": "Minimum TTL seen in reverse direction."
         },
-        { "name": "ecnspider.host",
+        { "name": "ecnspider.hostname",
           "prim": "string",
           "desc": "A hostname identifying a target of an active measurement."
         },

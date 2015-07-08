@@ -255,9 +255,9 @@ class EcnSpider2Http(EcnSpider2):
         try:
             client.connect()
         except socket.timeout:
-            return Connection(None, client.sock.getsockname()[1], Connection.TIMEOUT)
+            return Connection(None, None, Connection.TIMEOUT)
         except OSError as e:
-            return Connection(None, client.sock.getsockname()[1], Connection.FAILED)
+            return Connection(None, None, Connection.FAILED)
         else:
             return Connection(client, client.sock.getsockname()[1], Connection.OK)
 

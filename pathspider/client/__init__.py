@@ -66,7 +66,7 @@ class NotFinishedException(Exception):
 class EcnSpiderImp:
     QUEUED_MIN_LENGTH = 2
 
-    ChunkJob = collections.namedtuple('ChunkJob', ['chunk_id', 'addrs', 'ipv', 'when', 'token'])
+    ChunkJob = collections.namedtuple('ChunkJob', ['chunk_id', 'addrs', 'ipv', 'when', 'flavor', 'token'])
 
     def __init__(self, name, tls_state, url):
         self.name = name
@@ -89,15 +89,27 @@ class EcnSpiderImp:
             with self.lock:
                 if self.pending_token is None and len(self.queued) > 0:
                     self.pending = self.queued.popleft()
-                    label = 'ecnspider-'+self.pending.ipv
-                    print("imp-{}: invoking measurement {} of addresses in chunk {}".format(self.name, label, self.pending.chunk_id))
+                    label = None
+                    params = None
                     try:
-                        spec = self.client.invoke_capability(label, self.pending.when,
-                                                             { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
-                                                               "destination.port": [int(addr[1]) for addr in self.pending.addrs]})
+                        if self.pending.flavor == 'tcp':
+                            label = 'ecnspider-'+self.pending.ipv
+                            params = { "destination."+self.pending.ipv: [str(addr.ip) for addr in self.pending.addrs],
+                                       "destination.port": [int(addr.port) for addr in self.pending.addrs]}
+                        elif self.pending.flavor == 'http':
+                            label = 'ecnspider-http-'+self.pending.ipv
+                            params = { "destination."+self.pending.ipv: [str(addr.ip) for addr in self.pending.addrs],
+                                       "destination.port": [int(addr.port) for addr in self.pending.addrs],
+                                       "ecnspider.hostname": [addr.hostname for addr in self.pending.addrs]}
+
+                        if label is None or params is None:
+                            raise ValueError("imp-{}: ecnspider flavor {} is not supported by me.".format(self.name, self.pending.flavor))
+
+                        print("imp-{}: invoking measurement {} of chunk {} (containing {} addresses)".format(self.name, label, self.pending.chunk_id, len(self.pending.addrs)))
+                        spec = self.client.invoke_capability(label, self.pending.when, params)
                         self.pending_token = spec.get_token()
                     except KeyError as e:
-                        print("imp-{}: Specified URL does not support '{}' capability.".format(self.name, label))
+                        print("imp-{}: Specified URL does not support '{}' capability.".format(self.name, label), e)
 
                     if self.pending_token is None:
                         print("imp-{}: Could not acquire request token.".format(self.name))
@@ -140,9 +152,9 @@ class EcnSpiderImp:
         with self.lock:
             return len(self.queued) < EcnSpiderImp.QUEUED_MIN_LENGTH
 
-    def add_chunk(self, addrs, chunk_id, ipv, when):
+    def add_chunk(self, addrs, chunk_id, ipv, when, flavor):
         with self.lock:
-            self.queued.append(EcnSpiderImp.ChunkJob(chunk_id, addrs, ipv, when, None))
+            self.queued.append(EcnSpiderImp.ChunkJob(chunk_id, addrs, ipv, when, flavor, None))
 
 class TraceboxImp:
     TraceboxJob = collections.namedtuple('TraceboxJob', ['ip', 'port', 'ipv', 'probe', 'when'])
@@ -227,7 +239,7 @@ class PathSpiderClient:
 
     ReasonerResult = collections.namedtuple('ReasonerResult', ['offline', 'always_works', 'always_broken', 'works_per_site', 'other'])
 
-    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 1000, ipv='ip4'):
+    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 100, ipv='ip4'):
         self.chunk_size = chunk_size
         self.ipv = ipv
         self.imps = [EcnSpiderImp(name, tls_state, url) for name, url in ecnspiders_name_and_urls]
@@ -235,12 +247,12 @@ class PathSpiderClient:
         self.lock = threading.RLock()
 
         self.resolver_thread = threading.Thread(target=self.resolver_func, daemon=True, name="resolver")
-        self.reasoner_thread = threading.Thread(target=self.reasoner_func, daemon=True, name="reasoner")
+        self.analyzer_thread = threading.Thread(target=self.analyzer_func, daemon=True, name="analyzer")
         self.trackdown_thread = threading.Thread(target=self.trackdown_func, daemon=True, name="trackdown")
 
         self.resolver = resolver
         self.resolver_thread.start()
-        self.reasoner_thread.start()
+        self.analyzer_thread.start()
         self.trackdown_thread.start()
 
     def resolver_func(self):
@@ -255,16 +267,21 @@ class PathSpiderClient:
                     print("resolver: got a timeout on resolving. try later...")
                     time.sleep(5)
                     continue
+
+                if len(addrs) == 0:
+                    print("resolver: resolver has no more addresses.")
+                    break
+
                 print("resolver: received {} addresses. adding to ecnspiders".format(len(addrs)))
                 for imp in self.imps:
-                    imp.add_chunk(addrs, next_chunk_id, self.ipv, "now ... future")
+                    imp.add_chunk(addrs, next_chunk_id, self.ipv, "now ... future", self.resolver.flavor)
 
                 next_chunk_id += 1
 
             time.sleep(1)
 
-    def reasoner_func(self):
-        print("reasoner started")
+    def analyzer_func(self):
+        print("analyzer started")
 
         statistics = {}
         while True:
@@ -272,7 +289,7 @@ class PathSpiderClient:
             for imp in self.imps:
                 with imp.lock:
                     if len(imp.finished) > 0:
-                        print("reasoner: {} has finished chunks: {}".format(imp.name, imp.finished.keys()))
+                        print("analyzer: {} has finished chunks: {}".format(imp.name, ",".join([str(chunk_id) for chunk_id in imp.finished.keys()])))
 
                     if chunks_finished is None:
                         chunks_finished = set(imp.finished.keys())
@@ -283,7 +300,7 @@ class PathSpiderClient:
                 time.sleep(5)
                 continue
 
-            print("reasoner: all ecnspiders have finished {} now".format(chunks_finished))
+            print("analyzer: all ecnspiders have finished chunks {} now".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
 
             for chunk_id in chunks_finished:
                 compiled_chunk = {}
@@ -291,13 +308,10 @@ class PathSpiderClient:
                     with imp.lock:
                         compiled_chunk[imp.name] = pd.DataFrame(imp.finished.pop(chunk_id))
 
-                print("reasoner: processing chunk {}".format(chunk_id))
-                statistics[chunk_id] = self.reasoner_process_chunk(compiled_chunk)
+                print("analyzer: processing chunk {}".format(chunk_id))
+                statistics[chunk_id] = self.analyzer_process_chunk(compiled_chunk)
 
-
-
-
-    def reasoner_process_chunk(self, compiled_chunk):
+    def analyzer_process_chunk(self, compiled_chunk):
         #
         # first analyze each vantage point separately
         incomplete = {}
@@ -340,6 +354,9 @@ class PathSpiderClient:
         merged_results = pd.DataFrame(merged_results).T
         sites = pd.Series(sites)
 
+        if merged_results.shape[1] == 0:
+            print("analyzer: no usable results in this chunk.")
+            return PathSpiderClient.ReasonerResult(None, None, None, None, None)
 
         # # # # # # # # # # # # # # # # # # # # # # # # #
         # offline: never made any successful connection #
@@ -349,7 +366,11 @@ class PathSpiderClient:
 
         num_offline = (mask_offline.sum())
         num_online = (-mask_offline).sum()
-        print("reasoner: online: {} ({:.2%})".format(num_online, num_online/merged_results.shape[0]))
+        print("analyzer: online: {} ({:.2%})".format(num_online, num_online/merged_results.shape[0]))
+
+        if num_online == 0:
+            print("analyzer: no further analysis possible, because all hosts offline.")
+            return PathSpiderClient.ReasonerResult(df_offline, None, None, None, None)
 
         # # # # # # # # # # # # # # # # # # # # #
         # always works without ECN and with ECN #
@@ -357,7 +378,7 @@ class PathSpiderClient:
         df_works = df_online[mask_works]
         num_works = mask_works.sum()
 
-        print("reasoner: works all path: {} ({:.3%})".format(num_works, num_works/num_online))
+        print("analyzer: works all path: {} ({:.3%})".format(num_works, num_works/num_online))
 
         # gather the rest
         num_works_not = (np.logical_not(mask_works)).sum()
@@ -369,7 +390,7 @@ class PathSpiderClient:
         df_totally_broken = df_works_not[mask_totally_broken]
         num_totally_broken = mask_totally_broken.sum()
 
-        print("reasoner: always works without ECN but never with ECN: {} ({:.3%})".format(num_totally_broken, num_totally_broken/num_online))
+        print("analyzer: always works without ECN but never with ECN: {} ({:.3%})".format(num_totally_broken, num_totally_broken/num_online))
 
         # gather the rest
         num_totally_broken_not = (np.logical_not(mask_totally_broken)).sum()
@@ -380,13 +401,13 @@ class PathSpiderClient:
         mask_works_per_site = df_totally_broken_not[sites+':conn'].apply(lambda x: (x == RESULT_WORKS) | (x == RESULT_NOBODYHOME), reduce=False).all(axis=1)
         df_works_per_site = df_totally_broken_not[mask_works_per_site]
         num_works_per_site = mask_works_per_site.sum()
-        print("reasoner: either works with and without ECN or not at all: {} ({:.3%})".format(num_works_per_site, num_works_per_site/num_online))
+        print("analyzer: either works with and without ECN or not at all: {} ({:.3%})".format(num_works_per_site, num_works_per_site/num_online))
 
         # gather the rest
         num_works_per_site_not = (np.logical_not(mask_works_per_site)).sum()
         df_works_per_site_not = df_totally_broken_not[np.logical_not(mask_works_per_site)]
 
-        print("reasoner: transient/other: {} ({:.3%})".format(num_works_per_site_not, num_works_per_site_not/num_online))
+        print("analyzer: transient/other: {} ({:.3%})".format(num_works_per_site_not, num_works_per_site_not/num_online))
 
 
         return PathSpiderClient.ReasonerResult(df_offline, df_works, df_totally_broken, df_works_per_site, df_works_per_site_not)
@@ -395,25 +416,6 @@ class PathSpiderClient:
         print("trackdown: started")
         while True:
             time.sleep(5)
-
-class Reasoner:
-    def __init__(self):
-        pass
-
-    def process(self, compiled_chunk: dict, ipv='ip4'):
-        """
-        results = { 'ams': [result_row, result_row...], 'sin': [result_row....], ...}
-        """
-
-
-        # get all different ip addresses
-        ips = set([row['destination.'+ipv] for row in itertools.chain(*compiled_chunk.values())])
-        print("reasoner: got {} ips".format(len(ips)))
-
-
-
-
-
 
 """
 def retrieve_addresses(client, ipv, count, label, url, unique = True, when = "now ... future"):

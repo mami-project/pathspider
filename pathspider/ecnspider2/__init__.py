@@ -67,6 +67,9 @@ def services(ip4addr = None, ip6addr = None, worker_count = None, connection_tim
 
     """
 
+    if connection_timeout is None:
+        connection_timeout = 15
+
     # global lock, only one ecnspider instance may run at a time.
     lock = threading.Lock()
 
@@ -184,12 +187,12 @@ def ecnspider_http_cap(ip_version):
 
     cap.add_parameter("destination."+ipv, "[*]")
     cap.add_parameter("destination.port", "[*]")
-    cap.add_parameter("ecnspider.host", "[*]")
+    cap.add_parameter("ecnspider.hostname", "[*]")
 
     cap.add_result_column("source.port")
     cap.add_result_column("destination."+ipv)
     cap.add_result_column("destination.port")
-    cap.add_result_column("ecnspider.host")
+    cap.add_result_column("ecnspider.hostname")
     cap.add_result_column("connectivity.ip")
     cap.add_result_column("ecnspider.httpstatus")
     cap.add_result_column("ecnspider.ecnstate")
@@ -240,9 +243,13 @@ class EcnspiderHttpService(mplane.scheduler.Service):
             # formulate jobs
             ports = spec.get_parameter_value("destination.port")
             if len(ports) != len(ips):
-                raise ValueError("destination.ip4/6, destination.port and torrentspider.nodeid don't have same amount of elements.")
+                raise ValueError("destination.ip4/6 and destination.port don't have same amount of elements.")
 
-            jobs = [ecnspider.Job(ip_address(ip), ip, port, None) for ip, port in zip(ips, ports)]
+            hosts = spec.get_parameter_value("ecnspider.hostname")
+            if len(hosts) != len(ips):
+                raise ValueError("ecnspider.hostname and destination.ip4/6 don't have same amount of elements.")
+
+            jobs = [ecnspider.Job(ip_address(ip), host, port, None) for ip, port, host in zip(ips, ports, hosts)]
             for job in jobs:
                 ecn.add_job(job)
 
@@ -262,7 +269,9 @@ class EcnspiderHttpService(mplane.scheduler.Service):
                 res.set_result_value("destination."+ipv,            result.ip, i)
                 res.set_result_value("destination.port",            result.rport, i)
                 res.set_result_value("connectivity.ip",             result.connstate, i)
+                res.set_result_value("ecnspider.hostname",          result.host)
                 res.set_result_value("ecnspider.ecnstate",          result.ecnstate, i)
+                res.set_result_value("ecnspider.httpstatus",        result.httpstatus)
                 res.set_result_value("ecnspider.initflags.fwd",     result.fif, i)
                 res.set_result_value("ecnspider.synflags.fwd",      result.fsf, i)
                 res.set_result_value("ecnspider.unionflags.fwd",    result.fuf, i)

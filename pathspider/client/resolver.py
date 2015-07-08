@@ -24,6 +24,7 @@ import mplane.client
 import threading
 import time
 import collections
+import itertools
 
 def take(count, iterable):
     """
@@ -38,13 +39,17 @@ def take(count, iterable):
 class TimeoutException(Exception):
     pass
 
+ResolverResult = collections.namedtuple('ResolverResult', ['ip', 'port', 'hostname'])
+
 class ResolverClient:
-    def __init__(self, tls_state, resolver_url):
+    def __init__(self, tls_state, resolver_url, flavor):
         self.url = resolver_url
         self.client = mplane.client.HttpInitiatorClient(tls_state)
         self.client.retrieve_capabilities(self.url)
         self.last_updated = 0
         self.lock = threading.RLock()
+
+        self.flavor = flavor
 
     def _fetch_result(self, token, request_timeout):
         time_spent = 0
@@ -85,7 +90,7 @@ class ResolverClient:
 
 class BtDhtResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url):
-        super(BtDhtResolverClient, self).__init__(tls_state, resolver_url)
+        super(BtDhtResolverClient, self).__init__(tls_state, resolver_url, 'tcp')
 
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 300):
         token = None
@@ -101,7 +106,7 @@ class BtDhtResolverClient(ResolverClient):
         if token is None:
             raise ValueError("Could not acquire request token.")
 
-        addrs = [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
+        addrs = [ResolverResult(row['destination.'+ipv], row['destination.port'], None) for row in self._fetch_result(token, request_timeout)]
 
         # ensure ip-uniqueness
         addrs_unique = []
@@ -115,7 +120,7 @@ class BtDhtResolverClient(ResolverClient):
 
 class WebResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url, urls = None):
-        super(WebResolverClient, self).__init__(tls_state, resolver_url)
+        super(WebResolverClient, self).__init__(tls_state, resolver_url, 'http')
         self.lock = threading.RLock()
         self.queued = collections.deque()
         if urls is not None:
@@ -133,8 +138,8 @@ class WebResolverClient(ResolverClient):
         with self.lock:
             label = 'btdhtresolver-'+ipv
             try:
-                urls = list(take(count, self.queued))
-                spec = self.client.invoke_capability(label, when, { "destination.url": urls })
+                hosts = list(take(count, self.queued))
+                spec = self.client.invoke_capability(label, when, { "ecnspider.hostname": hosts, 'destination.port': itertools.repeat(80, len(hosts)) })
                 token = spec.get_token()
             except KeyError as e:
                 print("Specified URL does not support '"+label+"' capability.")
@@ -143,20 +148,21 @@ class WebResolverClient(ResolverClient):
         if token is None:
             raise ValueError("Could not acquire request token.")
 
-        return [(row['destination.'+ipv], row['destination.port']) for row in self._fetch_result(token, request_timeout)]
+        return [ResolverResult(row['destination.'+ipv], row['destination.port'], row['ecnspider.hostname']) for row in self._fetch_result(token, request_timeout)]
 
-class IPListDummyResolver(ResolverClient):
-    def __init__(self, ips = []):
-        self.ips = collections.deque(ips)
+class IPListDummyResolver:
+    def __init__(self, addrs = ()):
+        self.addrs = collections.deque([ResolverResult(ip, port, None) for ip, port in addrs])
+        self.flavor = 'http'
 
     def __len__(self):
-        return len(self.ips)
+        return len(self.addrs)
 
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
         taken = []
         try:
             for _ in range(0, count):
-                taken.append(self.ips.popleft())
+                taken.append(self.addrs.popleft())
         except IndexError:
             pass
 

@@ -47,12 +47,10 @@ def run_client(args, config):
         resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, config['main']['resolver'])
         ecnspider = pathspider.client.PathSpiderClient(args.btdht_count, tls_state, ecnspider_urls, resolver)
     elif args.hostnames_file is not None:
-        with open(config['main']['webresolver_urls']) as f:
-            resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=f.readlines())
+        resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=args.hostnames_file.readlines())
         ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver)
     elif args.iplist_file is not None:
-        with open(config['main']['iplist']) as f:
-            resolver = pathspider.client.resolver.IPListDummyResolver(ips=[(ip, int(port)) for ip, port in [line.split(':', 1) for line in f.readlines()]])
+        resolver = pathspider.client.resolver.IPListDummyResolver([(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.iplist_file.readlines() if len(line) > 0]])
         ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver)
 
     while True:
@@ -63,13 +61,13 @@ def main():
     # parse command line
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
-    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service', 'reasoner'], required=True, help='Set the operating mode.')
+    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service'], required=True, help='Set the operating mode.')
     parser.add_argument('--config', '-c', default='AUTO', help='Set pathspider configuration file.')
 
     parser_client = parser.add_argument_group('Options for client and standalone mode')
     parser_client.add_argument('--btdht-count', type=int, dest='btdht_count', metavar='NUM', help='Using IP/port addresses from the BitTorrent DHT network, tell pathspider how many ecnspider TCP measurements to perform.')
-    parser_client.add_argument('--hostnames-file', dest='hostnames_file', metavar='FILENAME', help='Using the hostnames specified in this file, pathspider will resolve them to ip addresses and perform ecnspider HTTP measurements.')
-    parser_client.add_argument('--iplist-file', dest='iplist_file', metavar='FILENAME', help='Perform ecnspider TCP measurements on ips specified in the given file (format: one \'ipaddress:port\' per line)')
+    parser_client.add_argument('--hostnames-file', dest='hostnames_file', type=argparse.FileType('rt'), metavar='FILENAME', help='Using the hostnames specified in this file, pathspider will resolve them to ip addresses and perform ecnspider HTTP measurements.')
+    parser_client.add_argument('--iplist-file', dest='iplist_file', type=argparse.FileType('rt'), metavar='FILENAME', help='Perform ecnspider TCP measurements on ips specified in the given file (format: one \'ipaddress:port\' per line)')
 
     args = parser.parse_args()
 
