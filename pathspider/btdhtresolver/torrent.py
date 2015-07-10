@@ -318,22 +318,3 @@ class BtDhtSpider:
 
         logger.info("Shutting down receiver.")
         self.sock.close()
-
-if __name__ == "__main__":
-    logger = logging.getLogger('torrent-dht')
-    logger.setLevel(logging.DEBUG)
-
-    consoleHandler = logging.StreamHandler(sys.stderr)
-    consoleFormatter = logging.Formatter('%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
-    consoleHandler.setFormatter(consoleFormatter)
-    consoleHandler.setLevel(logging.DEBUG)
-    logger.addHandler(consoleHandler)
-
-    logger.info("Logging started")
-
-    dht = BtDhtSpider(ip_version=4, unique=True)
-    dht.start()
-
-    for addr, nodeid in dht:
-        print(addr)
-        #time.sleep(random.uniform(0.01, 0.1))
