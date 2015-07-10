@@ -44,7 +44,7 @@ ResolverResult = collections.namedtuple('ResolverResult', ['ip', 'port', 'hostna
 class ResolverClient:
     def __init__(self, tls_state, resolver_url, flavor):
         self.url = resolver_url
-        self.client = mplane.client.HttpInitiatorClient(tls_state)
+        self.client = mplane.client.HttpInitiatorClient({}, tls_state)
         self.client.retrieve_capabilities(self.url)
         self.last_updated = 0
         self.lock = threading.RLock()

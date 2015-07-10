@@ -77,7 +77,7 @@ class EcnSpiderImp:
         self.finished = {}
 
         self.url = url
-        self.client = mplane.client.HttpInitiatorClient(tls_state)
+        self.client = mplane.client.HttpInitiatorClient({}, tls_state)
         self.client.retrieve_capabilities(self.url)
 
         self.lock = threading.RLock()
@@ -177,7 +177,7 @@ class TraceboxImp:
     def __init__(self, name, tls_state, url):
         self.name = name
         self.url = url
-        self.client = mplane.client.HttpInitiatorClient(tls_state)
+        self.client = mplane.client.HttpInitiatorClient({}, tls_state)
         self.client.retrieve_capabilities(self.url)
         self.queued = collections.deque()
         self.pending_token = None
