@@ -81,12 +81,27 @@ class EcnSpiderImp:
         self.client.retrieve_capabilities(self.url)
 
         self.lock = threading.RLock()
+        self.running = True
         self.worker_thread = threading.Thread(target=self.worker, name='EcnSpiderImp-'+self.name, daemon=True)
         self.worker_thread.start()
 
+    def shutdown(self):
+        print("imp-{}: Attempting shutdown...".format(self.name))
+        with self.lock:
+            self.running = False
+
+            # interrupt running operations
+            if self.pending_token is not None:
+                print("imp-{}: Interrupting measurement '{}'".format(self.name, self.pending_token))
+                self.client.interrupt_capability(self.pending_token)
+                self.pending_token = None
+                self.pending = None
+        print("imp-{}: Shutdown completed".format(self.name))
+
+
     def worker(self):
         print("imp-{}: started".format(self.name))
-        while True:
+        while self.running:
             with self.lock:
                 if self.pending_token is None and len(self.queued) > 0:
                     self.pending = self.queued.popleft()
@@ -232,98 +247,50 @@ class TraceboxImp:
 
         self.queued.append(TraceboxImp.TraceboxJob(ip, port, 'ip'+str(ip_address(ip).version), probe, when))
 
-class PathSpiderClient:
-    # queued chunks - in queue to be sent to ecnspider component, feeder thread loads addresses
-    # pending chunks - currently processing
-    # finished chunks - finished, interrupted chunks or chunks which encountered an exception, consumer thread takes finished chunks and do further investigation
+class Analysis:
+    def __init__(self, compiled_chunk = None):
+        self.chunks = []
+        self.offline = pd.DataFrame()
+        self.always_works = pd.DataFrame()
+        self.always_broken = pd.DataFrame()
+        self.works_per_site = pd.DataFrame()
+        self.other = pd.DataFrame()
+        self.incomplete = []
 
-    AnalysisResult = collections.namedtuple('AnalysisResult', ['offline', 'always_works', 'always_broken', 'works_per_site', 'other'])
+        if compiled_chunk is not None:
+            self.append(compiled_chunk)
 
-    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 1000, ipv='ip4'):
-        self.chunk_size = chunk_size
-        self.ipv = ipv
-        self.imps = [EcnSpiderImp(name, tls_state, url) for name, url in ecnspiders_name_and_urls]
+    def count_online(self):
+        return len(self.always_works) + len(self.always_broken) + len(self.works_per_site) + len(self.other)
 
-        self.lock = threading.RLock()
+    def dump(self):
+        num_online = self.count_online()
+        print("online: {} ({:.2%})".format(num_online, num_online/len(self.offline)))
 
-        self.resolver_thread = threading.Thread(target=self.resolver_func, daemon=True, name="resolver")
-        self.analyzer_thread = threading.Thread(target=self.analyzer_func, daemon=True, name="analyzer")
-        self.trackdown_thread = threading.Thread(target=self.trackdown_func, daemon=True, name="trackdown")
+        if num_online == 0:
+            return
 
-        self.resolver = resolver
-        self.resolver_thread.start()
-        self.analyzer_thread.start()
-        self.trackdown_thread.start()
+        print("analyzer: works all path: {} ({:.3%})".format(len(self.always_works), len(self.always_works)/num_online))
 
-    def resolver_func(self):
-        print("resolver: started")
-        next_chunk_id = 0
-        while True:
-            if any([imp.need_chunk() for imp in self.imps]):
-                print("resolver: requesting {} addresses from resolver. This may take some time.".format(self.chunk_size))
-                try:
-                    addrs = self.resolver.request(self.chunk_size, ipv=self.ipv)
-                except resolver.TimeoutException as e:
-                    print("resolver: got a timeout on resolving. try later...")
-                    time.sleep(5)
-                    continue
+        print("analyzer: always works without ECN but never with ECN: {} ({:.3%})".format(len(self.always_broken), len(self.always_broken)/num_online))
 
-                if len(addrs) == 0:
-                    print("resolver: resolver has no more addresses.")
-                    break
+        print("analyzer: either works with and without ECN or not at all: {} ({:.3%})".format(len(self.works_per_site), len(self.works_per_site)/num_online))
 
-                print("resolver: received {} addresses. adding to ecnspiders".format(len(addrs)))
-                for imp in self.imps:
-                    imp.add_chunk(addrs, next_chunk_id, self.ipv, "now ... future", self.resolver.flavor)
+        print("analyzer: transient/other: {} ({:.3%})".format(len(self.other), len(self.other)/num_online))
 
-                next_chunk_id += 1
+    def __len__(self):
+        """
+        :return: the number of successful measurements
+        """
+        return len(self.always_works) + len(self.always_broken) + len(self.works_per_site) + len(self.other)
 
-            time.sleep(QUEUE_SLEEP)
-
-    def analyzer_func(self):
-        print("analyzer started")
-
-        statistics = {}
-        while True:
-            chunks_finished = None
-            for imp in self.imps:
-                with imp.lock:
-                    if len(imp.finished) > 0:
-                        print("analyzer: {} has finished chunks: {}".format(imp.name, ",".join([str(chunk_id) for chunk_id in imp.finished.keys()])))
-
-                    if chunks_finished is None:
-                        chunks_finished = set(imp.finished.keys())
-                    else:
-                        chunks_finished &= set(imp.finished.keys())
-
-            if len(chunks_finished) == 0:
-                time.sleep(QUEUE_SLEEP)
-                continue
-
-            print("analyzer: all ecnspiders have finished chunks {} now".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
-
-            for chunk_id in chunks_finished:
-                compiled_chunk = {}
-                for imp in self.imps:
-                    with imp.lock:
-                        compiled_chunk[imp.name] = pd.DataFrame(imp.finished.pop(chunk_id))
-
-                print("analyzer: processing chunk {}".format(chunk_id))
-                statistics[chunk_id] = self.analyzer_process_chunk(compiled_chunk)
-
-    def analyzer_process_chunk(self, compiled_chunk):
-        #
-        # first analyze each vantage point separately
-        incomplete = {}
-        merged_results = {}
-        sites = []
+    def _merge_results(self, compiled_chunk, ipv):
+        merged = {}
+        incomplete = []
         for site, chunk in compiled_chunk.items():
-            sites.append(site)
-            for ip, result in chunk.groupby('destination.'+self.ipv):
+            for ip, result in chunk.groupby('destination.'+ipv):
                 if result.shape[0] != 2:
-                    if site not in incomplete:
-                        incomplete[site] = {}
-                    incomplete[site][ip] = result
+                    incomplete.append((site, ip, result))
                     continue
 
                 if result.iloc[0]['ecnspider.ecnstate'] == 1:
@@ -344,36 +311,43 @@ class PathSpiderClient:
                 else:
                     conn = RESULT_OTHER
 
-                if ip not in merged_results:
-                    merged_results[ip] = {'destination.'+self.ipv: ip, 'destination.port': ecn_off['destination.port']}
+                if ip not in merged:
+                    merged[ip] = {'destination.'+ipv: ip, 'destination.port': ecn_off['destination.port']}
 
-                merged_results[ip][site+':conn'] = conn
-                merged_results[ip][site+':nego'] = nego
+                merged[ip][site+':conn'] = conn
+                merged[ip][site+':nego'] = nego
 
         # convert to dataframe
-        merged_results = pd.DataFrame(merged_results).T
-        sites = pd.Series(sites)
+        merged = pd.DataFrame(merged).T
+        return merged, incomplete
 
-        for site, incom in incomplete.items():
-            print("analyzer: number incomplete measurements from {} = {}".format(site, len(incom)))
+    def append(self, compiled_chunk, ipv='ip4'):
+        self.chunks.append(compiled_chunk)
 
-        if merged_results.shape[1] == 0:
+        merged, incomplete = self._merge_results(compiled_chunk, ipv)
+        sites = pd.Series([str(key) for key in compiled_chunk.keys()])
+
+        print("analyzer: number incomplete measurements: {}".format(len(incomplete)))
+
+        if len(merged) == 0:
             print("analyzer: no usable results in this chunk.")
-            return PathSpiderClient.AnalysisResult(None, None, None, None, None)
+            self._append(chunk_incomplete=incomplete)
+            return
 
         # # # # # # # # # # # # # # # # # # # # # # # # #
         # offline: never made any successful connection #
-        mask_offline = merged_results[sites+':conn'].apply(lambda x: x == RESULT_NOBODYHOME, reduce=False).all(axis=1)
-        df_online = merged_results[-mask_offline]
-        df_offline = merged_results[mask_offline]
+        mask_offline = merged[sites+':conn'].apply(lambda x: x == RESULT_NOBODYHOME, reduce=False).all(axis=1)
+        df_online = merged[-mask_offline]
+        df_offline = merged[mask_offline]
 
         num_offline = (mask_offline.sum())
         num_online = (-mask_offline).sum()
-        print("analyzer: online: {} ({:.2%})".format(num_online, num_online/merged_results.shape[0]))
+        print("analyzer: online: {} ({:.2%})".format(num_online, num_online/merged.shape[0]))
 
         if num_online == 0:
             print("analyzer: no further analysis possible, because all hosts offline.")
-            return PathSpiderClient.AnalysisResult(df_offline, None, None, None, None)
+            self._append(chunk_offline=df_offline, chunk_incomplete=incomplete)
+            return
 
         # # # # # # # # # # # # # # # # # # # # #
         # always works without ECN and with ECN #
@@ -412,7 +386,117 @@ class PathSpiderClient:
 
         print("analyzer: transient/other: {} ({:.3%})".format(num_works_per_site_not, num_works_per_site_not/num_online))
 
-        return PathSpiderClient.AnalysisResult(df_offline, df_works, df_totally_broken, df_works_per_site, df_works_per_site_not)
+        self._append(df_offline, df_works, df_totally_broken, df_works_per_site, df_works_per_site_not, incomplete)
+
+    def _append(self, chunk_offline=None, chunk_always_works=None, chunk_always_broken=None, chunk_works_per_site=None, chunk_other=None, chunk_incomplete=None):
+        # set or append
+        if chunk_offline is not None:
+            self.offline        = chunk_offline         if len(self.offline)        == 0 else self.offline.append(       chunk_offline)
+
+        if chunk_always_works is not None:
+            self.always_works   = chunk_always_works    if len(self.always_works)   == 0 else self.always_works.append(  chunk_always_works)
+
+        if chunk_always_broken is not None:
+            self.always_broken  = chunk_always_broken   if len(self.always_broken)  == 0 else self.always_broken.append( chunk_always_broken)
+
+        if chunk_works_per_site is not None:
+            self.works_per_site = chunk_works_per_site  if len(self.works_per_site) == 0 else self.offline.append(       chunk_works_per_site)
+
+        if chunk_other is not None:
+            self.other          = chunk_other           if len(self.other)          == 0 else self.other.append(         chunk_other)
+
+        if chunk_incomplete is not None:
+            self.incomplete.extend(chunk_incomplete)
+
+class PathSpiderClient:
+    # queued chunks - in queue to be sent to ecnspider component, feeder thread loads addresses
+    # pending chunks - currently processing
+    # finished chunks - finished, interrupted chunks or chunks which encountered an exception, consumer thread takes finished chunks and do further investigation
+
+    def __init__(self, count, tls_state, ecnspiders_name_and_urls, resolver, chunk_size = 1000, ipv='ip4'):
+        self.count = count
+        self.chunk_size = chunk_size
+        self.ipv = ipv
+        self.imps = [EcnSpiderImp(name, tls_state, url) for name, url in ecnspiders_name_and_urls]
+
+        self.lock = threading.RLock()
+
+        self.resolver_thread = threading.Thread(target=self.resolver_func, daemon=True, name="resolver")
+        self.analyzer_thread = threading.Thread(target=self.analyzer_func, daemon=True, name="analyzer")
+        self.trackdown_thread = threading.Thread(target=self.trackdown_func, daemon=True, name="trackdown")
+
+        self.resolver = resolver
+
+        self.running = True
+        self.resolver_thread.start()
+        self.analyzer_thread.start()
+        self.trackdown_thread.start()
+
+    def resolver_func(self):
+        print("resolver: started")
+        next_chunk_id = 0
+        while self.running:
+            if any([imp.need_chunk() for imp in self.imps]):
+                print("resolver: requesting {} addresses from resolver. This may take some time.".format(self.chunk_size))
+                try:
+                    addrs = self.resolver.request(self.chunk_size, ipv=self.ipv)
+                except resolver.TimeoutException as e:
+                    print("resolver: got a timeout on resolving. try later...")
+                    time.sleep(5)
+                    continue
+
+                if len(addrs) == 0:
+                    print("resolver: resolver has no more addresses.")
+                    break
+
+                print("resolver: received {} addresses. adding to ecnspiders".format(len(addrs)))
+                for imp in self.imps:
+                    imp.add_chunk(addrs, next_chunk_id, self.ipv, "now ... future", self.resolver.flavor)
+
+                next_chunk_id += 1
+
+            time.sleep(QUEUE_SLEEP)
+
+    def analyzer_func(self):
+        print("analyzer started")
+
+        analysis = Analysis()
+        while self.running and len(analysis) < self.count:
+            chunks_finished = None
+            for imp in self.imps:
+                with imp.lock:
+                    if len(imp.finished) > 0:
+                        print("analyzer: {} has finished chunks: {}".format(imp.name, ",".join([str(chunk_id) for chunk_id in imp.finished.keys()])))
+
+                    if chunks_finished is None:
+                        chunks_finished = set(imp.finished.keys())
+                    else:
+                        chunks_finished &= set(imp.finished.keys())
+
+            if len(chunks_finished) == 0:
+                time.sleep(QUEUE_SLEEP)
+                continue
+
+            print("analyzer: all ecnspiders have finished chunks {} now".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
+
+            for chunk_id in chunks_finished:
+                compiled_chunk = {}
+                for imp in self.imps:
+                    with imp.lock:
+                        compiled_chunk[imp.name] = pd.DataFrame(imp.finished.pop(chunk_id))
+
+                print("analyzer: processing chunk {}".format(chunk_id))
+                analysis.append(compiled_chunk)
+
+            print("Collected {} results. Remaining {}.".format(len(analysis), self.count - len(analysis)))
+
+        self.running = False
+        print("Finished! Collected {} results. Initiating shutdown...".format(len(analysis)))
+
+        analysis.dump()
+
+        for imp in self.imps:
+            imp.shutdown()
 
     def trackdown_func(self):
         print("trackdown: started")
