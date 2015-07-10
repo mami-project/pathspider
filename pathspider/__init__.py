@@ -65,7 +65,7 @@ def run_client(args, config):
         ecnspider = pathspider.client.PathSpiderClient(count, tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
     elif args.resolver_web is not None:
-        hostnames = skip_and_truncate(args.resolver_web.readlines(), args.resolver_web, args.offset, args.count)
+        hostnames = skip_and_truncate(args.resolver_web.readlines(), args.resolver_web, args.skip, args.count)
 
         print("Ordering measurement of {} hostnames.".format(len(hostnames)))
         resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=hostnames)
@@ -74,7 +74,7 @@ def run_client(args, config):
     elif args.resolver_ipfile is not None:
         addrs = [(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.iplist_file.readlines() if len(line) > 0]]
 
-        addrs = skip_and_truncate(addrs, args.resolver_ipfile, args.offset, args.count)
+        addrs = skip_and_truncate(addrs, args.resolver_ipfile, args.skip, args.count)
         resolver = pathspider.client.resolver.IPListDummyResolver(addrs)
         ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 

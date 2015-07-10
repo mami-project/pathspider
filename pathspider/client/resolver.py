@@ -136,7 +136,7 @@ class WebResolverClient(ResolverClient):
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
         token = None
         with self.lock:
-            label = 'btdhtresolver-'+ipv
+            label = 'webresolver-'+ipv
             try:
                 hosts = list(take(count, self.queued))
                 spec = self.client.invoke_capability(label, when, { "ecnspider.hostname": hosts, 'destination.port': itertools.repeat(80, len(hosts)) })
