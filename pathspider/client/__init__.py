@@ -98,6 +98,8 @@ class EcnSpiderImp:
                 self.pending = None
         print("imp-{}: Shutdown completed".format(self.name))
 
+    def is_working(self):
+        return self.pending is not None
 
     def worker(self):
         print("imp-{}: started".format(self.name))
@@ -427,6 +429,7 @@ class PathSpiderClient:
 
         self.resolver = resolver
 
+        self.resolver_dried_out = False
         self.running = True
         self.resolver_thread.start()
         self.analyzer_thread.start()
@@ -447,6 +450,7 @@ class PathSpiderClient:
 
                 if len(addrs) == 0:
                     print("resolver: resolver has no more addresses.")
+                    self.resolver_dried_out = True
                     break
 
                 print("resolver: received {} addresses. adding to ecnspiders".format(len(addrs)))
@@ -462,6 +466,11 @@ class PathSpiderClient:
 
         analysis = Analysis()
         while self.running and len(analysis) < self.count:
+            # stop if dried out
+            if all([not imp.is_working() for imp in self.imps]) and self.resolver_dried_out:
+                print("analyzer finished, because no more addresses available. (resolver dried out)")
+                break
+
             chunks_finished = None
             for imp in self.imps:
                 with imp.lock:

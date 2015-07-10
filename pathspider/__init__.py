@@ -12,6 +12,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
     version = version_file.read().strip()
 
+mplane.model.initialize_registry('ecnregistry.json')
+
 def run_service(args, config):
     if config["component"]["workflow"] == "component-initiated":
         component = mplane.component.InitiatorHttpComponent(config)
@@ -55,7 +57,7 @@ def run_client(args, config):
     for name, url in ecnspider_urls:
         print('# {} at {}'.format(name, url))
 
-    if args.chunk_size > args.count:
+    if args.count != 0 and args.chunk_size > args.count:
         args.chunk_size = args.count
         print("chunk size has been set to {}".format(args.count))
 
@@ -72,7 +74,7 @@ def run_client(args, config):
         ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
     elif args.resolver_ipfile is not None:
-        addrs = [(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.iplist_file.readlines() if len(line) > 0]]
+        addrs = [(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.resolver_ipfile.readlines() if len(line) > 0]]
 
         addrs = skip_and_truncate(addrs, args.resolver_ipfile, args.skip, args.count)
         resolver = pathspider.client.resolver.IPListDummyResolver(addrs)
