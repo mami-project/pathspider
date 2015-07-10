@@ -20,54 +20,89 @@ def run_service(args, config):
     else:
         raise ValueError("workflow setting in " + args.config + " can only be 'client-initiated' or 'component-initiated'")
 
-    while True:
-        time.sleep(10)
-
 def run_standalone(args, config):
     config["component"]["workflow"] = "client-initiated"
 
+    print("standalone mode: starting service...")
     # run service
-    mplane.component.ListenerHttpComponent(config)
+    run_service(args, config)
 
-    # run supervisor locally
-    while True:
-        time.sleep(10)
+    time.sleep(5)
+
+    print("standalone mode: starting client...")
+    # run client
+    run_client(args, config)
+
+def skip_and_truncate(iterable, filename, skip, count):
+    if skip != 0:
+            if skip < len(iterable):
+                print("Skipping {} hostnames.".format(skip))
+                iterable = iterable[skip:]
+            else:
+                raise ValueError("You want to skip {} entries, but there are only {} entries in the given file '{}'".format(skip, len(iterable), filename))
+
+    if count != 0 and count < len(iterable):
+        iterable = iterable[0:count]
+
+    return iterable
 
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
-
     ecnspider = None
 
     ecnspider_urls = config.items('probes')
     print("Probes specified in configuration file:")
     for name, url in ecnspider_urls:
-        print('label: {}, url: {}'.format(name, url))
+        print('# {} at {}'.format(name, url))
 
-    if args.btdht_count is not None:
+    if args.chunk_size > args.count:
+        args.chunk_size = args.count
+        print("chunk size has been set to {}".format(args.count))
+
+    if args.resolver_btdht is True:
+        count = args.count if args.count > 0 else 10000
         resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, config['main']['resolver'])
-        ecnspider = pathspider.client.PathSpiderClient(args.btdht_count, tls_state, ecnspider_urls, resolver)
-    elif args.hostnames_file is not None:
-        resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=args.hostnames_file.readlines())
-        ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver)
-    elif args.iplist_file is not None:
-        resolver = pathspider.client.resolver.IPListDummyResolver([(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.iplist_file.readlines() if len(line) > 0]])
-        ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver)
+        ecnspider = pathspider.client.PathSpiderClient(count, tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
-    while True:
-        time.sleep(10)
+    elif args.resolver_web is not None:
+        hostnames = skip_and_truncate(args.resolver_web.readlines(), args.resolver_web, args.offset, args.count)
+
+        print("Ordering measurement of {} hostnames.".format(len(hostnames)))
+        resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=hostnames)
+        ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
+
+    elif args.resolver_ipfile is not None:
+        addrs = [(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.iplist_file.readlines() if len(line) > 0]]
+
+        addrs = skip_and_truncate(addrs, args.resolver_ipfile, args.offset, args.count)
+        resolver = pathspider.client.resolver.IPListDummyResolver(addrs)
+        ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
 
 def main():
     # parse command line
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
-    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service'], required=True, help='Set the operating mode.')
-    parser.add_argument('--config', '-c', default='AUTO', help='Set pathspider configuration file.')
+    parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service'], required=True, help='Set operating mode.')
+    parser.add_argument('--config', '-C', default='AUTO', help='Set pathspider configuration file. If set to AUTO, try to open either standalone.conf, client.conf or service.conf depending on operating mode. Default: AUTO.')
 
     parser_client = parser.add_argument_group('Options for client and standalone mode')
-    parser_client.add_argument('--btdht-count', type=int, dest='btdht_count', metavar='NUM', help='Using IP/port addresses from the BitTorrent DHT network, tell pathspider how many ecnspider TCP measurements to perform.')
-    parser_client.add_argument('--hostnames-file', dest='hostnames_file', type=argparse.FileType('rt'), metavar='FILENAME', help='Using the hostnames specified in this file, pathspider will resolve them to ip addresses and perform ecnspider HTTP measurements.')
-    parser_client.add_argument('--iplist-file', dest='iplist_file', type=argparse.FileType('rt'), metavar='FILENAME', help='Perform ecnspider TCP measurements on ips specified in the given file (format: one \'ipaddress:port\' per line)')
+    parser_client_ip = parser_client.add_mutually_exclusive_group()
+    parser_client_ip.add_argument('--ip4', '-4', action='store_const', dest='ipv', const='ip4', default='ip4', help='Use IP version 4 (default).')
+    parser_client_ip.add_argument('--ip6', '-6', action='store_const', dest='ipv', const='ip6', help='Use IP version 6.')
+
+    parser_client_resolver = parser_client.add_mutually_exclusive_group()
+    parser_client_resolver.add_argument('--resolver-btdht', '-B', action='store_true',
+                                        help='Use a BitTorrent DHT resolver. Acquires addresses by browsing BitTorrent\'s Distributed Hash Table network.')
+    parser_client_resolver.add_argument('--resolver-web', '-W', metavar='FILE', type=argparse.FileType('rt'),
+                                        help='Use a file containing a list of hostnames, separated by newline. The hostnames are resolved on a remote server.')
+    parser_client_resolver.add_argument('--resolver-ipfile', '-I', metavar='FILE', type=argparse.FileType('rt'),
+                                        help='Use a file containing a list of \'ipaddress:port\' entries, separated by newline. IP addresses are directly fed to ecnspider.')
+
+    parser_client.add_argument('--count', '-c', type=int, default=0, metavar='N', help='Measure N addresses. Default is 0 (all), except when using -B the default is 10\'000.')
+    parser_client.add_argument('--skip', '-s', type=int, default=0, metavar='N', help='Skip N addresses before starting to measure. Default is 0.')
+
+    parser_client.add_argument('--chunk-size', type=int, default=1000, metavar='N', help='Number of addresses sent in a chunk to ecnspider. Default is 1000.')
 
     args = parser.parse_args()
 
@@ -90,6 +125,9 @@ def main():
         run_client(args, config)
     elif args.mode == 'service':
         run_service(args, config)
+
+    while True:
+        time.sleep(300)
 
 if __name__ == '__main__':
     main()
