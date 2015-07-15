@@ -41,8 +41,6 @@ ipfix.ie.use_5103_default()
 scriptdir = os.path.dirname(os.path.abspath(__file__))
 ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
 
-qofspider.log_to_console(logging.DEBUG)
-
 def strbool(s):
     """
     interpret given parameter to a boolean value.

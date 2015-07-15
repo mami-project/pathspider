@@ -185,7 +185,7 @@ class BtDhtSpider:
         return self._send(tid, query, addr, REQUEST_TYPE_FIND_NODE)
 
     def _sender(self):
-        logger = logging.getLogger("torrent-dht")
+        logger = logging.getLogger("btdht")
         logger.debug("Sender thread started.")
 
         track = collections.deque()
@@ -260,7 +260,7 @@ class BtDhtSpider:
                 amount += bytes_sent
 
     def _receiver(self):
-        logger = logging.getLogger("torrent-dht")
+        logger = logging.getLogger("btdht")
         logger.info("Receiver thread started.")
         while self.running:
             try:

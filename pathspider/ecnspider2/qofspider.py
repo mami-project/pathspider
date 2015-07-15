@@ -297,9 +297,12 @@ class QofSpider:
     def qoflistener(self):
         logger = logging.getLogger('qofspider')
         self.listener = QofSpider.QofCollectorListener(("",self.qof_port), QofSpider.QofCollectorHandler, self)
-        logger.error("starting listener: "+repr(self.listener))
+        logger.info("starting listener: "+repr(self.listener))
         self.listener.serve_forever()
-        logger.error("listener stopped")
+        if self.stopping is False:
+            logger.error("listener stopped unexpected")
+        else:
+            logger.debug("listener stopped")
 
     def tupleize_flow(self, flow):
         raise NotImplemented("Cannot instantiate an abstract Qofspider")
@@ -523,21 +526,6 @@ class QofSpider:
     def terminate_qof(self):
         # We need to hack this, since it runs as root and you can't kill it
         subprocess.check_call(['sudo', '-n', 'kill', str(self.qofproc.pid)])
-
-
-def log_to_console(verbosity):
-    logger = logging.getLogger('qofspider')
-    logger.setLevel(verbosity)
-
-    consoleHandler = logging.StreamHandler(sys.stderr)
-    consoleFormatter = logging.Formatter('%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
-    consoleHandler.setFormatter(consoleFormatter)
-    consoleHandler.setLevel(verbosity)
-    logging.basicConfig(handlers=[consoleHandler])
-
-    logger.info("Logging started")
-
-    return consoleHandler
 
 def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
     if ipv == 4:

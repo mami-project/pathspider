@@ -7,6 +7,7 @@ import mplane.utils
 import pathspider.client
 import pathspider.client.resolver
 import time
+import logging
 
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
@@ -87,6 +88,8 @@ def main():
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
     parser.add_argument('--mode', '-m', choices=['standalone', 'client', 'service'], required=True, help='Set operating mode.')
     parser.add_argument('--config', '-C', default='AUTO', help='Set pathspider configuration file. If set to AUTO, try to open either standalone.conf, client.conf or service.conf depending on operating mode. Default: AUTO.')
+    parser.add_argument('-v', action='store_const', const=logging.INFO, dest='loglevel', help='Be verbose.')
+    parser.add_argument('-vv', action='store_const', const=logging.DEBUG, dest='loglevel', help='Enable debug messages.')
 
     parser_client = parser.add_argument_group('Options for client and standalone mode')
     parser_client_ip = parser_client.add_mutually_exclusive_group()
@@ -107,6 +110,10 @@ def main():
     parser_client.add_argument('--chunk-size', type=int, default=1000, metavar='N', help='Number of addresses sent in a chunk to ecnspider. Default is 1000.')
 
     args = parser.parse_args()
+
+    logging.basicConfig(level=args.loglevel or logging.WARNING, format='%(asctime)s [%(name)-10.10s: %(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
+    # disable tornado messages
+    logging.getLogger('tornado').setLevel(logging.ERROR)
 
     if args.config == 'AUTO':
         if args.mode == 'standalone':
