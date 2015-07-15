@@ -2,7 +2,7 @@
 ECN-Spider is an active measurement tool, built in a modular manner using mPlane components and an associated client, to test Explicit Congestion Notification (ECN) connectivity failures and readiness for ECN negotiation.
 
 ## Requirements
- * Quality of Flow (QoF) : https://github.com/britram/qof/wiki/Howto
+ * Quality of Flow (QoF), use the `develop` branch : https://github.com/britram/qof/wiki/Howto
  * Scamper (contains tracebox) : https://github.com/fp7mplane/components/blob/master/scamper/source/scamper.tar.gz
 
 ## Installation
@@ -67,25 +67,21 @@ traffic flows.
 ```
 [module_ecnspider]
 module = pathspider.ecnspider2
-worker_count = 200
-connection_timeout = 4
-interface_uri = ring:eth0
-qof_port = 54739
-enable_ipv6 = true
+worker_count = 200			# num of connection attempts in parallel (threads)
+connection_timeout = 4		# timeout for a single connection attempt
+interface_uri = ring:eth0	# libtrace uri, interface to listen on
+qof_port = 54739			# port for inter-process communication with QoF.
+enable_ipv6 = true			# enable/disable ipv6 capabilities
+ip4addr = 0.0.0.0   		# bind measurement connections to this IPv4 address
+ip6addr = ::        		# bind measurement connections to this IPv4 address
 
 [module_btdhtresolver]
 module = pathspider.btdhtresolver
-enable_ipv6 = true
-
-# other optional arguments:
-# ip4addr = 0.0.0.0   # bind ecnspider to this IPv4 address
-# ip6addr = ::        # bind ecnspider to this IPv6 address
-# port4 = 9881   # bind address collector to this IPv4 address
-# port6 = 9882   # bind address collector to this IPv6 address
-
-# other optional arguments:
-# ip4addr = 0.0.0.0   # bind ecnspider to this IPv4 address
-# ip6addr = ::        # bind ecnspider to this IPv6 address
+enable_ipv6 = true			# enable/disable ipv6 capabilities
+ip4addr = 0.0.0.0   		# bind resolver to this IPv4 address
+ip6addr = ::        		# bind resolver to this IPv4 address
+port4 = 9881   				# bind address collector to this IPv4 address
+port6 = 9882   				# bind address collector to this IPv6 address
 
 [module_scamper]
 module = pathspider.scamper.scamper
@@ -96,6 +92,31 @@ ip6addr = ::1
 #module = pathspider.webresolver
 ```
 
+### mPlane-Capabilities
+Given a set of target IPv4 or IPv6 addresses, ecnspider2 returns connectivity
+with ECN negotiation attempted and without, as well as TCP and IP ECN codepoint
+information in order to diagnose ECN signaling issues.
+The core IPv4 capability is as follows:
+
+{ "capability": "measure",
+"parameters": { "destination.ip4": "[*]",
+"destination.port", "[*]" },
+"results": { "source.port",
+"destination.ip4",
+"destination.port",
+"connectivity.ip",
+"ecnspider.ecnstate",
+"ecnspider.initflags.fwd",
+"ecnspider.synflags.fwd",
+"ecnspider.unionflags.fwd",
+"ecnspider.initflags.rev",
+"ecnspider.synflags.rev",
+"ecnspider.unionflags.rev",
+"ecnspider.ttl.rev.min" }
+}
+
+The ecnspider. elements are included in a custom registry inheriting from the core registry, included with the component.
+
 ## Examples
 To run the examples, change to the pathspider directory.
 (The configuration files have to be in the same directory or they have to be explicetly specified by --config FILE.)
@@ -105,7 +126,7 @@ cd pathtools/pathspider
 
 Print all available options with `pathspider -h`
 
-Running a standalone measurement using BitTorrent DHT as address source:
+Running a standalone measurement of 1000 IPv4 addresses using BitTorrent DHT as address source:
 ```
 pathspider --mode standalone --resolver-btdht --count 1000
 ```
