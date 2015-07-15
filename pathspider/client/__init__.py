@@ -267,7 +267,7 @@ class Analysis:
 
     def dump(self):
         num_online = self.count_online()
-        print("online: {} ({:.2%})".format(num_online, num_online/len(self.offline)))
+        print("online: {} ({:.2%})".format(num_online, num_online/(num_online+len(self.offline))))
 
         if num_online == 0:
             return
