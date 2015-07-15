@@ -59,8 +59,8 @@ def strbool(s):
     else:
         return False
 
-def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None, interface_uri = None, qof_port=54739,
-            btdhtport4 = 9881, btdhtport6 = 9882, enable_ipv6=True):
+def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None,
+             interface_uri = None, qof_port=54739, enable_ipv6=True):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for ecnspider.
