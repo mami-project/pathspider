@@ -8,6 +8,7 @@ import pathspider.client
 import pathspider.client.resolver
 import time
 import logging
+import json
 
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'VERSION')) as version_file:
@@ -34,7 +35,7 @@ def run_standalone(args, config):
 
     print("standalone mode: starting client...")
     # run client
-    run_client(args, config)
+    return run_client(args, config)
 
 def skip_and_truncate(iterable, filename, skip, count):
     if skip != 0:
@@ -64,7 +65,10 @@ def run_client(args, config):
 
     if args.resolver_btdht is True:
         count = args.count if args.count > 0 else 10000
-        resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, config['main']['resolver'])
+        resolver_url = config['main']['resolver']
+        print("Resolver specified in configuration file:")
+        print("# "+resolver_url)
+        resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, resolver_url)
         ecnspider = pathspider.client.PathSpiderClient(count, tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
     elif args.resolver_web is not None:
@@ -81,6 +85,8 @@ def run_client(args, config):
         resolver = pathspider.client.resolver.IPListDummyResolver(addrs)
         ecnspider = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
+    return ecnspider
+
 
 def main():
     # parse command line
@@ -92,6 +98,7 @@ def main():
     parser.add_argument('-vv', action='store_const', const=logging.DEBUG, dest='loglevel', help='Enable debug messages.')
 
     parser_client = parser.add_argument_group('Options for client and standalone mode')
+    parser_client.add_argument('--report', metavar='FILENAME', type=argparse.FileType('wt'), help='Save a report of all data in json format.')
     parser_client_ip = parser_client.add_mutually_exclusive_group()
     parser_client_ip.add_argument('--ip4', '-4', action='store_const', dest='ipv', const='ip4', default='ip4', help='Use IP version 4 (default).')
     parser_client_ip.add_argument('--ip6', '-6', action='store_const', dest='ipv', const='ip6', help='Use IP version 6.')
@@ -115,6 +122,9 @@ def main():
     # disable tornado messages
     logging.getLogger('tornado').setLevel(logging.ERROR)
 
+    if args.report is not None:
+        print("Saving report to {}".format(args.report.name))
+
     if args.config == 'AUTO':
         if args.mode == 'standalone':
             args.config = 'standalone.conf'
@@ -128,15 +138,22 @@ def main():
     config.optionxform = str
     config.read(mplane.utils.search_path(args.config))
 
+    ecnspider = None
     if args.mode == 'standalone':
-        run_standalone(args, config)
+        ecnspider = run_standalone(args, config)
     elif args.mode == 'client':
-        run_client(args, config)
+        ecnspider = run_client(args, config)
     elif args.mode == 'service':
         run_service(args, config)
 
     while True:
-        time.sleep(300)
+        if ecnspider is not None:
+            if ecnspider.running is False:
+                print("Save report...")
+                json.dump(ecnspider.results, args.report)
+                print("Report saved into {}".format(args.report.name))
+                break
+        time.sleep(4)
 
 if __name__ == '__main__':
     main()
