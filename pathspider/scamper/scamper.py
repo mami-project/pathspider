@@ -59,7 +59,7 @@ def _random_sport():
 #################################  ARGUMENTS  #################################
 ###############################################################################
 
-_scampercmd  = ["sudo", "scamper", "-c"]
+_scampercmd  = ["scamper", "-c"]
 _scamper_dip = "-i"
 
 _traceboxcmd    = _scampercmd + ["tracebox"]
@@ -913,19 +913,22 @@ class ScamperService(mplane.scheduler.Service):
             udp=spec.get_parameter_value("scamper.tracebox.udp")
             if udp is None:
                 spec.set_parameter_value("scamper.tracebox.udp",self._default_udp)
+        else:
+            udp=None          
 
+        if spec.has_parameter("scamper.tracebox.dport"):
             dport=spec.get_parameter_value("scamper.tracebox.dport")
             if dport is None:
                 spec.set_parameter_value("scamper.tracebox.dport",self._default_dport)
+        else:
+            dport=None  
 
+        if spec.has_parameter("scamper.tracebox.probe"):
             probe=spec.get_parameter_value("scamper.tracebox.probe")
             if probe is None:
                 spec.set_parameter_value("scamper.tracebox.probe",self._default_probe(udp))
-
         else:
-            udp=None
-            dport=None
-            probe=None             
+            probe=None              
         
         #launch probe
         if spec.has_parameter("destination.ip4"):
@@ -952,12 +955,15 @@ class ScamperService(mplane.scheduler.Service):
 
         min_words = 3 if self._get_ipl else 2
 
-        for line in tb_output[2:]:
+        for i, line in enumerate(tb_output[2:]):
             pline=line.split()
             if pline[1] == "*":
                 tuples.append(TraceboxValue(pline[1], "", ""))
             elif len(pline)<=min_words:
-                tuples.append(TraceboxValue(pline[1], "", _detail_ipl(pline[2]) if self._get_ipl else ""))
+                if line == tb_output[-1]:
+                    tuples.append(TraceboxValue(pline[1], pline[2],""))
+                else:
+                    tuples.append(TraceboxValue(pline[1], "", _detail_ipl(pline[2]) if self._get_ipl else ""))
             else:
                 tuples.append(TraceboxValue(pline[1]," ".join(pline[min_words:]), _detail_ipl(pline[2]) if self._get_ipl else ""))
         return tuples
@@ -1094,4 +1100,5 @@ def services(ip4addr = None, ip6addr = None):
         services.append(ScamperService(trace6_standard_capability(ip6addr)))
         services.append(ScamperService(tracelb6_standard_capability(ip6addr)))
     return services
+
 
