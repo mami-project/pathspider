@@ -59,7 +59,7 @@ def _random_sport():
 #################################  ARGUMENTS  #################################
 ###############################################################################
 
-_scampercmd  = ["scamper", "-c"]
+_scampercmd  = ["sudo", "scamper", "-c"]
 _scamper_dip = "-i"
 
 _traceboxcmd    = _scampercmd + ["tracebox"]
