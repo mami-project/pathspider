@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 from ipaddress import ip_address
 from . import resolver
+import logging
 
 # Flags constants
 TCP_CWR = 0x80
@@ -86,23 +87,25 @@ class EcnSpiderImp:
         self.worker_thread.start()
 
     def shutdown(self):
-        print("imp-{}: Attempting shutdown...".format(self.name))
+        logger = logging.getLogger('imp-'+self.name)
+        logger.info("Attempting shutdown...")
         with self.lock:
             self.running = False
 
             # interrupt running operations
             if self.pending_token is not None:
-                print("imp-{}: Interrupting measurement '{}'".format(self.name, self.pending_token))
+                logger.info("Interrupting measurement '{}'".format(self.pending_token))
                 self.client.interrupt_capability(self.pending_token)
                 self.pending_token = None
                 self.pending = None
-        print("imp-{}: Shutdown completed".format(self.name))
+        logger.info("Shutdown completed")
 
     def has_work(self):
         return len(self.queued) > 0 or self.pending is not None
 
     def worker(self):
-        print("imp-{}: started".format(self.name))
+        logger = logging.getLogger('imp-'+self.name)
+        logger.info("Started.")
         while self.running:
             with self.lock:
                 if self.pending_token is None and len(self.queued) > 0:
@@ -123,14 +126,14 @@ class EcnSpiderImp:
                         if label is None or params is None:
                             raise ValueError("imp-{}: ecnspider flavor {} is not supported by me.".format(self.name, self.pending.flavor))
 
-                        print("imp-{}: invoking measurement {} of chunk {} (containing {} addresses)".format(self.name, label, self.pending.chunk_id, len(self.pending.addrs)))
+                        logger.info("Invoking measurement {} of chunk {} (containing {} addresses)".format(label, self.pending.chunk_id, len(self.pending.addrs)))
                         spec = self.client.invoke_capability(label, self.pending.when, params)
                         self.pending_token = spec.get_token()
                     except KeyError as e:
-                        print("imp-{}: Specified URL does not support '{}' capability.".format(self.name, label), e)
+                        logger.exception("Specified URL does not support '{}' capability.".format(label))
 
                     if self.pending_token is None:
-                        print("imp-{}: Could not acquire request token.".format(self.name))
+                        logger.error("Could not acquire request token.")
                         self.finished[self.pending.chunk_id] = None
                         self.pending = None
 
@@ -138,13 +141,13 @@ class EcnSpiderImp:
                     try:
                         self.client.retrieve_capabilities(self.url)
                     except:
-                        print("imp-{}: {} unreachable. Retrying in 5 seconds".format(self.name, str(self.url)))
+                        logger.exception("URL '{}' is unreachable. Retrying in 5 seconds.".format(str(self.url)))
 
                     # check results
                     result = self.client.result_for(self.pending_token)
                     if isinstance(result, mplane.model.Exception):
                         # upon exception, add to queued again.
-                        print("imp-{}: ".format(self.name) + result.__repr__())
+                        logger.error(result.__repr__())
                         #TODO: mplane doesn't like to forget exceptions??
                         #self.client.forget(self.pending_token)
                         self.queued.append(self.pending)
@@ -156,12 +159,12 @@ class EcnSpiderImp:
                         # add to results
                         self.client.forget(self.pending_token)
                         self.finished[self.pending.chunk_id] = list(result.schema_dict_iterator())
-                        print("imp-{}: received result for chunk id: {} ({} result rows)".format(self.name, self.pending.chunk_id, len(self.finished[self.pending.chunk_id])))
+                        logger.info("Result for chunk id: {} ({} result rows)".format(self.pending.chunk_id, len(self.finished[self.pending.chunk_id])))
                         self.pending_token = None
                         self.pending = None
                     else:
                         # other result, just print it out
-                        print("imp-{}".format(self.name), result)
+                        logger.info(str(result))
 
             time.sleep(2.5)
 
@@ -191,26 +194,28 @@ class TraceboxImp:
         self.worker_thread.start()
 
     def shutdown(self):
-        print("tbimp-{}: Attempting shutdown...".format(self.name))
+        logger = logging.getLogger('tbimp-'+self.name)
+        logger.info("Attempting shutdown...")
         with self.lock:
             self.running = False
 
             # interrupt running operations
             if self.pending_token is not None:
-                print("tbimp-{}: Interrupting measurement '{}'".format(self.name, self.pending_token))
+                logger.info("Interrupting measurement '{}'".format(self.pending_token))
                 self.client.interrupt_capability(self.pending_token)
                 self.pending_token = None
                 self.pending = None
-        print("tbimp-{}: Shutdown completed".format(self.name))
+        logger.info("Shutdown completed")
 
     def has_work(self):
         return len(self.queued) > 0 or self.pending is not None
 
     def worker(self):
+        logger = logging.getLogger('tbimp-'+self.name)
         while True:
             with self.lock:
                 if self.pending_token is None and len(self.queued) > 0:
-                    print("tbimp-{}: sending tracebox request".format(self.name))
+                    logger.info("Sending tracebox request.")
                     self.pending = self.queued.popleft()
                     label = 'scamper-tracebox-specific-'+self.pending.ipv
                     try:
@@ -218,10 +223,10 @@ class TraceboxImp:
                                                              { 'destination.'+self.pending.ipv: self.pending.ip, 'scamper.tracebox.dport': self.pending.port, 'scamper.tracebox.probe': self.pending.probe } )
                         self.pending_token = spec.get_token()
                     except KeyError as e:
-                        print("tbimp-{}: tracebox-imp: Specified URL does not support '{}' capability.".format(self.name, label))
+                        logger.exception("Specified URL does not support '{}' capability.".format(label))
 
                     if self.pending_token is None:
-                        print("tbimp-{}: tracebox-imp: Could not acquire request token.".format(self.name))
+                        logger.exception("Could not acquire request token.")
                         self.finished[self.pending.url] = None
                         self.pending = None
 
@@ -230,21 +235,21 @@ class TraceboxImp:
                     try:
                         self.client.retrieve_capabilities(self.url)
                     except:
-                        print("tbimp-{}: {} unreachable. Retrying in 5 seconds".format(self.name, str(self.url)))
+                        logger.exception("URL '{}' unreachable. Retrying in 5 seconds".format(str(self.url)))
 
                     # check results
                     result = self.client.result_for(self.pending_token)
                     if isinstance(result, mplane.model.Exception):
                         # upon exception, add to queued again.
-                        print(result.__repr__())
-                        self.client.forget(self.pending_token)
+                        logger.error(result.__repr__())
+                        #self.client.forget(self.pending_token)
                         self.queued.append(self.pending)
                         self.pending_token = None
                         self.pending = None
                     elif isinstance(result, mplane.model.Receipt):
                         pass
                     elif isinstance(result, mplane.model.Result):
-                        print("tbimp-{}: received result for: {} ".format(self.name, self.pending.ip))
+                        logger.info("Got trace for IP {}.".format(self.pending.ip))
                         # add to results
                         self.client.forget(self.pending_token)
                         self.finished[self.pending.ip] = list(result.schema_dict_iterator())
@@ -252,7 +257,7 @@ class TraceboxImp:
                         self.pending = None
                     else:
                         # other result, just print it out
-                        print(result)
+                        logger.info(result)
 
             time.sleep(QUEUE_SLEEP)
 
@@ -562,7 +567,7 @@ class PathSpiderClient:
             for imp in self.tbimps:
                 with imp.lock:
                     if len(imp.finished) > 0:
-                        print("trackdown: {} has finished chunks: {}".format(imp.name, ",".join([str(chunk_id) for chunk_id in imp.finished.keys()])))
+                        print("trackdown: {} has finished chunks: {}, remaining: {}".format(imp.name, ",".join([str(chunk_id) for chunk_id in imp.finished.keys()]), len(imp.queued)))
 
                     if chunks_finished is None:
                         chunks_finished = set(imp.finished.keys())

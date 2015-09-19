@@ -31,7 +31,7 @@ def run_standalone(args, config):
     # run service
     run_service(args, config)
 
-    time.sleep(5)
+    time.sleep(2)
 
     print("standalone mode: starting client...")
     # run client
@@ -149,11 +149,14 @@ def main():
     while True:
         if ecnspider is not None:
             if ecnspider.running is False:
-                print("Save report...")
-                json.dump(ecnspider.results, args.report)
-                print("Report saved into {}".format(args.report.name))
+                if args.report is not None:
+                    print("Save report...")
+                    json.dump(ecnspider.results, args.report)
+                    print("Report saved into {}".format(args.report.name))
                 break
         time.sleep(4)
+
+    print("Shutdown complete.")
 
 if __name__ == '__main__':
     main()

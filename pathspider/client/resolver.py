@@ -25,6 +25,7 @@ import threading
 import time
 import collections
 import itertools
+import logging
 
 def take(count, iterable):
     """
@@ -52,6 +53,7 @@ class ResolverClient:
         self.flavor = flavor
 
     def _fetch_result(self, token, request_timeout):
+        logger = logging.getLogger('resolver')
         time_spent = 0
         while time_spent < request_timeout:
             with self.lock:
@@ -62,12 +64,12 @@ class ResolverClient:
                         self.client.retrieve_capabilities(self.url)
                         self.last_updated = time.time()
                 except:
-                    print(str(self.url) + " unreachable. Retrying in 5 seconds")
+                    logger.error(str(self.url) + " unreachable. Retrying in 5 seconds")
 
                 # check results
                 result = self.client.result_for(token)
                 if isinstance(result, mplane.model.Exception):
-                    print(result.__repr__())
+                    logger.error(result.__repr__())
                     self.client.forget(token)
                     return None
                 elif isinstance(result, mplane.model.Receipt):
@@ -78,7 +80,7 @@ class ResolverClient:
                     return addrs
                 else:
                     # other result, just print it out
-                    print(result)
+                    logger.info(result)
 
             time.sleep(5)
             time_spent += 5
@@ -93,6 +95,8 @@ class BtDhtResolverClient(ResolverClient):
         super(BtDhtResolverClient, self).__init__(tls_state, resolver_url, 'tcp')
 
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 300):
+        logger = logging.getLogger('resolver')
+        logger.debug("Requesting {} addresses using BitTorrent DHT...".format(count))
         token = None
         with self.lock:
             label = 'btdhtresolver-'+ipv
@@ -100,7 +104,7 @@ class BtDhtResolverClient(ResolverClient):
                 spec = self.client.invoke_capability(label, when, { "btdhtresolver.count": count })
                 token = spec.get_token()
             except KeyError as e:
-                print("Specified URL does not support '"+label+"' capability.")
+                logger.error("Specified URL does not support '"+label+"' capability.")
                 raise e
 
         if token is None:
@@ -116,6 +120,7 @@ class BtDhtResolverClient(ResolverClient):
                 ipset.add(addr[0])
                 addrs_unique.append(addr)
 
+        logger.debug("Received {} unique addresses.".format(count))
         return addrs_unique
 
 class WebResolverClient(ResolverClient):
@@ -134,6 +139,8 @@ class WebResolverClient(ResolverClient):
         return len(self.queued)
 
     def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+        logger = logging.getLogger('resolver')
+        logger.debug("Requesting {} addresses using the web resolver...".format(count))
         token = None
         with self.lock:
             label = 'webresolver-'+ipv
@@ -142,11 +149,13 @@ class WebResolverClient(ResolverClient):
                 spec = self.client.invoke_capability(label, when, { "ecnspider.hostname": hosts, 'destination.port': itertools.repeat(80, len(hosts)) })
                 token = spec.get_token()
             except KeyError as e:
-                print("Specified URL does not support '"+label+"' capability.")
+                logger.error("Specified URL does not support '"+label+"' capability.")
                 raise e
 
         if token is None:
             raise ValueError("Could not acquire request token.")
+
+        logger.debug("Received {} unique addresses.".format(count))
 
         return [ResolverResult(row['destination.'+ipv], row['destination.port'], row['ecnspider.hostname']) for row in self._fetch_result(token, request_timeout)]
 
