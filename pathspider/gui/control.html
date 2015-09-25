@@ -11,15 +11,183 @@
 <body>
 <div>
 </div>
-<svg width="400" height="250">
-    <rect class="process" />
+<svg width="800" height="600">
+    <defs>
+        <linearGradient id="process_running" inkscape:collect="always">
+            <stop offset="0" style="stop-color:#205888;stop-opacity:1" />
+            <stop offset="1" style="stop-color:#437aad;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="process_idle" inkscape:collect="always">
+            <stop offset="0" style="stop-color:#555555;stop-opacity:1" />
+            <stop offset="1" style="stop-color:#888888;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="process_exception" inkscape:collect="always">
+            <stop offset="0" style="stop-color:#885820;stop-opacity:1" />
+            <stop offset="1" style="stop-color:#ad7a43;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <g id="tpl_ecnclient" style="display:none">
+        <rect fill="url(#process)" width="130" height="50" rx="2" ry="2" />
+        <text class="name" x="10" y="20" font-family="sans" font-size="18" text-anchor="start" fill="white">ams</text>
+        <text class="pending" x="120" y="40" font-family="sans" font-size="32" text-anchor="end" fill="white">-</text>
+    </g>
+    <g id="ecnclient" transform="translate(10,10)"></g>
+    <g id="tbclient" transform="translate(400,10)"></g>
 </svg>
 <script>
-    d3.text('drawing.svg', function(err, data) {
-        d3.select("div").html(data);
+    function update_ecnclients(status) {
+    
+        var ecnclient = d3.select("#ecnclient").selectAll(".ecnclient").data(status.ecnclient)
         
-        d3.select("#ecnspider_ams_chunk tspan").text("44");
-    });
+        var ecnclient_enter = ecnclient.enter().append("g")
+            .classed("ecnclient", true)
+            .attr("transform", function(d, i) { return "translate(0,"+i*60+")"; });
+        
+        ecnclient_enter.append("rect")
+            .attr("x", 100)
+            .attr("width", 130)
+            .attr("height", 50)
+            .attr("rx", 2)
+            .attr("ry", 2);
+        
+        ecnclient_enter.append("text")
+            .classed("name", true)
+            .attr("x", 110)
+            .attr("y", 20)
+            .attr("font-family", "sans")
+            .attr("font-size", 18)
+            .attr("text-anchor", "start")
+            .attr("fill", "white");
+        
+        ecnclient_enter.append("text")
+            .classed("pending", true)
+            .attr("x", 220)
+            .attr("y", 40)
+            .attr("font-family", "sans")
+            .attr("font-size", 32)
+            .attr("text-anchor", "end")
+            .attr("fill", "white")
+         
+         ecnclient_enter.append("text")
+            .classed("finished", true)
+            .attr("x", 250)
+            .attr("y", 30)
+            .attr("width", 100)
+            .attr("height", 30)
+            .attr("font-family", "sans")
+            .attr("font-size", 18)
+            .attr("text-anchor", "start")
+            .attr("fill", "black")
+         
+         
+         ecnclient_enter.append("text")
+            .classed("queued", true)
+            .attr("x", 90)
+            .attr("y", 30)
+            .attr("width", 100)
+            .attr("height", 30)
+            .attr("font-family", "sans")
+            .attr("font-size", 18)
+            .attr("text-anchor", "end")
+            .attr("fill", "black")
+         
+         ecnclient.select(".name").text(function(d) { return d.name; });
+         ecnclient.select(".pending").text(function(d) { return d.pending != null ? "#"+d.pending : "-"; });
+         ecnclient.select(".finished").text(function(d) { return d.finished.slice(0, 4).map(function(d) { return "#"+d; }).join(', '); });
+         ecnclient.select(".queued").text(function(d) { return d.queued.reverse().slice(0, 4).map(function(d) { return "#"+d; }).join(', '); });
+         ecnclient.select("rect").attr("fill", function(d) {
+                if(d.pending != null) {
+                    return "url(#process_running)";
+                } else if(d.last_exception != null) {
+                    return "url(#process_exception)";
+                } else {
+                    return "url(#process_idle)";
+                }
+            })
+    }
+    
+    function update_tbclients(status) {
+        var tbclient = d3.select("#tbclient").selectAll(".tbclient").data(status.tbclient)
+        
+        var tbclient_enter = tbclient.enter().append("g")
+            .classed("tbclient", true)
+            .attr("transform", function(d, i) { return "translate(0,"+i*60+")"; });
+        
+        tbclient_enter.append("rect")
+            .attr("x", 100)
+            .attr("width", 130)
+            .attr("height", 50)
+            .attr("rx", 2)
+            .attr("ry", 2);
+        
+        tbclient_enter.append("text")
+            .classed("name", true)
+            .attr("x", 110)
+            .attr("y", 20)
+            .attr("font-family", "sans")
+            .attr("font-size", 18)
+            .attr("text-anchor", "start")
+            .attr("fill", "white");
+        
+        tbclient_enter.append("text")
+            .classed("pending", true)
+            .attr("x", 220)
+            .attr("y", 40)
+            .attr("font-family", "sans")
+            .attr("font-size", 12)
+            .attr("text-anchor", "end")
+            .attr("fill", "white")
+         
+         tbclient_enter.append("text")
+            .classed("finished", true)
+            .attr("x", 250)
+            .attr("y", 30)
+            .attr("width", 100)
+            .attr("height", 30)
+            .attr("font-family", "sans")
+            .attr("font-size", 18)
+            .attr("text-anchor", "start")
+            .attr("fill", "black")
+         
+         
+         tbclient_enter.append("text")
+            .classed("queued", true)
+            .attr("x", 90)
+            .attr("y", 30)
+            .attr("width", 100)
+            .attr("height", 30)
+            .attr("font-family", "sans")
+            .attr("font-size", 18)
+            .attr("text-anchor", "end")
+            .attr("fill", "black")
+         
+         tbclient.select(".name").text(function(d) { return d.name; });
+         tbclient.select(".pending").text(function(d) { return d.pending != null ? d.pending : "-"; });
+         tbclient.select(".finished").text(function(d) { return d.finished.length; });
+         tbclient.select(".queued").text(function(d) { return d.queued.length; });
+         tbclient.select("rect").attr("fill", function(d) {
+                if(d.pending != null) {
+                    return "url(#process_running)";
+                } else {
+                    return "url(#process_idle)";
+                }
+            })
+    }
+    
+    function update() {
+        d3.json('/engine/status', function(err, status) {
+            if(status != null) {
+                update_ecnclients(status);
+                update_tbclients(status);
+            }
+            
+            d3.timer(update, 1000);
+        });
+        
+        return true;
+    }
+    
+    update();
     
 </script>
 </html>

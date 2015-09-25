@@ -19,6 +19,18 @@
    sodipodi:docname="drawing.svg">
   <defs
      id="defs6786">
+    <linearGradient
+       id="process"
+       inkscape:collect="always">
+      <stop
+         id="stop4491"
+         offset="0"
+         style="stop-color:#205888;stop-opacity:1" />
+      <stop
+         id="stop4493"
+         offset="1"
+         style="stop-color:#437aad;stop-opacity:1" />
+    </linearGradient>
     <marker
        inkscape:isstock="true"
        style="overflow:visible"
@@ -336,7 +348,7 @@
        gradientTransform="translate(10,70)" />
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient4193"
+       xlink:href="#process"
        id="linearGradient4217"
        gradientUnits="userSpaceOnUse"
        gradientTransform="translate(270,-19.428571)"
@@ -545,9 +557,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1"
-     inkscape:cx="624.45297"
-     inkscape:cy="86.303913"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="353.96804"
+     inkscape:cy="189.09464"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -580,7 +592,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -634,11 +646,11 @@
     <rect
        style="opacity:1;fill:#c9c9c9;fill-opacity:1;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:3, 3;stroke-dashoffset:0;stroke-opacity:1"
        id="rect6556"
-       width="416.79898"
+       width="198.79898"
        height="316.80762"
        x="266"
        y="610.36218"
-       rx="4"
+       rx="1.9078643"
        ry="4" />
     <text
        sodipodi:linespacing="125%"
@@ -1638,13 +1650,13 @@
     <text
        sodipodi:linespacing="125%"
        id="text6558"
-       y="637.64789"
-       x="573.06256"
+       y="599.64789"
+       x="328.06256"
        style="font-style:normal;font-weight:normal;font-size:22.5px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        xml:space="preserve"><tspan
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Garuda;-inkscape-font-specification:Garuda;text-align:start;text-anchor:start"
-         y="637.64789"
-         x="573.06256"
+         y="599.64789"
+         x="328.06256"
          id="tspan6560"
          sodipodi:role="line">ecnspider</tspan></text>
   </g>
