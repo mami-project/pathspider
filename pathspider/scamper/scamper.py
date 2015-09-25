@@ -19,7 +19,7 @@
 #
 
 """
-Implements Tracebox for integration into 
+Implements Tracebox for integration into
 the mPlane reference implementation.
 
 contains:
@@ -80,7 +80,7 @@ _pingopt_sport    = "-F" # default
 _pingopt_ttl      = "-m" # default 64
 _pingopt_rcount   = "-o" # default all == 0
 _pingopt_pattern  = "-p" # default 0
-_pingopt_method   = "-P" # default icmp-echo 
+_pingopt_method   = "-P" # default icmp-echo
 _pingopt_RR       = "-R"
 _pingopt_size     = "-s" # default v4:84 v6:56
 _pingopt_source   = "-S" # -
@@ -222,6 +222,7 @@ def _parse_trace(tb_output):
 
 def _tracebox_process(sipaddr, dipaddr, v, udp=None, dport=None, probe=None, get_icmp_payload_len=None):
     tracebox_argv = list(_traceboxcmd)
+
     if v is 6:
         tracebox_argv[-1] += " "+_traceboxopt_v6
     if udp is not None and udp is not "0":
@@ -546,7 +547,7 @@ def ping6_aggregate_capability(ipaddr):
     cap.add_metadata("System_version", "0.1")
 
     cap.add_parameter("source.ip6",ipaddr)
-    cap.add_parameter("destination.ip6") 
+    cap.add_parameter("destination.ip6")
 
     #cap.add_parameter("scamper.ping.payload","*")#,"")
     #cap.add_parameter("scamper.ping.icmp.checksum","*")#,"")
@@ -591,8 +592,8 @@ def ping6_singleton_capability(ipaddr):
 
 def trace4_standard_capability(ipaddr):
     """
-          natural to float: scamper.trace.confidence, scamper.trace.dport, 
-                            scamper.trace.loopaction, scamper.trace.sport, 
+          natural to float: scamper.trace.confidence, scamper.trace.dport,
+                            scamper.trace.loopaction, scamper.trace.sport,
                             scamper.trace.waitprobe
     """
     cap = mplane.model.Capability(label="scamper-trace-standard-ip4", when = "now ... future")
@@ -632,8 +633,8 @@ def trace4_standard_capability(ipaddr):
 
 def trace6_standard_capability(ipaddr):
     """
-          natural to float: scamper.trace.confidence, scamper.trace.dport, 
-                            scamper.trace.loopaction, scamper.trace.sport, 
+          natural to float: scamper.trace.confidence, scamper.trace.dport,
+                            scamper.trace.loopaction, scamper.trace.sport,
                             scamper.trace.waitprobe
     """
     cap = mplane.model.Capability(label="scamper-trace-standard-ip6", when = "now ... future")
@@ -724,7 +725,7 @@ def tracelb6_standard_capability(ipaddr):
 ###############################################################################
 
 class ScamperService(mplane.scheduler.Service):
-    
+
     #default tracebox parameter values
     _default_udp=0
     _default_dport=80
@@ -738,12 +739,12 @@ class ScamperService(mplane.scheduler.Service):
 
     def __init__(self, cap):
         # verify the capability is acceptable
-        if not ((cap.has_parameter("source.ip4") or 
+        if not ((cap.has_parameter("source.ip4") or
                  cap.has_parameter("source.ip6")) and
-                (cap.has_parameter("destination.ip4") or 
+                (cap.has_parameter("destination.ip4") or
                  cap.has_parameter("destination.ip6"))):
             raise ValueError("capability not acceptable")
-                
+
         super(ScamperService, self).__init__(cap)
         self._get_ipl = 1 if self._quote_size in self.capability().get_label() else None
 
@@ -817,7 +818,7 @@ class ScamperService(mplane.scheduler.Service):
         ttl     = spec.get_parameter_value("scamper.ping.ttl")
         pattern = None#spec.get_parameter_value("scamper.ping.pattern")
         method  = spec.get_parameter_value("scamper.ping.method")
-        rr      = spec.get_parameter_value("scamper.ping.rr")  
+        rr      = spec.get_parameter_value("scamper.ping.rr")
         size    = spec.get_parameter_value("scamper.ping.size")
         tos     = spec.get_parameter_value("scamper.ping.tos")
         if spec.has_parameter("scamper.ping.rcount"):
@@ -839,7 +840,7 @@ class ScamperService(mplane.scheduler.Service):
         return ping_process
 
     def __input_trace(self,spec):
-        # retreive parameters. if no value, sets tracebox default value        
+        # retreive parameters. if no value, sets tracebox default value
         confidence = spec.get_parameter_value("scamper.trace.confidence")
         dport      = spec.get_parameter_value("scamper.trace.dport")
         firsthop   = spec.get_parameter_value("scamper.trace.firsthop")
@@ -860,7 +861,7 @@ class ScamperService(mplane.scheduler.Service):
         wait       = spec.get_parameter_value("scamper.trace.wait")
         waitprobe  = spec.get_parameter_value("scamper.trace.waitprobe")
         gssentry   = None#spec.get_parameter_value("scamper.trace.gssentry")
-        lssname    = None#spec.get_parameter_value("scamper.trace.lssname")     
+        lssname    = None#spec.get_parameter_value("scamper.trace.lssname")
 
         #launch probe
         if spec.has_parameter("destination.ip4"):
@@ -908,28 +909,28 @@ class ScamperService(mplane.scheduler.Service):
         return
 
     def __input_tracebox(self,spec):
-        # retreive parameters. if no value, sets tracebox default value        
+        # retreive parameters. if no value, sets tracebox default value
         if spec.has_parameter("scamper.tracebox.udp"):
             udp=spec.get_parameter_value("scamper.tracebox.udp")
             if udp is None:
                 spec.set_parameter_value("scamper.tracebox.udp",self._default_udp)
         else:
-            udp=None          
+            udp=None
 
         if spec.has_parameter("scamper.tracebox.dport"):
             dport=spec.get_parameter_value("scamper.tracebox.dport")
             if dport is None:
                 spec.set_parameter_value("scamper.tracebox.dport",self._default_dport)
         else:
-            dport=None  
+            dport=None
 
         if spec.has_parameter("scamper.tracebox.probe"):
             probe=spec.get_parameter_value("scamper.tracebox.probe")
             if probe is None:
                 spec.set_parameter_value("scamper.tracebox.probe",self._default_probe(udp))
         else:
-            probe=None              
-        
+            probe=None
+
         #launch probe
         if spec.has_parameter("destination.ip4"):
             sipaddr = spec.get_parameter_value("source.ip4")
@@ -941,7 +942,7 @@ class ScamperService(mplane.scheduler.Service):
             tracebox_process = _tracebox6_process(sipaddr, dipaddr, udp=udp, dport=dport, probe=probe, get_icmp_payload_len=self._get_ipl)
         else:
             raise ValueError("Missing destination")
-    
+
         return tracebox_process
 
     ########################### PARSING #########################
@@ -957,7 +958,12 @@ class ScamperService(mplane.scheduler.Service):
 
         for i, line in enumerate(tb_output[2:]):
             pline=line.split()
-            if pline[1] == "*":
+            # Skip ICMPs/RSTs
+            if ((len(pline) == 1 and pline[-1][-1] != ':') or
+                (len(pline) == 2 and pline[-1][-1] != '*'
+                                 and ':' not in pline[-1])):
+                continue
+            elif pline[1] == "*":
                 tuples.append(TraceboxValue(pline[1], "", ""))
             elif len(pline)<=min_words:
                 if line == tb_output[-1]:
@@ -1004,7 +1010,7 @@ class ScamperService(mplane.scheduler.Service):
             else:
                 res.set_result_value("scamper.trace.hop.ip6", onehop.addr,i)
 
-            
+
             if onehop.rtt is not "NaN":
                 rtt_ms = int(float(onehop.rtt))
                 rtt_us = float(onehop.rtt) * 1000
@@ -1032,7 +1038,7 @@ class ScamperService(mplane.scheduler.Service):
                 res.set_result_value("delay.twoway.icmp.us.max", pings_max_delay(pings))
             if res.has_result_column("delay.twoway.icmp.us.count"):
                 res.set_result_value("delay.twoway.icmp.us.count", len(pings))
-    
+
         return res
 
     def __output_tracelb(self,res,lines):
@@ -1045,20 +1051,20 @@ class ScamperService(mplane.scheduler.Service):
     ########################### RUN #########################
     def run(self, spec, check_interrupt):
 
-        #save probe start time    
+        #save probe start time
         start_time=datetime.utcnow()
 
         #process
         process=self.__input_funcs[self.__service](spec)
 
-        #save probe end time 
+        #save probe end time
         end_time=datetime.utcnow()
 
         # read and parse output from tracebox
         output = []
         for line in process.stdout:
-            output.append(line.decode("utf-8"))     
- 
+            output.append(line.decode("utf-8"))
+
         #parse output
         parsed_output = self.__parsing_funcs[self.__service](output)
 
@@ -1068,7 +1074,7 @@ class ScamperService(mplane.scheduler.Service):
         except OSError:
             pass
         process.wait()
-        
+
         # derive a result from the specification
         res = mplane.model.Result(specification=spec)
 
@@ -1100,5 +1106,4 @@ def services(ip4addr = None, ip6addr = None):
         services.append(ScamperService(trace6_standard_capability(ip6addr)))
         services.append(ScamperService(tracelb6_standard_capability(ip6addr)))
     return services
-
 
