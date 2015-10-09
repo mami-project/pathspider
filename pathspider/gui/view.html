@@ -1,0 +1,79 @@
+<!DOCTYPE html> 
+<html>
+<head>
+  <title>pathspider client</title>
+  <script src="d3.min.js" charset="utf-8"></script>
+  <script src="view.js" charset="utf-8"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8"/>
+  <style>
+    .fixed circle {
+      stroke:rgb(20, 255, 20);
+    }
+    
+    .nodes text {
+      font-size: 8pt;
+    }
+    
+    .links {
+      stroke:black;
+      stroke-width:2;
+    }
+    
+    .probe_ams {
+      stroke: green;
+    }
+    
+    .probe_nyc {
+      stroke: orange;
+    }
+    
+    .probe_sin {
+      stroke: blue;
+    }
+    
+    .probe_lon {
+      stroke: yellow;
+    }
+    
+    .probe_sfo {
+      stroke: purple;
+    }
+  </style>
+</head>
+<body>
+NB: Currently loading from tb.pickle file.
+<select id="ips">
+  <option value="volvo">Volvo</option>
+  <option value="saab">Saab</option>
+  <option value="fiat">Fiat</option>
+  <option value="audi">Audi</option>
+</select>
+<svg style="border: 1px solid black; width:100vw; height: 100vh;">
+</svg>
+<script>
+  d3.json('/engine/graph', function(err, data) {
+    if(err != null) {
+      console.error(err);
+      return;
+    }
+    
+    d3.select("#ips").on("change", function() {
+      ip = d3.select("#ips").node().value;
+      
+      view_load("svg", [ip]);
+    });
+    
+    options = d3.select("#ips").selectAll("option").data(data.ips);
+    
+    options.enter().append("option");
+    options.exit().remove();
+    
+    options
+      .text(function(d) { return d; });
+    
+  })
+//  view_load("svg", ['117.57.53.189', '24.86.236.187']);
+</script>
+</body>
+</html>

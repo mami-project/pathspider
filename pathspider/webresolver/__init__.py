@@ -25,50 +25,43 @@ This module implements the mPlane component module interface for webresolver.
 from ipaddress import ip_address
 
 import mplane
-
-import os.path
 from datetime import datetime
-import threading
-import ipfix
+from . import resolution
 
-ipfix.ie.use_iana_default()
-ipfix.ie.use_5103_default()
-scriptdir = os.path.dirname(os.path.abspath(__file__))
-ipfix.ie.use_specfile(os.path.join(scriptdir, "qof.iespec"))
-
-def services(ip4addr = None, ip6addr = None):
+def services(ip4addr = None, ip6addr = None, max_workers_str = None):
     """
     Return a list of mplane.scheduler.Service instances implementing
     the mPlane capabilities for webresolver.
 
     """
 
+    max_workers = int(max_workers_str) if max_workers_str is not None else None
+
     servicelist = []
 
-    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip4addr or '0.0.0.0')), 'ip4'))
-    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip6addr or '::')), 'ip6'))
+    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip4addr or '0.0.0.0')), 'ip4', max_workers))
+    servicelist.append(WebresolverService(webresolver_cap(ip_address(ip6addr or '::')), 'ip6', max_workers))
 
     return servicelist
 
 
-def webresolver_cap(ipaddr, reguri):
+def webresolver_cap(ipaddr):
     ipv = "ip"+str(ipaddr.version)
 
-    cap = mplane.model.Capability(label='webresolver-'+ipv, when='now ... future', registry_uri=reguri)
+    cap = mplane.model.Capability(label='webresolver-'+ipv, when='now ... future')
 
-    cap.add_parameter("ecnspider.hostname")
-    cap.add_parameter("destination.port")
+    cap.add_parameter("ecnspider.hostname", '[*]')
 
-    cap.add_result_column("destination."+ipv)
-    cap.add_result_column("destination.port")
     cap.add_result_column("ecnspider.hostname")
+    cap.add_result_column("destination."+ipv)
 
     return cap
 
 class WebresolverService(mplane.scheduler.Service):
-    def __init__(self, cap, ipv):
+    def __init__(self, cap, ipv, max_workers):
         super().__init__(cap)
         self.ipv = ipv
+        self.resolver = resolution.Resolver(max_workers=int(max_workers) if max_workers is not None else 10)
 
     def run(self, spec, check_interrupt):
 
@@ -77,12 +70,12 @@ class WebresolverService(mplane.scheduler.Service):
         res = mplane.model.Result(specification=spec)
 
         hostnames = spec.get_parameter_value("ecnspider.hostname")
-        ports = spec.get_parameter_value("destination.port")
 
-        for hostname, port in zip(hostnames, ports):
-            res.set_result_value("destination."+self.ipv, addr[0][0], idx)
-            res.set_result_value("destination.port", addr[0][1], idx)
-            res.set_result_value("ecnspider.hostname", addr[1], idx)
+        ips = self.resolver.resolve(hostnames, self.ipv)
+
+        for idx, (hostname, ip) in enumerate(ips):
+            res.set_result_value("ecnspider.hostname", hostname, idx)
+            res.set_result_value("destination."+self.ipv, ip, idx)
 
         stoptime = datetime.utcnow()
 

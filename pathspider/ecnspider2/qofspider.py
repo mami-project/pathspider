@@ -122,7 +122,7 @@ class QofSpider:
         self.sem_config_one_rdy = SemaphoreN(worker_count)
         self.sem_config_one_rdy.empty()
 
-        self.jobqueue = queue.Queue(QUEUE_SIZE)
+        self.jobqueue = queue.Queue()
         self.flowqueue = queue.Queue(QUEUE_SIZE)
         self.resqueue =  queue.Queue(QUEUE_SIZE)
 

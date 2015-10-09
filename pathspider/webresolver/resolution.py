@@ -11,17 +11,46 @@ Copyright 2014 Damiano Boppart
 This file is part of ECN-Spider.
 '''
 
-import sys
 import dns.resolver
-import csv
-import queue
-import threading
-import datetime
-import argparse
-from time import sleep
+import concurrent.futures
+import time
 
-TIMEOUT = None  #: The timeout for DNS resolution.
-SLEEP = None  #: Time to sleep before each resolution, for crude rate-limiting.
+TIMEOUT = 8 #: The timeout for DNS resolution.
+SLEEP = 0.1
+
+class Resolver:
+    def __init__(self, max_workers=10):
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+
+    def resolve_func(self, hostname, query):
+        rs = dns.resolver.Resolver()
+        rs.lifetime = TIMEOUT
+
+        answers = rs.query(hostname, query)
+        if SLEEP is not None:
+            time.sleep(SLEEP)
+
+        return [answer.to_text() for answer in answers]
+
+    def resolve(self, hostnames, ipv='ip4'):
+        assert(ipv == 'ip4' or ipv == 'ip6')
+
+        query = 'A' if ipv == 'ip4' else 'AAAA'
+
+        # Start the load operations and mark each future with its URL
+        futures_to_hostname = {self.executor.submit(self.resolve_func, hostname, query): hostname for hostname in hostnames}
+        results = []
+        for future in concurrent.futures.as_completed(futures_to_hostname):
+            hostname = futures_to_hostname[future]
+            try:
+                results.extend([(hostname, ip) for ip in future.result()])
+            except Exception as e:
+                print('Exception on querying {}: {} {}'.format(hostname, type(e), e))
+
+        return results
+
+
+"""
 WWW = None  #: The value of the -www command line option
 
 Q_SIZE = 100  #: Maximum domain queue size
@@ -85,7 +114,7 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
 		if count != 0 and c >= count:
 			break
 
-
+"""
 # def handle_domain(fields):
 # 	'''
 # 	Takes a domain name and resolves it to up to one IPv4 up to one IPv6 address.
@@ -160,7 +189,7 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
 	
 # 	ret = [rank] + [domain] + a + a4
 # 	return [ret]
-
+"""
 def resolution_worker(iq, oq):
 	while True:
 		entry = iq.get()
@@ -354,3 +383,4 @@ def main(argv):
 
 if __name__ == '__main__':
 	sys.exit(main(sys.argv[1:]))
+"""

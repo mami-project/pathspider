@@ -70,7 +70,6 @@ class ResolverClient:
                 result = self.client.result_for(token)
                 if isinstance(result, mplane.model.Exception):
                     logger.error(result.__repr__())
-                    self.client.forget(token)
                     return None
                 elif isinstance(result, mplane.model.Receipt):
                     pass
@@ -110,30 +109,35 @@ class BtDhtResolverClient(ResolverClient):
         if token is None:
             raise ValueError("Could not acquire request token.")
 
-        addrs = [ResolverResult(row['destination.'+ipv], row['destination.port'], None) for row in self._fetch_result(token, request_timeout)]
+        result = self._fetch_result(token, request_timeout)
 
-        # ensure ip-uniqueness
-        addrs_unique = []
-        ipset = set()
-        for addr in addrs:
-            if addr[0] not in ipset:
-                ipset.add(addr[0])
-                addrs_unique.append(addr)
+        if result is not None:
+            addrs = [ResolverResult(row['destination.'+ipv], row['destination.port'], None) for row in result]
 
-        logger.debug("Received {} unique addresses.".format(count))
-        return addrs_unique
+            # ensure ip-uniqueness
+            addrs_unique = []
+            ipset = set()
+            for addr in addrs:
+                if addr[0] not in ipset:
+                    ipset.add(addr[0])
+                    addrs_unique.append(addr)
+
+            logger.debug("Received {} unique addresses.".format(count))
+            return addrs_unique
+        else:
+            return None
 
 class WebResolverClient(ResolverClient):
-    def __init__(self, tls_state, resolver_url, urls = None):
+    def __init__(self, tls_state, resolver_url, hostnames = None):
         super(WebResolverClient, self).__init__(tls_state, resolver_url, 'http')
         self.lock = threading.RLock()
         self.queued = collections.deque()
-        if urls is not None:
-            self.queued.extend(urls)
+        if hostnames is not None:
+            self.queued.extend(hostnames)
 
-    def extend(self, urls):
+    def extend(self, hostnames):
         with self.lock:
-            self.queued.extend(urls)
+            self.queued.extend(hostnames)
 
     def __len__(self):
         return len(self.queued)
@@ -145,8 +149,8 @@ class WebResolverClient(ResolverClient):
         with self.lock:
             label = 'webresolver-'+ipv
             try:
-                hosts = list(take(count, self.queued))
-                spec = self.client.invoke_capability(label, when, { "ecnspider.hostname": hosts, 'destination.port': itertools.repeat(80, len(hosts)) })
+                hostnames = list(take(count, self.queued))
+                spec = self.client.invoke_capability(label, when, { "ecnspider.hostname": hostnames })
                 token = spec.get_token()
             except KeyError as e:
                 logger.error("Specified URL does not support '"+label+"' capability.")
@@ -157,7 +161,12 @@ class WebResolverClient(ResolverClient):
 
         logger.debug("Received {} unique addresses.".format(count))
 
-        return [ResolverResult(row['destination.'+ipv], row['destination.port'], row['ecnspider.hostname']) for row in self._fetch_result(token, request_timeout)]
+        result = self._fetch_result(token, request_timeout)
+
+        if result is not None:
+            return [ResolverResult(row['destination.'+ipv], 80, row['ecnspider.hostname']) for row in result]
+        else:
+            return None
 
 class IPListDummyResolver:
     def __init__(self, addrs = ()):

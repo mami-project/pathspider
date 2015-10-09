@@ -93,7 +93,8 @@ class TbImp:
                             self.pending_token = None
                             self.pending = None
                         elif isinstance(result, mplane.model.Receipt):
-                            pass
+                            # still ongoing.. wait for a moment
+                            time.sleep(10)
                         elif isinstance(result, mplane.model.Result):
                             logger.info("Got trace for IP {}.".format(self.pending.ip))
                             # add to results
@@ -103,11 +104,12 @@ class TbImp:
                             self.pending = None
                         else:
                             # other result, just print it out
-                            logger.info(result)
+                            logger.warn(result)
+                            time.sleep(10)
             except Exception as e:
                 self.last_exception = e
                 logger.exception("Error handling tracebox component.")
-            time.sleep(2.5)
+            time.sleep(0.5)
 
     def add_job(self, ip, port, mode='tcp'):
         if mode == 'tcp':
@@ -116,23 +118,6 @@ class TbImp:
             raise NotImplementedError("This mode is not implemented.")
 
         self.queued.append(TbJob(ip, port, 'ip'+str(ip_address(ip).version), probe, 'now ... future'))
-
-
-class TraceAnalysis:
-    def __init__(self, ip, compiled_chunk, ipv='ip4'):
-        self.ip = ip
-        self.graph = {}
-        for name, chunk in compiled_chunk.items():
-            if len(chunk) > 0:
-                self.graph[name] = list(chunk['scamper.tracebox.hop.'+ipv])
-            else:
-                self.graph[name] = []
-
-    def to_json(self):
-        return {str(self.ip): {name: [str(trace_ip) for trace_ip in trace] for name, trace in self.graph.items()}}
-
-    def dump(self):
-        print(self.graph)
 
 
 class TbClient:
@@ -197,10 +182,15 @@ class TbClient:
                         compiled_chunk[imp.name] = pd.DataFrame(imp.finished.pop(ip))
 
                 logger.info("processing trace of ip {}".format(ip))
-                analysis = TraceAnalysis(ip, compiled_chunk, self.ipv)
 
-                logger.debug("calling result_sink() with result of chunk {}...".format(ip))
-                self.result_sink(ip, analysis)
+                graph = {}
+                for name, chunk in compiled_chunk.items():
+                    if len(chunk) > 0:
+                        graph[name] = list(chunk['scamper.tracebox.hop.'+self.ipv])
+                    else:
+                        graph[name] = []
+
+                self.result_sink(ip, graph)
                 logger.debug("result_sink() returned.")
 
     def queue_size(self):

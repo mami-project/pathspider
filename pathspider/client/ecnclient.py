@@ -138,7 +138,7 @@ class EcnImp:
                             self.pending = None
                         elif isinstance(result, mplane.model.Receipt):
                             # still ongoing.. wait for a moment
-                            time.sleep(2)
+                            time.sleep(10)
                         elif isinstance(result, mplane.model.Result):
                             # add to results
                             self.client.forget(self.pending_token)
@@ -148,7 +148,8 @@ class EcnImp:
                             self.pending = None
                         else:
                             # other result, just print it out
-                            logger.info(str(result))
+                            logger.warn(str(result))
+                            time.sleep(10)
             except Exception as e:
                 self.last_exception = e
                 logger.exception("Error handling ecn component.")

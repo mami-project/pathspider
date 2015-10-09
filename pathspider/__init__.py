@@ -44,16 +44,75 @@ def run_standalone(args, config):
 
 def skip_and_truncate(iterable, filename, skip, count):
     if skip != 0:
-            if skip < len(iterable):
-                print("Skipping {} hostnames.".format(skip))
-                iterable = iterable[skip:]
-            else:
-                raise ValueError("You want to skip {} entries, but there are only {} entries in the given file '{}'".format(skip, len(iterable), filename))
+        if skip < len(iterable):
+            print("Skipping {} hostnames.".format(skip))
+            iterable = iterable[skip:]
+        else:
+            raise ValueError("You want to skip {} entries, but there are only {} entries in the given file '{}'".format(skip, len(iterable), filename))
 
     if count != 0 and count < len(iterable):
         iterable = iterable[0:count]
 
     return iterable
+
+class GraphGenerator:
+
+    def add_node(self, name, x = None, y = None):
+        if name in self.nodes_idx:
+            return
+
+        self.nodes.append({
+            'caption': name,
+            'x': x or 0,
+            'y': y or 0,
+            'fixed': x is not None or y is not None
+        })
+        self.nodes_idx.append(name)
+
+    def add_link(self, source_name, target_name, probe, mode='normal'):
+        self.links.append({
+            'source': self.nodes_idx.index(source_name),
+            'target': self.nodes_idx.index(target_name),
+            'mode': mode,
+            'probe': probe
+        })
+
+    def __init__(self, ips, probes, tb_results):
+        self.nodes = []
+        self.nodes_idx = []
+        self.links = []
+
+        self.probe_step = 200
+        self.target_step = 200
+
+        # add probes
+        for idx, (name, _) in enumerate(probes):
+            self.add_node(name, 10, idx*self.probe_step)
+
+        for idx, ip in enumerate(ips):
+            self.add_node(ip, 800, idx*self.target_step)
+
+            graph = tb_results.get(ip) or {}
+            for probe, trace in graph.items():
+                prev = probe
+                gap = False
+                hop_ip = None
+                for hop in trace:
+                    if hop is None:
+                        gap = True
+                        continue
+
+                    hop_ip = str(hop)
+
+                    self.add_node(hop_ip)
+
+                    self.add_link(prev, hop_ip, probe, 'missing' if gap else 'normal')
+                    gap = False
+
+                    prev = hop_ip
+
+                if hop_ip != ip:
+                    self.add_link(prev, str(ip), probe, 'missing')
 
 class MainHandler(tornado.web.RequestHandler):
     class IPAddressEncoder(json.JSONEncoder):
@@ -65,6 +124,10 @@ class MainHandler(tornado.web.RequestHandler):
     def initialize(self, ps):
         self.ps = ps
 
+
+        import pickle
+        self.tb_results = pickle.load(open('tb.pickle', 'rb'))
+
     def get(self, cmd):
         if cmd == 'status':
             status = json.dumps(self.ps.status(), cls=MainHandler.IPAddressEncoder)
@@ -74,10 +137,22 @@ class MainHandler(tornado.web.RequestHandler):
             statistics = self.ps.ecn_results.to_json()
             self.set_header("Content-Type", "application/json")
             self.write(statistics)
+        elif cmd == 'savegraph':
+            import pickle
+            pickle.dump(self.ps.tb_results, open('tb.pickle', 'wb'))
         elif cmd == 'graph':
-            graph = json.dumps(self.ps.tb_results, cls=MainHandler.IPAddressEncoder)
-            self.set_header("Content-Type", "application/json")
-            self.write(graph)
+            ips = self.get_arguments('ip')
+            if len(ips) == 0:
+                #self.write({'ips': list(self.ps.tb_results.keys())})
+                self.write({'ips': list(self.tb_results.keys())})
+            else:
+
+                #gg = GraphGenerator(ips, self.ps.probes, self.ps.tb_results)
+                gg = GraphGenerator(ips, self.ps.probes, self.tb_results)
+                self.write({
+                    'nodes': gg.nodes,
+                    'links': gg.links
+                })
         else:
             self.send_error(404)
 
@@ -85,8 +160,12 @@ class DefaultHandler(tornado.web.RequestHandler):
     def get(self, cmd=None):
         if cmd is None or cmd == '':
             self.render('gui/control.html')
+        elif cmd == 'view':
+            self.render('gui/view.html')
         elif cmd == 'd3.min.js':
             self.render('gui/d3.min.js')
+        elif cmd == 'view.js':
+            self.render('gui/view.js')
         else:
             self.send_error(404)
 
@@ -126,16 +205,23 @@ def run_client(args, config):
     if args.resolver_btdht is True:
         count = args.count if args.count > 0 else 10000
         resolver_url = config['main']['resolver']
-        print("Resolver specified in configuration file:")
+        print("Using BitTorrent Distributed Hashtable resolver. Probe URL:")
         print("# "+resolver_url)
         resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, resolver_url)
         ps = pathspider.client.PathSpiderClient(count, tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
     elif args.resolver_web is not None:
+        resolver_url = config['main']['resolver']
         hostnames = skip_and_truncate(args.resolver_web.readlines(), args.resolver_web, args.skip, args.count)
 
-        print("Ordering measurement of {} hostnames.".format(len(hostnames)))
-        resolver = pathspider.client.resolver.WebResolverClient(tls_state, config['main']['resolver'], urls=hostnames)
+        # strip whitespaces and \n
+        hostnames = [hostname.strip() for hostname in hostnames]
+
+        # detect <RANk>,<HOSTNAME>\n format. used by alexa top 1m list.
+        hostnames = [line.split(',')[1] for line in hostnames if ',' in line]
+
+        print("Using Web-resolver with {} Domains. Probe URL: {}".format(len(hostnames), resolver_url))
+        resolver = pathspider.client.resolver.WebResolverClient(tls_state, resolver_url, hostnames=hostnames)
         ps = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
 
     elif args.resolver_ipfile is not None:
@@ -173,7 +259,7 @@ def main():
     parser_client_resolver.add_argument('--resolver-btdht', '-B', action='store_true',
                                         help='Use a BitTorrent DHT resolver. Acquires addresses by browsing BitTorrent\'s Distributed Hash Table network.')
     parser_client_resolver.add_argument('--resolver-web', '-W', metavar='FILE', type=argparse.FileType('rt'),
-                                        help='Use a file containing a list of hostnames, separated by newline. The hostnames are resolved on a remote server.')
+                                        help='Use a file containing a list of hostnames, separated by newline. The format "<RANK>,<HOSTNAME>\n" is also supported. The hostnames are resolved on a remote server.')
     parser_client_resolver.add_argument('--resolver-ipfile', '-I', metavar='FILE', type=argparse.FileType('rt'),
                                         help='Use a file containing a list of \'ipaddress:port\' entries, separated by newline. IP addresses are directly fed to ecnspider.')
 
@@ -204,21 +290,21 @@ def main():
     config.optionxform = str
     config.read(mplane.utils.search_path(args.config))
 
-    pathspider = None
+    ps = None
     if args.mode == 'standalone':
-        pathspider = run_standalone(args, config)
+        ps = run_standalone(args, config)
     elif args.mode == 'client':
-        pathspider = run_client(args, config)
+        ps = run_client(args, config)
     elif args.mode == 'service':
         run_service(args, config)
 
     while True:
-        if pathspider is not None:
-            print(pathspider.status())
-            if pathspider.running is False:
+        if ps is not None:
+            print(ps.status())
+            if ps.running is False:
                 if args.report is not None:
                     print("Save report...")
-                    json.dump(pathspider.results, args.report)
+                    json.dump(ps.results, args.report)
                     print("Report saved into {}".format(args.report.name))
                 break
         time.sleep(4)

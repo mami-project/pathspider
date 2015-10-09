@@ -78,6 +78,12 @@ class PathSpiderClient:
             if self.ecn_client.queue_size() < 3:
                 logger.info("Request to resolve {} addresses.".format(self.chunk_size))
                 addrs = self.resolver.request(self.chunk_size)
+
+                if addrs is None:
+                    logger.error("Something went wrong when requesting addresses. Trying again..")
+                    time.sleep(1)
+                    continue
+
                 if len(addrs) == 0:
                     logger.info("No more addresses available.")
                     break
@@ -105,8 +111,8 @@ class PathSpiderClient:
             print("Got enough ecn result, pausing ecnclient execution")
             self.ecn_client.pause()
 
-    def tb_result_sink(self, trace, ip):
-        self.tb_results[ip] = trace
+    def tb_result_sink(self, ip, trace):
+        self.tb_results[str(ip)] = trace
 
     def shutdown(self):
         logger = logging.getLogger("client")
