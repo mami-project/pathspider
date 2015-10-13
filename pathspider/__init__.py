@@ -11,6 +11,7 @@ import logging
 import json
 import threading
 import ipaddress
+import itertools
 
 import tornado.web
 import tornado.ioloop
@@ -56,7 +57,6 @@ def skip_and_truncate(iterable, filename, skip, count):
     return iterable
 
 class GraphGenerator:
-
     def add_node(self, name, x = None, y = None):
         if name in self.nodes_idx:
             return
@@ -124,15 +124,36 @@ class MainHandler(tornado.web.RequestHandler):
     def initialize(self, ps):
         self.ps = ps
 
-
-        import pickle
-        self.tb_results = pickle.load(open('tb.pickle', 'rb'))
+        #import pickle
+        #self.tb_results = pickle.load(open('tb.pickle', 'rb'))
 
     def get(self, cmd):
         if cmd == 'status':
             status = json.dumps(self.ps.status(), cls=MainHandler.IPAddressEncoder)
             self.set_header("Content-Type", "application/json")
             self.write(status)
+        elif cmd == 'count':
+            self.write({'count': len(self.ps.subjects)})
+
+        elif cmd == 'subjects':
+            start = int(self.get_query_argument('start'))
+            count = int(self.get_query_argument('count', 50))
+
+            filters = self.get_query_arguments('filter')
+
+            subset = reversed(self.ps.subjects)
+            if 'ecnonly' in filters:
+                subset = (subject for subject in subset if 'ecnresult' in subject and 'tbresult' not in subject and subject['ecnresult'] != 'offline' and subject['ecnresult'] != 'incomplete')
+
+            if 'tbonly' in filters:
+                subset = (subject for subject in subset if 'tbresult' in subject and subject['ecnresult'] != 'offline' and subject['ecnresult'] != 'incomplete')
+
+            answer = list(itertools.islice(subset, start, start+count))
+
+            ansstr = json.dumps({'subjects': answer, 'filters': filters}, cls=MainHandler.IPAddressEncoder)
+
+            self.set_header("Content-Type", "application/json")
+            self.write(ansstr)
         elif cmd == 'stats':
             statistics = self.ps.ecn_results.to_json()
             self.set_header("Content-Type", "application/json")
@@ -143,16 +164,23 @@ class MainHandler(tornado.web.RequestHandler):
         elif cmd == 'graph':
             ips = self.get_arguments('ip')
             if len(ips) == 0:
-                #self.write({'ips': list(self.ps.tb_results.keys())})
-                self.write({'ips': list(self.tb_results.keys())})
+                self.write({'ips': list(self.ps.tb_results.keys())})
+                #self.write({'ips': list(self.tb_results.keys())})
             else:
 
-                #gg = GraphGenerator(ips, self.ps.probes, self.ps.tb_results)
-                gg = GraphGenerator(ips, self.ps.probes, self.tb_results)
+                gg = GraphGenerator(ips, self.ps.probes, self.ps.tb_results)
+                #gg = GraphGenerator(ips, self.ps.probes, self.tb_results)
                 self.write({
                     'nodes': gg.nodes,
                     'links': gg.links
                 })
+        elif cmd == 'order':
+            self.ps.resolve_one()
+        elif cmd == 'trace':
+            ip = self.get_query_argument('ip')
+            if ip not in self.ps.subjects_map:
+                self.write_error(500, "ip not a subject")
+            self.ps.trace(ip)
         else:
             self.send_error(404)
 
@@ -180,7 +208,7 @@ class WebInterface(threading.Thread):
         # run user interface server
         self.app = tornado.web.Application([
                 (r"/engine/(.*)", MainHandler, {'ps': self.ps}),
-                (r"/(.*)", DefaultHandler)
+                (r"/(.*)", tornado.web.StaticFileHandler, {'path': 'gui'})
             ],
             debug=True
         )

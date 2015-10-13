@@ -51,10 +51,15 @@ class PathSpiderClient:
         self.ipv = ipv
         self.probes = probes
 
+        self.resolver_doit = False
+        self.resolver_pending = False
         self.resolver = resolver
 
         self.ecn_results = ecnclient.EcnAnalysis()
         self.tb_results = {}
+
+        self.subjects = []
+        self.subjects_map = {}
 
         self.ecn_client = ecnclient.EcnClient(self.ecn_result_sink, tls_state, self.probes, ipv)
         self.tb_client = tbclient.TbClient(self.tb_result_sink, tls_state, self.probes, ipv)
@@ -67,17 +72,24 @@ class PathSpiderClient:
     def status(self):
         return {
             'probes': [name for name, _ in self.probes],
+            'resolver': {'pending': self.resolver_pending},
             'ecnclient': self.ecn_client.status(),
             'tbclient': self.tb_client.status()
         }
+
+    def resolve_one(self):
+        self.resolver_doit = True
 
     def func(self):
         logger = logging.getLogger("client")
         logger.info("Started.")
         while self.running:
-            if self.ecn_client.queue_size() < 3:
+            #if self.ecn_client.queue_size() < 3:
+            if self.resolver_doit is True:
                 logger.info("Request to resolve {} addresses.".format(self.chunk_size))
+                self.resolver_pending = True
                 addrs = self.resolver.request(self.chunk_size)
+                self.resolver_pending = False
 
                 if addrs is None:
                     logger.error("Something went wrong when requesting addresses. Trying again..")
@@ -86,13 +98,23 @@ class PathSpiderClient:
 
                 if len(addrs) == 0:
                     logger.info("No more addresses available.")
+                    self.resolver_doit = False
                     break
 
                 logger.info("Received {} IPs".format(len(addrs)))
 
                 chunk_id = self.next_chunk_id
+
+                # create subjects
+                for addr in addrs:
+                    subject = {'ip': str(addr.ip), 'port': addr.port, 'chunk_id': chunk_id}
+                    self.subjects_map[str(addr.ip)] = subject
+                    self.subjects.append(subject)
+
                 self.next_chunk_id+=1
                 self.ecn_client.add_job(addrs, chunk_id, self.ipv, self.resolver.flavor)
+
+                self.resolver_doit = False
 
             time.sleep(1)
 
@@ -102,6 +124,11 @@ class PathSpiderClient:
         """
         self.ecn_results += analysis
 
+        # update subject info
+        for ip, result in analysis.get_ip_and_result():
+            self.subjects_map[str(ip)]['ecnresult'] = result
+
+        """
         if len(analysis.other) > 0:
             print("Adding {} ips to tracebox queue".format(len(analysis.other)))
             for ip, port in zip(analysis.other['destination.'+self.ipv], analysis.other['destination.port']):
@@ -110,8 +137,15 @@ class PathSpiderClient:
         if len(self.ecn_results) >= self.count:
             print("Got enough ecn result, pausing ecnclient execution")
             self.ecn_client.pause()
+        """
+
+    def trace(self, ip):
+        sub = self.subjects_map[ip]
+        sub['tbresult'] = None
+        self.tb_client.add_job(sub['ip'], sub['port'])
 
     def tb_result_sink(self, ip, trace):
+        self.subjects_map[str(ip)]['tbresult'] = trace
         self.tb_results[str(ip)] = trace
 
     def shutdown(self):

@@ -173,6 +173,25 @@ class EcnAnalysis:
         if compiled_chunk is not None:
             self._analyze(compiled_chunk, ipv)
 
+    def get_ip_and_result(self):
+        for ip in self.offline.index:
+            yield (ip, 'offline')
+
+        for ip in self.always_works.index:
+            yield (ip, 'safe')
+
+        for ip in self.always_broken.index:
+            yield (ip, 'sitedep')
+
+        for ip in self.works_per_site.index:
+            yield (ip, 'pathdep')
+
+        for ip in self.other.index:
+            yield (ip, 'unknown')
+
+        for ip in (row[1] for row in self.incomplete):
+            yield (ip, 'incomplete')
+
     def __add__(self, other):
         if not isinstance(other, EcnAnalysis):
             raise NotImplementedError("Only instances of Analysis can be added here.")
