@@ -184,18 +184,6 @@ class MainHandler(tornado.web.RequestHandler):
         else:
             self.send_error(404)
 
-class DefaultHandler(tornado.web.RequestHandler):
-    def get(self, cmd=None):
-        if cmd is None or cmd == '':
-            self.render('gui/control.html')
-        elif cmd == 'view':
-            self.render('gui/view.html')
-        elif cmd == 'd3.min.js':
-            self.render('gui/d3.min.js')
-        elif cmd == 'view.js':
-            self.render('gui/view.js')
-        else:
-            self.send_error(404)
 
 class WebInterface(threading.Thread):
     def __init__(self, addr, ps):

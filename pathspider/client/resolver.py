@@ -55,6 +55,9 @@ class ResolverClient:
     def _fetch_result(self, token, request_timeout):
         logger = logging.getLogger('resolver')
         time_spent = 0
+        if request_timeout is None:
+            request_timeout = 3600*24*265
+
         while time_spent < request_timeout:
             with self.lock:
                 try:
@@ -86,14 +89,14 @@ class ResolverClient:
 
         raise TimeoutException("Could not complete address retrieval within timeout period.")
 
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = None):
         raise NotImplementedError("You have to implement this function in your subclass of ResolverClient.")
 
 class BtDhtResolverClient(ResolverClient):
     def __init__(self, tls_state, resolver_url):
         super(BtDhtResolverClient, self).__init__(tls_state, resolver_url, 'tcp')
 
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 300):
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = None):
         logger = logging.getLogger('resolver')
         logger.debug("Requesting {} addresses using BitTorrent DHT...".format(count))
         token = None
@@ -142,7 +145,7 @@ class WebResolverClient(ResolverClient):
     def __len__(self):
         return len(self.queued)
 
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
+    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = None):
         logger = logging.getLogger('resolver')
         logger.debug("Requesting {} addresses using the web resolver...".format(count))
         token = None
