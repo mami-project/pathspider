@@ -195,6 +195,7 @@ class WebInterface(threading.Thread):
     def run(self):
         # run user interface server
         self.app = tornado.web.Application([
+                (r"/", tornado.web.RedirectHandler, {"url": "/control.html"}),
                 (r"/engine/(.*)", MainHandler, {'ps': self.ps}),
                 (r"/(.*)", tornado.web.StaticFileHandler, {'path': 'gui'})
             ],
