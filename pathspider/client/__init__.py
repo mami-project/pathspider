@@ -20,32 +20,17 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 
 """
 
-import mplane
-import mplane.tls
-import mplane.utils
-import mplane.client
-import time
-import collections
-import threading
-import pandas as pd
-import logging
-from ipaddress import ip_address
-from . import resolver
-from . import ecnclient
-from . import tbclient
+class BaseClientApi:
+    def process(self):
+        raise NotImplementedError()
 
-
-QUEUE_SLEEP = 2
-
-class NotFinishedException(Exception):
-    pass
-
+"""
 class PathSpiderClient:
     # queued chunks - in queue to be sent to ecnspider component, feeder thread loads addresses
     # pending chunks - currently processing
     # finished chunks - finished, interrupted chunks or chunks which encountered an exception, consumer thread takes finished chunks and do further investigation
 
-    def __init__(self, count, tls_state, probes, resolver, chunk_size = 1000, ipv='ip4'):
+    def __init__(self, count, tls_state, probes, resolvers, chunk_size = 1000, ipv='ip4'):
         self.count = count
         self.chunk_size = chunk_size
         self.ipv = ipv
@@ -119,16 +104,16 @@ class PathSpiderClient:
             time.sleep(1)
 
     def ecn_result_sink(self, analysis:ecnclient.EcnAnalysis, chunk_id:int):
-        """
+        ""
         Append results and order tracebox analysis on IPs in 'other'
-        """
+        ""
         self.ecn_results += analysis
 
         # update subject info
         for ip, result in analysis.get_ip_and_result():
             self.subjects_map[str(ip)]['ecnresult'] = result
 
-        """
+        ""
         if len(analysis.other) > 0:
             print("Adding {} ips to tracebox queue".format(len(analysis.other)))
             for ip, port in zip(analysis.other['destination.'+self.ipv], analysis.other['destination.port']):
@@ -137,7 +122,7 @@ class PathSpiderClient:
         if len(self.ecn_results) >= self.count:
             print("Got enough ecn result, pausing ecnclient execution")
             self.ecn_client.pause()
-        """
+        ""
 
     def trace(self, ip):
         sub = self.subjects_map[ip]
@@ -157,3 +142,4 @@ class PathSpiderClient:
         self.tb_client.shutdown()
 
         logger.info("Shutdown complete.")
+"""

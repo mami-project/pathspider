@@ -4,8 +4,10 @@ import os
 import mplane.component
 import mplane.tls
 import mplane.utils
-import pathspider.client
-import pathspider.client.resolver
+import mplane.client
+import pathspider.client.ecnclient as ecnclient
+import pathspider.client.tbclient as tbclient
+import pathspider.client.resolver as resolver
 import time
 import logging
 import json
@@ -14,6 +16,7 @@ import ipaddress
 import itertools
 
 import tornado.web
+import tornado.websocket
 import tornado.ioloop
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -114,22 +117,53 @@ class GraphGenerator:
                 if hop_ip != ip:
                     self.add_link(prev, str(ip), probe, 'missing')
 
-class MainHandler(tornado.web.RequestHandler):
-    class IPAddressEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, ipaddress.IPv4Address) or isinstance(obj, ipaddress.IPv6Address):
-                return obj.compressed
-            return json.JSONEncoder.default(self, obj)
 
-    def initialize(self, ps):
-        self.ps = ps
+class IPAddressEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ipaddress.IPv4Address) or isinstance(obj, ipaddress.IPv6Address):
+            return obj.compressed
+        return json.JSONEncoder.default(self, obj)
 
-        #import pickle
-        #self.tb_results = pickle.load(open('tb.pickle', 'rb'))
+class CommandHandler(tornado.web.RequestHandler):
+    def initialize(self, engine):
+        self.engine = engine
 
-    def get(self, cmd):
+    def post(self, cmd):
+        if cmd == 'resolve_btdht':
+            count = self.get_body_argument('count')
+            self.engine.resolve_btdht(count)
+        elif cmd == 'resolve_ips':
+            ips = self.get_body_argument('iplist').splitlines()
+            self.engine.resolve_ips(ips)
+        elif cmd == 'resolve_web':
+            hostnames = self.get_body_argument('hostnames').splitlines()
+            self.engine.resolve_web(hostnames)
+        elif cmd == 'order_tb':
+            order_ip = self.get_body_argument('ip')
+            self.engine.order_tb(order_ip)
+        elif cmd == 'get_graph':
+            pass
+
+class StatusHandler(tornado.websocket.WebSocketHandler):
+    def __init__(self, *args, **kwargs):
+        self.engine = kwargs.pop('engine')
+        super(StatusHandler, self).__init__(*args, **kwargs)
+
+
+    def open(self):
+        self.engine.sockets.add(self)
+        print("WebSocket opened")
+
+    def on_close(self):
+        self.engine.sockets.remove(self)
+        print("WebSocket closed")
+
+    def on_message(self, message):
+        pass
+        """
+
         if cmd == 'status':
-            status = json.dumps(self.ps.status(), cls=MainHandler.IPAddressEncoder)
+            status = json.dumps(self.engine.get_status(), cls=MainHandler.IPAddressEncoder)
             self.set_header("Content-Type", "application/json")
             self.write(status)
         elif cmd == 'count':
@@ -182,83 +216,168 @@ class MainHandler(tornado.web.RequestHandler):
                 self.write_error(500, "ip not a subject")
             self.ps.trace(ip)
         else:
-            self.send_error(404)
+            self.send_error(404)"""
 
+class ClientPool:
+    def __init__(self, tls_state):
+        self.pool = {}
+        self.tls_state = tls_state
 
-class WebInterface(threading.Thread):
-    def __init__(self, addr, ps):
-        super().__init__(name='webif', daemon=True)
+    def get(self, url):
+        if url in self.pool:
+            return self.pool[url]
+        else:
+            client = mplane.client.HttpInitiatorClient({}, self.tls_state, default_url=url)
+            self.pool[url] = client
+            return client
+
+    def __iter__(self):
+        return iter(self.pool.items())
+
+class Subject:
+    def __init__(self, ip, port, hostname=None):
+        # inherent information
+        self.hostname = hostname
+        self.ip = ip
+        self.port = port
+
+        # set after ecn measurement
+        self.ecn = None
+
+        # set after tracebox measurement
+        self.tb = None
+
+class WebInterface:
+    def __init__(self, addr, tls_state, resolver_url, probe_urls, ipv, chunk_size):
+        self.ipv = ipv
+        self.sockets = set()
+
+        self.clientpool = ClientPool(tls_state)
+
+        self.resolver = resolver.ResolverApi(self.clientpool.get(resolver_url), ipv)
+        self.ecnclient = ecnclient.EcnClient(self.ecn_result_sink, tls_state, probe_urls, ipv)
+        self.tbclient = tbclient.TbClient(self.tb_result_sink, tls_state, probe_urls, ipv)
+
+        self.chunk_size = chunk_size
+
+        self.next_chunk_id = 0
+
+        self.subjects = []
+        self.subjects_map = {}
 
         self.addr = addr
-        self.ps = ps
-
-    def run(self):
-        # run user interface server
         self.app = tornado.web.Application([
                 (r"/", tornado.web.RedirectHandler, {"url": "/control.html"}),
-                (r"/engine/(.*)", MainHandler, {'ps': self.ps}),
+                (r"/command/(.*)", CommandHandler, {'engine': self}),
+                (r"/status/(.*)", StatusHandler, {'engine': self}),
                 (r"/(.*)", tornado.web.StaticFileHandler, {'path': 'gui'})
             ],
             debug=True
         )
 
-        self.app.listen(address=self.addr[0], port=self.addr[1])
+        self.server_thread = threading.Thread(target=self.server_func, name='webserver', args=(addr,), daemon=True)
+        self.state_thread = threading.Thread(target=self.state_func, name='state', daemon=True)
+        self.server_thread.start()
+        self.state_thread.start()
+
+    def server_func(self, addr):
+        self.app.listen(address=addr[0], port=addr[1])
 
         tornado.ioloop.IOLoop.current().start()
 
+    def state_func(self):
+        while True:
+            for url, client in self.clientpool:
+                client.retrieve_capabilities(url)
+
+            self.resolver.process()
+
+            #TODO: rewrite ecn and tb client to do a similar workflow as in resolver
+            #for client in clients: client.process() etc..
+
+            time.sleep(5)
+
+    def resolve_btdht(self, count):
+        self.resolver.resolve_btdht(count, self.resolve_result_sink)
+
+    def resolve_web(self, hostnames):
+        self.resolver.resolve_web(hostnames, self.resolve_result_sink)
+
+    def resolve_ips(self, ips):
+        self.resolve_result_sink(result=[(ip, 80, ip) for ip in ips])
+
+    def resolve_result_sink(self, label, token, error=None, result=None):
+        """
+        :param result: Expects a tuple of (ip, port, hostname)
+        """
+        if error is not None:
+            #TODO: report error
+            print("error resolving")
+            return
+
+        # create subjects
+        for ip, port, hostname in result:
+            subject = Subject(ip, port, hostname)
+            self.subjects.append(subject)
+            self.subjects_map[ip] = subject
+
+
+        flavor = 'tcp'
+        if label.startswith('webresolver-'):
+            flavor = 'http'
+
+        self.order_ecn(result, flavor)
+
+    def order_ecn(self, addrs, flavor):
+        chunk_id = self.next_chunk_id
+        self.next_chunk_id+=1
+        self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
+
+    def ecn_result_sink(self, result, chunk_id):
+        for ip, status in result.get_ip_and_result():
+            self.subjects_map[str(ip)].ecn = status
+
+    def tb_result_sink(self, ip, graph):
+        self.subjects_map[str(ip)].tb = graph
+
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
-    ps = None
 
-    ecnspider_urls = config.items('probes')
+    probe_urls = config.items('probes')
     print("Probes specified in configuration file:")
-    for name, url in ecnspider_urls:
+    for name, url in probe_urls:
         print('# {} at {}'.format(name, url))
 
-    if args.count != 0 and args.chunk_size > args.count:
-        args.chunk_size = args.count
-        print("chunk size has been set to {}".format(args.count))
 
-    if args.resolver_btdht is True:
-        count = args.count if args.count > 0 else 10000
+    resolver_url = config['main']['resolver']
+    """
+    if args.resolver_web is not None:
         resolver_url = config['main']['resolver']
-        print("Using BitTorrent Distributed Hashtable resolver. Probe URL:")
-        print("# "+resolver_url)
-        resolver = pathspider.client.resolver.BtDhtResolverClient(tls_state, resolver_url)
-        ps = pathspider.client.PathSpiderClient(count, tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
-
-    elif args.resolver_web is not None:
-        resolver_url = config['main']['resolver']
-        hostnames = skip_and_truncate(args.resolver_web.readlines(), args.resolver_web, args.skip, args.count)
 
         # strip whitespaces and \n
-        hostnames = [hostname.strip() for hostname in hostnames]
+        hostnames = [hostname.strip() for hostname in args.resolver_web.readlines()]
 
         # detect <RANk>,<HOSTNAME>\n format. used by alexa top 1m list.
         hostnames = [line.split(',')[1] for line in hostnames if ',' in line]
 
         print("Using Web-resolver with {} Domains. Probe URL: {}".format(len(hostnames), resolver_url))
-        resolver = pathspider.client.resolver.WebResolverClient(tls_state, resolver_url, hostnames=hostnames)
-        ps = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
+        resolvers['web'] = pathspider.client.resolver.WebResolverClient(tls_state, resolver_url, hostnames=hostnames)
 
     elif args.resolver_ipfile is not None:
         addrs = [(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.resolver_ipfile.readlines() if len(line) > 0]]
 
-        addrs = skip_and_truncate(addrs, args.resolver_ipfile, args.skip, args.count)
-        resolver = pathspider.client.resolver.IPListDummyResolver(addrs)
-        ps = pathspider.client.PathSpiderClient(len(resolver), tls_state, ecnspider_urls, resolver, ipv=args.ipv, chunk_size=args.chunk_size)
-
+        resolvers['ips'] = pathspider.client.resolver.IPListDummyResolver(addrs)
+    """
     if args.webui:
-        wi = WebInterface(addr=('localhost', 37100), ps=ps)
-        wi.start()
-
-    return ps
+        WebInterface(addr=('localhost', 37100), tls_state=tls_state, resolver_url=resolver_url, probe_urls=probe_urls, ipv=args.ipv, chunk_size=args.chunk_size)
 
 
 def main():
     # parse command line
     parser = argparse.ArgumentParser(usage='Usage: %(prog)s <mode> [options]')
     parser.add_argument('--version', action='version', version='%(prog)s '+version)
+
+    # TODO: add mode 'cli' for command line interface, mode 'client' is the web interface. need a solution for standalone though...
     parser.add_argument('mode', choices=['standalone', 'client', 'service'], help='Set operating mode.')
     parser.add_argument('--config', '-C', default='AUTO', help='Set pathspider configuration file. If set to AUTO, try to open either standalone.conf, client.conf or service.conf depending on operating mode. Default: AUTO.')
     parser.add_argument('-v', action='store_const', const=logging.INFO, dest='loglevel', help='Be verbose.')
@@ -272,16 +391,12 @@ def main():
     parser_client_ip.add_argument('--ip4', '-4', action='store_const', dest='ipv', const='ip4', default='ip4', help='Use IP version 4 (default).')
     parser_client_ip.add_argument('--ip6', '-6', action='store_const', dest='ipv', const='ip6', help='Use IP version 6.')
 
-    parser_client_resolver = parser_client.add_mutually_exclusive_group()
-    parser_client_resolver.add_argument('--resolver-btdht', '-B', action='store_true',
-                                        help='Use a BitTorrent DHT resolver. Acquires addresses by browsing BitTorrent\'s Distributed Hash Table network.')
-    parser_client_resolver.add_argument('--resolver-web', '-W', metavar='FILE', type=argparse.FileType('rt'),
-                                        help='Use a file containing a list of hostnames, separated by newline. The format "<RANK>,<HOSTNAME>\n" is also supported. The hostnames are resolved on a remote server.')
-    parser_client_resolver.add_argument('--resolver-ipfile', '-I', metavar='FILE', type=argparse.FileType('rt'),
-                                        help='Use a file containing a list of \'ipaddress:port\' entries, separated by newline. IP addresses are directly fed to ecnspider.')
-
-    parser_client.add_argument('--count', '-c', type=int, default=0, metavar='N', help='Measure N addresses. Default is 0 (all), except when using -B the default is 10\'000.')
-    parser_client.add_argument('--skip', '-s', type=int, default=0, metavar='N', help='Skip N addresses before starting to measure. Default is 0.')
+    parser_client.add_argument('--resolver-btdht', '-B', action='store_true',
+                                  help='Enable BitTorrent DHT resolver. Acquires addresses by browsing BitTorrent\'s Distributed Hash Table network.')
+    parser_client.add_argument('--resolver-web', '-W', metavar='FILE', type=argparse.FileType('rt'),
+                                  help='Enable domain resolution. Given a file containing a list of hostnames, separated by newline. The format "<RANK>,<HOSTNAME>\n" is also supported. The hostnames are resolved on a remote server.')
+    parser_client.add_argument('--resolver-ipfile', '-I', metavar='FILE', type=argparse.FileType('rt'),
+                                  help='Use a file containing a list of \'ipaddress:port\' entries, separated by newline. IP addresses are directly fed to ecnspider.')
 
     parser_client.add_argument('--chunk-size', type=int, default=1000, metavar='N', help='Number of addresses sent in a chunk to ecnspider. Default is 1000.')
 
@@ -307,23 +422,14 @@ def main():
     config.optionxform = str
     config.read(mplane.utils.search_path(args.config))
 
-    ps = None
     if args.mode == 'standalone':
-        ps = run_standalone(args, config)
+        run_standalone(args, config)
     elif args.mode == 'client':
-        ps = run_client(args, config)
+        run_client(args, config)
     elif args.mode == 'service':
         run_service(args, config)
 
     while True:
-        if ps is not None:
-            print(ps.status())
-            if ps.running is False:
-                if args.report is not None:
-                    print("Save report...")
-                    json.dump(ps.results, args.report)
-                    print("Report saved into {}".format(args.report.name))
-                break
         time.sleep(4)
 
     print("Shutdown complete.")

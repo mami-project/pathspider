@@ -95,13 +95,13 @@ class EcnImp:
                         try:
                             if self.pending.flavor == 'tcp':
                                 label = 'ecnspider-'+self.pending.ipv
-                                params = { "destination."+self.pending.ipv: [str(addr.ip) for addr in self.pending.addrs],
-                                           "destination.port": [int(addr.port) for addr in self.pending.addrs]}
+                                params = { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
+                                           "destination.port": [int(addr[1]) for addr in self.pending.addrs]}
                             elif self.pending.flavor == 'http':
                                 label = 'ecnspider-http-'+self.pending.ipv
-                                params = { "destination."+self.pending.ipv: [str(addr.ip) for addr in self.pending.addrs],
-                                           "destination.port": [int(addr.port) for addr in self.pending.addrs],
-                                           "ecnspider.hostname": [addr.hostname for addr in self.pending.addrs]}
+                                params = { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
+                                           "destination.port": [int(addr[1]) for addr in self.pending.addrs],
+                                           "ecnspider.hostname": [addr[2] for addr in self.pending.addrs]}
 
                             if label is None or params is None:
                                 raise ValueError("imp-{}: ecnspider flavor {} is not supported by me.".format(self.name, self.pending.flavor))

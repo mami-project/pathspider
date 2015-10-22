@@ -15,7 +15,7 @@
    id="svg5913"
    version="1.1"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="working (copy).svg">
+   sodipodi:docname="idle.svg">
   <defs
      id="defs5915" />
   <sodipodi:namedview
@@ -25,9 +25,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="16"
-     inkscape:cx="20.021638"
-     inkscape:cy="21.695914"
+     inkscape:zoom="22.627417"
+     inkscape:cx="11.844498"
+     inkscape:cy="20.431545"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -54,11 +54,15 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-1020.3622)">
-    <circle
-       style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:3, 3;stroke-dashoffset:0;stroke-opacity:1"
-       id="path4136"
-       cx="16"
-       cy="1036.3622"
-       r="8.75" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 11.269511,1027.7902 0,17.0148"
+       id="path4134"
+       inkscape:connector-curvature="0" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path4137"
+       d="m 20.638679,1027.7902 0,17.0148"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
   </g>
 </svg>

@@ -2,50 +2,55 @@
 <html>
 <head>
   <title>pathspider client</title>
+  <link rel="stylesheet" href="bootstrap.min.css">
+  <script src="jquery.min.js" charset="utf-8"></script>
+  <script src="bootstrap.min.js" charset="utf-8"></script>
   <script src="d3.min.js" charset="utf-8"></script>
   <script src="view.js" charset="utf-8"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="utf-8"/>
   <style>
-    @font-face {
-        font-family: 'Droid Sans';
-        src: url('DroidSans.ttf') format('truetype');
-    }
-    @font-face {
-        font-family: 'Droid Sans';
-        src: url('DroidSans-Bold.ttf') format('truetype');
-        font-weight: bold;
-    }
     * {
         box-sizing: border-box;
-        padding: 0px;
-        margin: 0px;
-        font-family: 'Droid Sans';
-        color: white;
+        font-family: arial;
     }
     body {
-        background: #393939;
-        margin: auto;
+    }
+    #menu {
+      text-align: right;
+      width: 10vw;
     }
     #xbox {
-        border: 1px solid #222;
-        box-shadow: 0pt 0pt 5vw #000;
-        max-width: 800pt;
-        margin-right: auto;
-        margin-left: auto;
+        margin-left: 10vw;
     }
     .section {
-        background: linear-gradient(to bottom, #5382bd 0%,#0a3e81 100%);
-        text-align: center;
         min-height: 100pt;
         font-size: 12pt;
+        max-width: 600pt;
+        font-size: 11pt;
+        border-bottom: 2px solid gray;
+    }
+    .subsection {
+        margin-left: 20pt;
+    }
+    
+    .tab-pane {
+      padding-top: 1em;
+    }
+    
+    .section textarea {
+      width: 100%;
+      min-height: 8em;
+    }
+    
+    .inline {
+      display: inline-block;
     }
     
     .button {
         display: inline-block;
         vertical-align: middle;
-        margin-left: 5vw;
-        margin-right: 5vw;
+        margin: 5pt;
         margin-top: 20pt;
         cursor: pointer;
         border: 1px solid transparent;
@@ -148,39 +153,63 @@
   </style>
 </head>
 <body>
+<div id="menu">
+  Home
+</div>
 <div id="xbox">
+  <h1>ECN-Spider Control Interface</h1>
+  This is the control panel of ECN-Spider to showcase its features.
   <div class="section">
-    <h1>Acquire Measurement Targets</h1>
-    <div>
-      <div id="order_alexa" class="button">Alexa<br>Top Million<br>Websites</div>
-      <div id="order_btdht" class="button">BitTorrent<br>Peers</div>
-      <div id="order_ips" class="button">List of IPs</div>
+    <h2>Acquire Measurement Targets</h2>
+    <div class="well">
+    ECN-Spider offers three different methods to find targets.
+    </div>
+    
+    <div id="resolver_order">
+      <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#resolve_domains">Domains</a></li>
+        <li><a data-toggle="tab" href="#resolve_ips">IPs</a></li>
+        <li><a data-toggle="tab" href="#resolve_btdht">BitTorrent</a></li>
+      </ul>
+      
+      <div class="tab-content">
+        <div id="resolve_domains" class="tab-pane fade in active">
+          Resolve a list of domains and perform ECN measurements on them.
+          <textarea></textarea><br />
+          <button type="button" class="btn btn-primary">Run!</button>
+        </div>
+        <div id="resolve_ips" class="tab-pane fade">
+          Perform ECN measurements on these IPs.
+          <textarea></textarea><br />
+          <button type="button" class="btn btn-primary">Run!</button>
+        </div>
+        <div id="resolve_btdht" class="tab-pane fade">
+          Collect IPs from the BitTorrent Distributed Hash Table.<br />
+          <button type="button" class="btn btn-primary">Run!</button>
+        </div>
+      </div>
     </div>
     <div id="resolver_pending" class="status"></div>
   </div>
   <div class="section">
-    <div class="section-arrow"></div>
-    <h1>ECN-Spider</h1>
+    <h2>ECN-Spider</h2>
     <div id="ecnclient">
     </div>
   </div>
   <div class="section">
-    <div class="section-arrow"></div>
-    <h1>Measurement Results</h1>
+    <h2>Measurement Results</h2>
     <div id="ecnresults">
       <div>95.111.50.251</div>
       <div>77.78.148.78</div>
     </div>
   </div>
   <div class="section">
-    <div class="section-arrow"></div>
-    <h1>Tracebox</h1>
+    <h2>Tracebox</h2>
     <div id="tbclient">
     </div>
   </div>
   <div class="section">
-    <div class="section-arrow"></div>
-    <h1>Measurement Results</h1>
+    <h2>Measurement Results</h2>
     <div id="tbresults">
     </div>
   </div>
@@ -347,7 +376,25 @@
     d3.json('/engine/order', function() { });
   });
   
-  update();
+  function callback_order(err, data) {
+  }
+  
+  $("#resolve_domains button").click(function() {
+    var domains = $("#resolve_domains textarea").val();
+    $.post("/command/resolve_web", {'hostnames': domains});
+  });
+  
+  $("#resolve_ips button").click(function() {
+    var iplist = $("#resolve_ips textarea").val();
+    $.post("/command/resolve_iplist", {'iplist': iplist});
+  });
+  
+  $("#resolve_btdht button").click(function() {
+    $.post("/command/resolve_btdht", {'count': 1000});
+  });
+  
+  
+  //update();
 </script>
 </body>
 </html>

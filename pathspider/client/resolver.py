@@ -21,11 +21,9 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 """
 
 import mplane.client
-import threading
-import time
-import collections
-import itertools
 import logging
+
+from . import BaseClientApi
 
 def take(count, iterable):
     """
@@ -37,154 +35,62 @@ def take(count, iterable):
             break
         yield next(it)
 
-class TimeoutException(Exception):
-    pass
+class ResolverApi(BaseClientApi):
+    def __init__(self, client, ipv):
+        assert(ipv == 'ip4' or ipv == 'ip6')
+        self.client = client
+        self.ipv = ipv
+        self.pending_tokens = {}
 
-ResolverResult = collections.namedtuple('ResolverResult', ['ip', 'port', 'hostname'])
+        self.logger = logging.getLogger("agent.resolver.btdht")
 
-class ResolverClient:
-    def __init__(self, tls_state, resolver_url, flavor):
-        self.url = resolver_url
-        self.client = mplane.client.HttpInitiatorClient({}, tls_state)
-        self.client.retrieve_capabilities(self.url)
-        self.last_updated = 0
-        self.lock = threading.RLock()
+    def _invoke(self, label, params, result_sink):
+        try:
+            spec = self.client.invoke_capability(label, "now ... future", params)
+            token = spec.get_token()
+            self.pending_tokens[token] = (label, result_sink)
+            return token
+        except KeyError as e:
+            self.logger.error("Probe does not support '"+label+"' capability.")
+            return False
 
-        self.flavor = flavor
+    def resolve_btdht(self, count, result_sink):
+        return self._invoke('btdhtresolver-'+self.ipv, { "btdhtresolver.count": count }, result_sink)
 
-    def _fetch_result(self, token, request_timeout):
-        logger = logging.getLogger('resolver')
-        time_spent = 0
-        if request_timeout is None:
-            request_timeout = 3600*24*265
+    def resolve_web(self, hostnames, result_sink):
+        return self._invoke('webresolver-'+self.ipv, { "ecnspider.hostname": hostnames }, result_sink)
 
-        while time_spent < request_timeout:
-            with self.lock:
-                try:
-                    # limit polling to once every 5 seconds
-                    if self.last_updated + 5 < time.time():
-                        # update capabilities information
-                        self.client.retrieve_capabilities(self.url)
-                        self.last_updated = time.time()
-                except:
-                    logger.error(str(self.url) + " unreachable. Retrying in 5 seconds")
+    def _process_result(self, label, token, result_sink, result):
+        if label == 'btdhtresolver-ip4' or label == 'btdhtresolver-ip6':
+            addrs = [(str(row['destination.'+self.ipv]), row['destination.port'], str(row['destination.'+self.ipv])) for row in result.schema_dict_iterator()]
+            result_sink(label=label, token=token, result=addrs)
+        elif label == 'webresolver-ip4' or label == 'webresolver-ip6':
+            addrs = [(str(row['destination.'+self.ipv]), 80, str(row['ecnspider.hostname'])) for row in result.schema_dict_iterator()]
+            result_sink(label=label, token=token, result=addrs)
 
-                # check results
+    def process(self):
+        tokens_to_remove = set()
+        for token, (label, result_sink) in self.pending_tokens.items():
+            # iterate over pending
+            try:
                 result = self.client.result_for(token)
+            except KeyError:
+                tokens_to_remove.add(token)
+                result_sink(label=label, token=token, error='token_not_found')
+                self.logger.exception("Token not found")
+            else:
                 if isinstance(result, mplane.model.Exception):
-                    logger.error(result.__repr__())
-                    return None
+                    tokens_to_remove.add(token)
+                    result_sink(label=label, token=token, error=result)
                 elif isinstance(result, mplane.model.Receipt):
                     pass
                 elif isinstance(result, mplane.model.Result):
-                    addrs = list(result.schema_dict_iterator())
+                    tokens_to_remove.add(token)
+                    self._process_result(label, token, result_sink, result)
                     self.client.forget(token)
-                    return addrs
                 else:
                     # other result, just print it out
-                    logger.info(result)
+                    print(result)
 
-            time.sleep(5)
-            time_spent += 5
-
-        raise TimeoutException("Could not complete address retrieval within timeout period.")
-
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = None):
-        raise NotImplementedError("You have to implement this function in your subclass of ResolverClient.")
-
-class BtDhtResolverClient(ResolverClient):
-    def __init__(self, tls_state, resolver_url):
-        super(BtDhtResolverClient, self).__init__(tls_state, resolver_url, 'tcp')
-
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = None):
-        logger = logging.getLogger('resolver')
-        logger.debug("Requesting {} addresses using BitTorrent DHT...".format(count))
-        token = None
-        with self.lock:
-            label = 'btdhtresolver-'+ipv
-            try:
-                spec = self.client.invoke_capability(label, when, { "btdhtresolver.count": count })
-                token = spec.get_token()
-            except KeyError as e:
-                logger.error("Specified URL does not support '"+label+"' capability.")
-                raise e
-
-        if token is None:
-            raise ValueError("Could not acquire request token.")
-
-        result = self._fetch_result(token, request_timeout)
-
-        if result is not None:
-            addrs = [ResolverResult(row['destination.'+ipv], row['destination.port'], None) for row in result]
-
-            # ensure ip-uniqueness
-            addrs_unique = []
-            ipset = set()
-            for addr in addrs:
-                if addr[0] not in ipset:
-                    ipset.add(addr[0])
-                    addrs_unique.append(addr)
-
-            logger.debug("Received {} unique addresses.".format(count))
-            return addrs_unique
-        else:
-            return None
-
-class WebResolverClient(ResolverClient):
-    def __init__(self, tls_state, resolver_url, hostnames = None):
-        super(WebResolverClient, self).__init__(tls_state, resolver_url, 'http')
-        self.lock = threading.RLock()
-        self.queued = collections.deque()
-        if hostnames is not None:
-            self.queued.extend(hostnames)
-
-    def extend(self, hostnames):
-        with self.lock:
-            self.queued.extend(hostnames)
-
-    def __len__(self):
-        return len(self.queued)
-
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = None):
-        logger = logging.getLogger('resolver')
-        logger.debug("Requesting {} addresses using the web resolver...".format(count))
-        token = None
-        with self.lock:
-            label = 'webresolver-'+ipv
-            try:
-                hostnames = list(take(count, self.queued))
-                spec = self.client.invoke_capability(label, when, { "ecnspider.hostname": hostnames })
-                token = spec.get_token()
-            except KeyError as e:
-                logger.error("Specified URL does not support '"+label+"' capability.")
-                raise e
-
-        if token is None:
-            raise ValueError("Could not acquire request token.")
-
-        logger.debug("Received {} unique addresses.".format(count))
-
-        result = self._fetch_result(token, request_timeout)
-
-        if result is not None:
-            return [ResolverResult(row['destination.'+ipv], 80, row['ecnspider.hostname']) for row in result]
-        else:
-            return None
-
-class IPListDummyResolver:
-    def __init__(self, addrs = ()):
-        self.addrs = collections.deque([ResolverResult(ip, port, None) for ip, port in addrs])
-        self.flavor = 'tcp'
-
-    def __len__(self):
-        return len(self.addrs)
-
-    def request(self, count, ipv='ip4', when = 'now ... future', request_timeout = 30):
-        taken = []
-        try:
-            for _ in range(0, count):
-                taken.append(self.addrs.popleft())
-        except IndexError:
-            pass
-
-        return taken
+        for token in tokens_to_remove:
+            del self.pending_tokens[token]
