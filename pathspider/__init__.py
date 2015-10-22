@@ -136,8 +136,8 @@ class CommandHandler(tornado.web.RequestHandler):
             ips = self.get_body_argument('iplist').splitlines()
             self.engine.resolve_ips(ips)
         elif cmd == 'resolve_web':
-            hostnames = self.get_body_argument('hostnames').splitlines()
-            self.engine.resolve_web(hostnames)
+            domains = self.get_body_argument('domains').splitlines()
+            self.engine.resolve_web(domains)
         elif cmd == 'order_tb':
             order_ip = self.get_body_argument('ip')
             self.engine.order_tb(order_ip)
@@ -159,7 +159,10 @@ class StatusHandler(tornado.websocket.WebSocketHandler):
         print("WebSocket closed")
 
     def on_message(self, message):
-        pass
+        if message == 'update':
+            self.write_message(self.engine.get_status())
+
+
         """
 
         if cmd == 'status':
@@ -269,7 +272,7 @@ class WebInterface:
         self.app = tornado.web.Application([
                 (r"/", tornado.web.RedirectHandler, {"url": "/control.html"}),
                 (r"/command/(.*)", CommandHandler, {'engine': self}),
-                (r"/status/(.*)", StatusHandler, {'engine': self}),
+                (r"/status", StatusHandler, {'engine': self}),
                 (r"/(.*)", tornado.web.StaticFileHandler, {'path': 'gui'})
             ],
             debug=True
@@ -294,25 +297,26 @@ class WebInterface:
 
             #TODO: rewrite ecn and tb client to do a similar workflow as in resolver
             #for client in clients: client.process() etc..
+            self.update()
 
             time.sleep(5)
 
     def resolve_btdht(self, count):
-        self.resolver.resolve_btdht(count, self.resolve_result_sink)
+        self.resolver.resolve_btdht(count, self.resolve_sink)
 
     def resolve_web(self, hostnames):
-        self.resolver.resolve_web(hostnames, self.resolve_result_sink)
+        self.resolver.resolve_web(hostnames, self.resolve_sink)
 
     def resolve_ips(self, ips):
-        self.resolve_result_sink(result=[(ip, 80, ip) for ip in ips])
+        self.resolve_sink(result=[(ip, 80, ip) for ip in ips])
 
-    def resolve_result_sink(self, label, token, error=None, result=None):
+    def resolve_sink(self, label, token, error=None, result=None):
         """
         :param result: Expects a tuple of (ip, port, hostname)
         """
         if error is not None:
             #TODO: report error
-            print("error resolving")
+            print("error resolving", error)
             return
 
         # create subjects
@@ -337,8 +341,25 @@ class WebInterface:
         for ip, status in result.get_ip_and_result():
             self.subjects_map[str(ip)].ecn = status
 
+
     def tb_result_sink(self, ip, graph):
         self.subjects_map[str(ip)].tb = graph
+
+
+    def update(self):
+        status = self.get_status()
+        for socket in self.sockets:
+            socket.write_message(status)
+
+    def get_status(self):
+        return {
+            'resolver': {
+                'is_busy': self.resolver.is_busy()
+            },
+            'ecnclient': self.ecnclient.status(),
+            'tbclient': self.tbclient.status()
+        }
+
 
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)

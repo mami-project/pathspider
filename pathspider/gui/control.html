@@ -20,7 +20,7 @@
       text-align: right;
       width: 10vw;
     }
-    #xbox {
+    #content {
         margin-left: 10vw;
     }
     .section {
@@ -156,7 +156,7 @@
 <div id="menu">
   Home
 </div>
-<div id="xbox">
+<div id="content">
   <h1>ECN-Spider Control Interface</h1>
   This is the control panel of ECN-Spider to showcase its features.
   <div class="section">
@@ -189,7 +189,7 @@
         </div>
       </div>
     </div>
-    <div id="resolver_pending" class="status"></div>
+    <div id="resolver_busy" class="status running"></div>
   </div>
   <div class="section">
     <h2>ECN-Spider</h2>
@@ -217,6 +217,16 @@
 <svg style="border: 1px solid black; width:100vw; height: 3000px;">
 </svg>
 <script>
+  function resolver_busy(value) {
+    if(value) {
+      $("#resolver_order").hide();
+      $("#resolver_busy").show();
+    } else {
+      $("#resolver_order").show();
+      $("#resolver_busy").hide();
+    }
+  }
+
   function update_ecnclient(ecnclient) {
     var probes = d3.select("#ecnclient").selectAll("div.probe").data(ecnclient);
     var probes_enter = probes.enter().append("div");
@@ -281,16 +291,8 @@
     probes.exit().remove();
   }
   
-  function update_status(err, data) {
-    if(err != null) {
-      console.error(err);
-      return;
-    }
-    
-    console.debug(data);
-    
-    d3.select("#resolver_pending")
-      .classed("running", data.resolver.pending);
+  function update_status(data) {
+    resolver_busy(data.resolver.is_busy);
     
     update_ecnclient(data.ecnclient);
     update_tbclient(data.tbclient);
@@ -361,37 +363,39 @@
     results.exit().remove();
   }
   
-  function update() {
-    console.debug("update request");
-    d3.json('/engine/status', update_status);
-    d3.json('/engine/subjects?start=0&filter=ecnonly', update_ecnresults);
-    d3.json('/engine/subjects?start=0&filter=tbonly', update_tbresults);
-    
-    d3.timer(update, 1000);
-    return true;
-  }
-  
-  d3.select("#order_btdht").on("click", function() {
-    console.debug("order resolve");
-    d3.json('/engine/order', function() { });
-  });
-  
-  function callback_order(err, data) {
-  }
-  
   $("#resolve_domains button").click(function() {
-    var domains = $("#resolve_domains textarea").val();
-    $.post("/command/resolve_web", {'hostnames': domains});
+    sel = $("#resolve_domains textarea");
+    var domains = sel.val();
+    sel.val("");
+    resolver_busy(true);
+    $.post("/command/resolve_web", {'domains': domains});
   });
   
   $("#resolve_ips button").click(function() {
-    var iplist = $("#resolve_ips textarea").val();
+    sel = $("#resolve_ips textarea");
+    var iplist = sel.val();
+    sel.val("");
+    resolver_busy(true);
     $.post("/command/resolve_iplist", {'iplist': iplist});
   });
   
   $("#resolve_btdht button").click(function() {
+    resolver_busy(true);
     $.post("/command/resolve_btdht", {'count': 1000});
   });
+  
+  var ws = new WebSocket("ws://localhost:37100/status");
+  ws.onopen = function() {
+    ws.send("update");
+  };
+  ws.onmessage = function (evt) {
+    console.debug("received update");
+    console.debug(evt.data);
+     
+    update_status(JSON.parse(evt.data));
+  };
+  
+  $("#resolver_order").hide();
   
   
   //update();

@@ -269,6 +269,9 @@ class EcnAnalysis:
                 merged[ip][site+':conn'] = conn
                 merged[ip][site+':nego'] = nego
 
+        #TODO: if a site does not contribute any results, the corresponding columns are missing.
+        #TODO: this happens only if the amount of IPs is very low.
+
         # convert to dataframe
         merged = pd.DataFrame(merged).T
         return merged, incomplete

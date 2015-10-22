@@ -22,6 +22,7 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 
 import mplane.client
 import logging
+import threading
 
 from . import BaseClientApi
 
@@ -44,11 +45,14 @@ class ResolverApi(BaseClientApi):
 
         self.logger = logging.getLogger("agent.resolver.btdht")
 
+        self.lock = threading.RLock()
+
     def _invoke(self, label, params, result_sink):
         try:
             spec = self.client.invoke_capability(label, "now ... future", params)
             token = spec.get_token()
-            self.pending_tokens[token] = (label, result_sink)
+            with self.lock:
+                self.pending_tokens[token] = (label, result_sink)
             return token
         except KeyError as e:
             self.logger.error("Probe does not support '"+label+"' capability.")
@@ -68,29 +72,33 @@ class ResolverApi(BaseClientApi):
             addrs = [(str(row['destination.'+self.ipv]), 80, str(row['ecnspider.hostname'])) for row in result.schema_dict_iterator()]
             result_sink(label=label, token=token, result=addrs)
 
+    def is_busy(self):
+        return len(self.pending_tokens) > 0
+
     def process(self):
         tokens_to_remove = set()
-        for token, (label, result_sink) in self.pending_tokens.items():
-            # iterate over pending
-            try:
-                result = self.client.result_for(token)
-            except KeyError:
-                tokens_to_remove.add(token)
-                result_sink(label=label, token=token, error='token_not_found')
-                self.logger.exception("Token not found")
-            else:
-                if isinstance(result, mplane.model.Exception):
+        with self.lock:
+            for token, (label, result_sink) in self.pending_tokens.items():
+                # iterate over pending
+                try:
+                    result = self.client.result_for(token)
+                except KeyError:
                     tokens_to_remove.add(token)
-                    result_sink(label=label, token=token, error=result)
-                elif isinstance(result, mplane.model.Receipt):
-                    pass
-                elif isinstance(result, mplane.model.Result):
-                    tokens_to_remove.add(token)
-                    self._process_result(label, token, result_sink, result)
-                    self.client.forget(token)
+                    result_sink(label=label, token=token, error='token_not_found')
+                    self.logger.exception("Token not found")
                 else:
-                    # other result, just print it out
-                    print(result)
+                    if isinstance(result, mplane.model.Exception):
+                        tokens_to_remove.add(token)
+                        result_sink(label=label, token=token, error=result)
+                    elif isinstance(result, mplane.model.Receipt):
+                        pass
+                    elif isinstance(result, mplane.model.Result):
+                        tokens_to_remove.add(token)
+                        self._process_result(label, token, result_sink, result)
+                        self.client.forget(token)
+                    else:
+                        # other result, just print it out
+                        print(result)
 
-        for token in tokens_to_remove:
-            del self.pending_tokens[token]
+            for token in tokens_to_remove:
+                del self.pending_tokens[token]
