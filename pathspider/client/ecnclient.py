@@ -181,16 +181,13 @@ class EcnAnalysis:
             yield (ip, 'safe')
 
         for ip in self.always_broken.index:
-            yield (ip, 'sitedep')
+            yield (ip, 'broken_path')
 
         for ip in self.works_per_site.index:
-            yield (ip, 'pathdep')
+            yield (ip, 'broken_site')
 
         for ip in self.other.index:
-            yield (ip, 'unknown')
-
-        for ip in (row[1] for row in self.incomplete):
-            yield (ip, 'incomplete')
+            yield (ip, 'broken_other')
 
     def __add__(self, other):
         if not isinstance(other, EcnAnalysis):

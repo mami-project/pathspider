@@ -88,7 +88,7 @@ function view_dragstart(d) {
 }
 
 function view_load(selector_svg, ips) {
-    d3.json('http://localhost:37100/engine/graph?'+encode_key_values("ip", ips),
+    d3.json('http://localhost:37100/command/graph?'+encode_key_values("ip", ips),
         function(err, data) {
             view_generate(err, data, selector_svg);
         }

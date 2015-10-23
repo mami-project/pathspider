@@ -10,6 +10,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="utf-8"/>
   <style>
+    /* 
+     * Document Level Styles
+     * * * * * * * * * * * */
+    
     * {
         box-sizing: border-box;
         font-family: arial;
@@ -22,14 +26,93 @@
     }
     #content {
         margin-left: 10vw;
+        max-width: 600pt;
     }
+    
+    hr {
+      border: 0;
+      height: 1px;
+      background: gray;
+    }
+    
     .section {
         min-height: 100pt;
         font-size: 12pt;
-        max-width: 600pt;
         font-size: 11pt;
-        border-bottom: 2px solid gray;
     }
+    
+    .section textarea {
+      width: 100%;
+      min-height: 8em;
+    }
+    
+    /*
+     * Results
+     * * * * */
+    .results > div {
+      display: inline-block;
+      padding: 5pt;
+      border-radius: 4pt;
+      color: black;
+      margin: 2pt;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    
+    .results > div:hover {
+      border: 1px solid black;
+    }
+    
+    
+    /*
+     * Animated status icon
+     * * * * */
+    .status {
+        background: url('idle.svg') no-repeat;
+        background-size: 100% 100%;
+    }
+    
+    .running {
+        background: url('working.svg') no-repeat;
+        background-size: 100% 100%;
+        animation:spin 2s linear infinite;
+    }
+    
+    @keyframes spin { 100% { transform:rotate(360deg); } }
+    
+    
+    .section .status {
+        width: 4%;
+        padding-top: 4%;
+        display: inline-block;
+    }
+    
+    .probe .status {
+        margin-top: 5pt;
+        width: 18pt;
+        height: 18pt;
+        display: inline-block;
+    }
+    
+    
+    /*
+     * Probe
+     * * * */
+    .probe {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 2vw;
+        margin-right: 2vw;
+        margin-top: 20pt;
+        border-radius: 4pt;
+        padding: 2pt;
+    }
+    
+    /*
+    .inline {
+      display: inline-block;
+    }
+    
     .subsection {
         margin-left: 20pt;
     }
@@ -38,14 +121,7 @@
       padding-top: 1em;
     }
     
-    .section textarea {
-      width: 100%;
-      min-height: 8em;
-    }
     
-    .inline {
-      display: inline-block;
-    }
     
     .button {
         display: inline-block;
@@ -61,59 +137,8 @@
         border-color: white;
         background-color: grey;
     }
+    */
     
-    .probe {
-        display: inline-block;
-        vertical-align: middle;
-        margin-left: 2vw;
-        margin-right: 2vw;
-        margin-top: 20pt;
-        border-radius: 4pt;
-        padding: 2pt;
-    }
-    
-    .section-arrow {
-        background: url('arrow.svg') no-repeat center top;
-        background-size: 100% 100%;
-        width: 100%;
-        padding-top: 16.7%;
-        margin-bottom: 5pt;
-    }
-    
-    .status {
-        background: url('idle.svg') no-repeat;
-        background-size: 100% 100%;
-    }
-    
-    .section > .status {
-        width: 4%;
-        padding-top: 4%;
-        display: inline-block;
-    }
-    
-    .probe > .status {
-        margin-top: 5pt;
-        width: 18pt;
-        height: 18pt;
-        display: inline-block;
-    }
-    
-    .running {
-        background: url('working.svg') no-repeat;
-        background-size: 100% 100%;
-        animation:spin 2s linear infinite;
-    }
-    
-    @keyframes spin { 100% { transform:rotate(360deg); } }
-    
-    #ecnresults > div, #tbresults > div {
-      display: inline-block;
-      padding: 5pt;
-      border-radius: 4pt;
-      color: black;
-      margin: 2pt;
-      cursor: pointer;
-    }
     
     /*
      * styles for graph
@@ -163,6 +188,7 @@
     <h2>Acquire Measurement Targets</h2>
     <div class="well">
     ECN-Spider offers three different methods to find targets.
+    Please select a method below, enter the required data and click Run! to start the measurement.
     </div>
     
     <div id="resolver_order">
@@ -184,23 +210,72 @@
           <button type="button" class="btn btn-primary">Run!</button>
         </div>
         <div id="resolve_btdht" class="tab-pane fade">
-          Collect IPs from the BitTorrent Distributed Hash Table.<br />
+          Collect IPs from the BitTorrent Distributed Hash Table.
           <button type="button" class="btn btn-primary">Run!</button>
         </div>
       </div>
     </div>
-    <div id="resolver_busy" class="status running"></div>
+    <div style="text-align: center">
+      <div id="resolver_busy" class="status running"></div>
+    </div>
   </div>
+  <hr>
   <div class="section">
     <h2>ECN-Spider</h2>
+    <div class="well">
+    After the measurement targets are acquired and resolved, their IPs are distributed to
+    each measurement probe.
+    </div>
     <div id="ecnclient">
     </div>
   </div>
   <div class="section">
     <h2>Measurement Results</h2>
-    <div id="ecnresults">
-      <div>95.111.50.251</div>
-      <div>77.78.148.78</div>
+    <div class="well">
+    The results are gathered here. Click on an item to execute tracebox on all probes.
+    </div>
+    <div>
+      <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#ecn_safe">ECN safe</a></li>
+        <li><a data-toggle="tab" href="#ecn_broken_site">Site-dependency</a></li>
+        <li><a data-toggle="tab" href="#ecn_broken_path">Path-dependency</a></li>
+        <li><a data-toggle="tab" href="#ecn_broken_other">Other</a></li>
+      </ul>
+      
+      <div class="tab-content">
+        <div id="ecn_safe" class="tab-pane fade in active">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div>
+        </div>
+        <div id="ecn_broken_site" class="tab-pane fade">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div><br />
+        </div>
+        <div id="ecn_broken_path" class="tab-pane fade">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div><br />
+        </div>
+        <div id="ecn_broken_other" class="tab-pane fade">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div><br />
+        </div>
+      </div>
     </div>
   </div>
   <div class="section">
@@ -210,8 +285,51 @@
   </div>
   <div class="section">
     <h2>Measurement Results</h2>
-    <div id="tbresults">
+    <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#tb_safe">ECN safe</a></li>
+        <li><a data-toggle="tab" href="#tb_broken_site">Site-dependency</a></li>
+        <li><a data-toggle="tab" href="#tb_broken_path">Path-dependency</a></li>
+        <li><a data-toggle="tab" href="#tb_broken_other">Other</a></li>
+      </ul>
+      
+      <div class="tab-content">
+        <div id="tb_safe" class="tab-pane fade in active">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div>
+        </div>
+        <div id="tb_broken_site" class="tab-pane fade">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div><br />
+        </div>
+        <div id="tb_broken_path" class="tab-pane fade">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div><br />
+        </div>
+        <div id="tb_broken_other" class="tab-pane fade">
+          <div class="count">
+          </div>
+          <ul class="pagination">
+          </ul>
+          <div class="results">
+          </div><br />
+        </div>
+      </div>
     </div>
+  </div>
+  <div class="section">
+    <h2>Statistics</h2>
   </div>
 </div>
 <svg style="border: 1px solid black; width:100vw; height: 3000px;">
@@ -219,11 +337,11 @@
 <script>
   function resolver_busy(value) {
     if(value) {
-      $("#resolver_order").hide();
-      $("#resolver_busy").show();
+      $("#resolver_order").hide(200);
+      $("#resolver_busy").show(200);
     } else {
-      $("#resolver_order").show();
-      $("#resolver_busy").hide();
+      $("#resolver_order").show(200);
+      $("#resolver_busy").hide(200);
     }
   }
 
@@ -298,70 +416,98 @@
     update_tbclient(data.tbclient);
   }
   
-  function update_ecnresults(err, data) {
-    if(err != null) {
-      console.error(err);
-      return;
-    }
+  function update_page_content(id, start, count, url) {
+    // empty container
+    var sel = d3.select("#"+id+" .results");
+    sel.html("");
     
-    
-    subset = data.subjects;//data.subjects.filter(function(d) { return d.ecnresult == "pathdep" || d.ecnresult == 'sitedep'; });
-    
-    console.debug(subset);
-    
-    var results = d3.select("#ecnresults").selectAll("div").data(subset);
-    
-    results.enter().append("div")
-      .on("click", function(d) {
-        ip = d3.select(this).text()
-          
-        d3.json('/engine/trace?ip='+ip, function(err, data) {
-          
+    // get data
+    d3.json(url+"&start="+start+"&count="+count, function(data) {
+      var results = sel.selectAll("div").data(data.subjects);
+      results.enter().append("div")
+        .on("click", function(d) {
+          if(d.tb) {
+            view_load("svg", [d.ip]);
+          } else {
+            $.post('/command/order_tb', {'ip': d.ip, 'port': d.port});
+          }
         });
+      
+      results.html(function(d) { 
+        if(d.hostname != d.ip) {
+          return d.hostname + "<br>" + d.ip;
+        } else {
+          return d.ip;
+        }
       });
-    
-    results.text(function(d) { return d.ip; });
-    results.style("background-color", function(d) {
-      switch(d.ecnresult) {
-        case 'safe': return "#00de41";
-        case 'sitedep': return "#ff3c3c";
-        case 'pathdep': return "#ff840c";
-        case 'unknown': return "#d27bff";
-        case 'incomplete': return "#f1ff15";
-      }
+      results.style("background-color", function(d) {
+        switch(d.ecn) {
+          case 'safe': return "#00de41";
+          case 'broken_site': return "#ff3c3c";
+          case 'broken_path': return "#ff840c";
+          case 'broken_other': return "#f1ff15";
+          case 'unknown': return "#d27bff";
+        }
+      });
+      
+      results.exit().remove();
     });
-    
-    results.exit().remove();
   }
   
-  function update_tbresults(err, data) {
-    if(err != null) {
-      console.error(err);
-      return;
-    }
-    
-    var results = d3.select("#tbresults").selectAll("div").data(data.subjects);
-    
-    results.enter().append("div")
-      .on("click", function(d) {
-        ip = d3.select(this).text()
-          
-        view_load("svg", [ip]);
-      });
-    
-    results.text(function(d) { return d.ip; });
-    results.style("background-color", function(d) {
-      switch(d.ecnresult) {
-        case 'safe': return "#00de41";
-        case 'sitedep': return "#ff3c3c";
-        case 'pathdep': return "#ff840c";
-        case 'unknown': return "#d27bff";
-        case 'incomplete': return "#f1ff15";
+  function update_page_indicator(id, url) {
+    d3.json(url, function(data) {
+      var count = data.count;
+      
+      d3.select("#"+id+" .count").text(count);
+      
+      // get current selected
+      var active_tab = d3.select("#"+id+" ul.active");
+      var current = -1;
+      if(active_tab.empty() == false) {
+        current = active_tab.datum();
+      } else {
+        current = 0;
       }
+      
+      var items_per_page = 50;
+      var page_count = Math.ceil(count / items_per_page);
+      var pages = [];
+
+      for (var i = 0; i < page_count; i++) {
+         pages.push(i);
+      }
+      
+      var elems = d3.select("#"+id+" ul").selectAll("li").data(pages);
+      elems.enter()
+        .append("li")
+        .classed("active", function(d) { return d == current; })
+        .append("a")
+          .attr("href", function(d) { return "#"+id+"_page"+d; })
+          .text(function(d) { return (d+1); })
+          .on("click", function(d) {
+            elems.classed("active", false);
+            d3.select(this.parentNode).classed("active", true);
+            update_page_content(id, d*items_per_page, items_per_page, url);
+          });
+      elems.exit().remove();
+      
+      update_page_content(id, 0, items_per_page, url);
     });
-    
-    results.exit().remove();
   }
+  
+  function update_page_indicators() {
+    update_page_indicator("ecn_safe", "/command/subjects?stage=ecn&result=safe");
+    update_page_indicator("ecn_broken_path", "/command/subjects?stage=ecn&result=broken_path");
+    update_page_indicator("ecn_broken_site", "/command/subjects?stage=ecn&result=broken_site");
+    update_page_indicator("ecn_broken_other", "/command/subjects?stage=ecn&result=broken_other");
+    
+    update_page_indicator("tb_safe", "/command/subjects?stage=tb&result=safe");
+    update_page_indicator("tb_broken_path", "/command/subjects?stage=tb&result=broken_path");
+    update_page_indicator("tb_broken_site", "/command/subjects?stage=tb&result=broken_site");
+    update_page_indicator("tb_broken_other", "/command/subjects?stage=tb&result=broken_other");
+  }
+  
+  update_page_indicators();
   
   $("#resolve_domains button").click(function() {
     sel = $("#resolve_domains textarea");
@@ -381,7 +527,7 @@
   
   $("#resolve_btdht button").click(function() {
     resolver_busy(true);
-    $.post("/command/resolve_btdht", {'count': 1000});
+    $.post("/command/resolve_btdht", {'count': 200});
   });
   
   var ws = new WebSocket("ws://localhost:37100/status");
@@ -389,10 +535,20 @@
     ws.send("update");
   };
   ws.onmessage = function (evt) {
-    console.debug("received update");
     console.debug(evt.data);
-     
-    update_status(JSON.parse(evt.data));
+    
+    msg = JSON.parse(evt.data)
+    
+    if(msg.type == "status") {
+      console.debug("received update");
+      update_status(msg.status);
+    } else {
+      console.error("received unknown message: "+msg.type);
+    }
+  };
+  
+  ws.onclose = function() {
+    alert("Connection to server dropped.");
   };
   
   $("#resolver_order").hide();

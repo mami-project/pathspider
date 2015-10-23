@@ -80,7 +80,7 @@ class GraphGenerator:
             'probe': probe
         })
 
-    def __init__(self, ips, probes, tb_results):
+    def __init__(self, ips, probes, subjects_map):
         self.nodes = []
         self.nodes_idx = []
         self.links = []
@@ -95,7 +95,10 @@ class GraphGenerator:
         for idx, ip in enumerate(ips):
             self.add_node(ip, 800, idx*self.target_step)
 
-            graph = tb_results.get(ip) or {}
+            if ip not in subjects_map:
+                continue
+
+            graph = subjects_map[ip]['tb'] or {}
             for probe, trace in graph.items():
                 prev = probe
                 gap = False
@@ -128,6 +131,46 @@ class CommandHandler(tornado.web.RequestHandler):
     def initialize(self, engine):
         self.engine = engine
 
+    def get(self, cmd):
+        if cmd == 'subjects':
+            param_stage = self.get_query_argument('stage')
+            assert(param_stage in ['none', 'ecn', 'tb'])
+
+            param_result = self.get_query_argument('result', None)
+            assert(param_result is None or (param_stage in ['ecn', 'tb'] and param_result in ['safe', 'broken_path', 'broken_site', 'broken_other']))
+
+            subset = self.engine.subjects
+            if param_stage == 'none':
+                subset = (subject for subject in subset if subject['ecn'] is None and subject['tb'] is None)
+            elif param_stage == 'ecn':
+                subset = (subject for subject in subset if subject['ecn'] is not None and subject['tb'] is None)
+            elif param_stage == 'tb':
+                subset = (subject for subject in subset if subject['ecn'] is not None and subject['tb'] is not None)
+
+            if param_result is not None:
+                subset = (subject for subject in subset if subject['ecn'] == param_result)
+
+            param_start = int(self.get_query_argument('start', -1))
+            param_count = int(self.get_query_argument('count', 50))
+
+            if param_start == -1:
+                count = sum(1 for _ in subset)
+                self.write({'count': count })
+            else:
+                #TODO: get rid of IPAddressEncoder by only using str in data structures
+                answer = list(itertools.islice(subset, param_start, param_start+param_count))
+                ansstr = json.dumps({'subjects': answer}, cls=IPAddressEncoder)
+
+                self.set_header("Content-Type", "application/json")
+                self.write(ansstr)
+        elif cmd == 'graph':
+            ips = self.get_arguments('ip')
+            gg = GraphGenerator(ips, self.engine.probe_urls, self.engine.subjects_map)
+            self.write({
+                'nodes': gg.nodes,
+                'links': gg.links
+            })
+
     def post(self, cmd):
         if cmd == 'resolve_btdht':
             count = self.get_body_argument('count')
@@ -140,9 +183,9 @@ class CommandHandler(tornado.web.RequestHandler):
             self.engine.resolve_web(domains)
         elif cmd == 'order_tb':
             order_ip = self.get_body_argument('ip')
-            self.engine.order_tb(order_ip)
-        elif cmd == 'get_graph':
-            pass
+            order_port = self.get_body_argument('port')
+            self.engine.order_tb(order_ip, order_port)
+
 
 class StatusHandler(tornado.websocket.WebSocketHandler):
     def __init__(self, *args, **kwargs):
@@ -160,8 +203,10 @@ class StatusHandler(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         if message == 'update':
-            self.write_message(self.engine.get_status())
+            self.send_status(self.engine.get_status())
 
+    def send_status(self, status):
+        self.write_message({'type': 'status', 'status': status})
 
         """
 
@@ -237,19 +282,6 @@ class ClientPool:
     def __iter__(self):
         return iter(self.pool.items())
 
-class Subject:
-    def __init__(self, ip, port, hostname=None):
-        # inherent information
-        self.hostname = hostname
-        self.ip = ip
-        self.port = port
-
-        # set after ecn measurement
-        self.ecn = None
-
-        # set after tracebox measurement
-        self.tb = None
-
 class WebInterface:
     def __init__(self, addr, tls_state, resolver_url, probe_urls, ipv, chunk_size):
         self.ipv = ipv
@@ -257,6 +289,7 @@ class WebInterface:
 
         self.clientpool = ClientPool(tls_state)
 
+        self.probe_urls = probe_urls
         self.resolver = resolver.ResolverApi(self.clientpool.get(resolver_url), ipv)
         self.ecnclient = ecnclient.EcnClient(self.ecn_result_sink, tls_state, probe_urls, ipv)
         self.tbclient = tbclient.TbClient(self.tb_result_sink, tls_state, probe_urls, ipv)
@@ -308,7 +341,7 @@ class WebInterface:
         self.resolver.resolve_web(hostnames, self.resolve_sink)
 
     def resolve_ips(self, ips):
-        self.resolve_sink(result=[(ip, 80, ip) for ip in ips])
+        self.resolve_sink(label='', token='', result=[(ip, 80, ip) for ip in ips])
 
     def resolve_sink(self, label, token, error=None, result=None):
         """
@@ -321,7 +354,7 @@ class WebInterface:
 
         # create subjects
         for ip, port, hostname in result:
-            subject = Subject(ip, port, hostname)
+            subject = {'ip': ip, 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
             self.subjects.append(subject)
             self.subjects_map[ip] = subject
 
@@ -339,17 +372,20 @@ class WebInterface:
 
     def ecn_result_sink(self, result, chunk_id):
         for ip, status in result.get_ip_and_result():
-            self.subjects_map[str(ip)].ecn = status
+            self.subjects_map[str(ip)]['ecn'] = status
+            if status != "safe":
+                print(ip, status)
 
+    def order_tb(self, ip, port):
+        self.tbclient.add_job(ip, port)
 
     def tb_result_sink(self, ip, graph):
-        self.subjects_map[str(ip)].tb = graph
-
+        self.subjects_map[str(ip)]['tb'] = graph
 
     def update(self):
         status = self.get_status()
         for socket in self.sockets:
-            socket.write_message(status)
+            socket.send_status(status)
 
     def get_status(self):
         return {
