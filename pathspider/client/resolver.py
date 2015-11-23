@@ -26,16 +26,6 @@ import threading
 
 from . import BaseClientApi
 
-def take(count, iterable):
-    """
-    Iterate over at most count elements in iterable.
-    """
-    it = iter(iterable)
-    for index in range(0, count):
-        if index >= count:
-            break
-        yield next(it)
-
 class ResolverApi(BaseClientApi):
     def __init__(self, client, ipv):
         assert(ipv == 'ip4' or ipv == 'ip6')
@@ -102,3 +92,17 @@ class ResolverApi(BaseClientApi):
 
             for token in tokens_to_remove:
                 del self.pending_tokens[token]
+
+def read_hostnames(fp):
+    # strip whitespaces and \n
+    hostnames = [hostname.strip() for hostname in fp.readlines()]
+
+    # detect <RANk>,<HOSTNAME>\n format. used by alexa top 1m list.
+    alexa = [line.split(',')[1] for line in hostnames if ',' in line]
+    if len(alexa) > 0:
+        return alexa
+    else:
+        return hostnames
+
+def read_ips(fp):
+    return [(ip, int(port)) for ip, port in [line.split(':', 1) for line in fp.readlines() if len(line) > 0]]
