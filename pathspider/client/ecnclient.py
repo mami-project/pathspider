@@ -77,7 +77,7 @@ class EcnImp:
                 self.pending = None
         logger.info("Shutdown completed")
 
-    def has_work(self):
+    def is_busy(self):
         return len(self.queued) > 0 or self.pending is not None
 
     def worker(self):
@@ -401,8 +401,8 @@ class EcnClient:
                 self.result_sink(analysis, chunk_id)
                 logger.debug("result_sink() returned.")
 
-    def queue_size(self):
-        return min([len(imp.queued) for imp in self.imps])
+    def is_busy(self):
+        return any(imp.is_busy() for imp in self.imps)
 
     def status(self):
         stat = []

@@ -15,6 +15,8 @@ import threading
 import ipaddress
 import itertools
 
+import traceback
+
 import tornado.web
 import tornado.websocket
 import tornado.ioloop
@@ -58,6 +60,21 @@ def skip_and_truncate(iterable, filename, skip, count):
         iterable = iterable[0:count]
 
     return iterable
+
+def grouper(iterable, count):
+    iterator = iter(iterable)
+    while True:
+        lst = []
+        try:
+            for index in range(0, count):
+                lst.append(next(iterator))
+        except StopIteration:
+            pass
+
+        if len(lst) > 0:
+            yield lst
+        else:
+            break
 
 class GraphGenerator:
     def add_node(self, name, x = None, y = None):
@@ -279,10 +296,14 @@ class ClientPool:
             self.pool[url] = client
             return client
 
+    def update(self):
+        for url, client in self.pool.items():
+            client.retrieve_capabilities(url)
+
     def __iter__(self):
         return iter(self.pool.items())
 
-class WebInterface:
+class ControlWeb:
     def __init__(self, addr, tls_state, resolver_url, probe_urls, ipv, chunk_size):
         self.ipv = ipv
         self.sockets = set()
@@ -319,13 +340,14 @@ class WebInterface:
     def server_func(self, addr):
         self.app.listen(address=addr[0], port=addr[1])
 
-        tornado.ioloop.IOLoop.current().start()
+        try:
+            tornado.ioloop.IOLoop.current().start()
+        except RuntimeError:
+            pass
 
     def state_func(self):
         while True:
-            for url, client in self.clientpool:
-                client.retrieve_capabilities(url)
-
+            self.clientpool.update()
             self.resolver.process()
 
             #TODO: rewrite ecn and tb client to do a similar workflow as in resolver
@@ -396,6 +418,134 @@ class WebInterface:
             'tbclient': self.tbclient.status()
         }
 
+class ControlBatch:
+    def __init__(self, tls_state, resolver_url, probe_urls, ipv, chunk_size, report_file, btdht_count=None, hostnames=None, ips=None):
+        self.ipv = ipv
+        self.chunk_size = chunk_size
+
+        self.report_file = report_file
+
+        self.btdht_count = btdht_count
+        self.hostnames = hostnames
+        self.ips = ips
+
+        self.next_chunk_id = 0
+
+        self.subjects = []
+        self.subjects_map = {}
+
+        self.clientpool = ClientPool(tls_state)
+
+        self.resolver = resolver.ResolverApi(self.clientpool.get(resolver_url), ipv)
+        self.ecnclient = ecnclient.EcnClient(self.ecn_result_sink, tls_state, probe_urls, ipv)
+        self.tbclient = tbclient.TbClient(self.tb_result_sink, tls_state, probe_urls, ipv)
+
+    def wait_for_resolver(self):
+        while self.resolver.is_busy():
+            self.clientpool.update()
+            self.resolver.process()
+            time.sleep(5)
+
+    def perform(self):
+        print("Batch resolver started")
+
+        print("Retrieving capabilities...")
+        self.clientpool.update()
+
+        self.ecnclient.pause()
+        self.tbclient.pause()
+
+        if self.btdht_count is not None:
+            print("Acquiring {} BitTorrent addresses through DHT.".format(self.btdht_count))
+            idx = 0
+            while idx < self.btdht_count:
+                self.resolver.resolve_btdht(self.chunk_size, self.resolve_sink)
+                self.wait_for_resolver()
+                idx += self.chunk_size
+                print("Completed {} of {}".format(idx, self.btdht_count))
+
+
+        if self.hostnames is not None:
+            print("Resolving {} hostnames.".format(len(self.hostnames)))
+            idx = 0
+            for group in grouper(self.hostnames, self.chunk_size):
+                self.resolver.resolve_web(group, self.resolve_sink)
+                self.wait_for_resolver()
+                idx += len(group)
+                print("Completed {} of {}".format(idx, len(self.hostnames)))
+
+        if self.ips is not None:
+            print("Adding {} IPs.".format(len(self.ips)))
+            self.resolve_sink(label='', token='', result=self.ips)
+
+        try:
+            print("Starting ECN measurement...")
+            self.ecnclient.resume()
+
+            while self.ecnclient.is_busy():
+                time.sleep(5)
+
+            print("Starting tracebox measurements...")
+            self.tbclient.resume()
+
+            while self.tbclient.is_busy():
+                time.sleep(5)
+
+            print("measurements finished.")
+        except KeyboardInterrupt:
+            print("measurement aborted.")
+
+        print("writing results...")
+        try:
+            json.dump({'subjects': self.subjects}, self.report_file, cls=IPAddressEncoder)
+            self.report_file.close()
+        except Exception as e:
+            print("Exception during write of results:")
+            traceback.print_exc()
+
+            print("Starting debugger console...")
+            import pdb; pdb.set_trace()
+
+        self.ecnclient.shutdown()
+        self.tbclient.shutdown()
+
+        print("Bye.")
+        exit(0)
+
+    def resolve_sink(self, label, token, error=None, result=None):
+        """
+        :param result: Expects a tuple of (ip, port, hostname)
+        """
+        if error is not None:
+            #TODO: report error
+            print("error resolving", error)
+            return
+
+        # create subjects
+        for ip, port, hostname in result:
+            subject = {'ip': ip, 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
+            self.subjects.append(subject)
+            self.subjects_map[ip] = subject
+
+        flavor = 'tcp'
+        if label.startswith('webresolver-'):
+            flavor = 'http'
+
+        self.order_ecn(result, flavor)
+
+    def order_ecn(self, addrs, flavor):
+        chunk_id = self.next_chunk_id
+        self.next_chunk_id+=1
+        self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
+
+    def ecn_result_sink(self, result, chunk_id):
+        for ip, status in result.get_ip_and_result():
+            self.subjects_map[str(ip)]['ecn'] = status
+            if status != "safe":
+                print(ip, status)
+
+    def tb_result_sink(self, ip, graph):
+        self.subjects_map[str(ip)]['tb'] = graph
 
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
@@ -407,26 +557,31 @@ def run_client(args, config):
 
 
     resolver_url = config['main']['resolver']
-    """
+
+    hostnames = None
+    btdht_count = None
+    ips = None
     if args.resolver_web is not None:
-        resolver_url = config['main']['resolver']
+        hostnames = resolver.read_hostnames(args.resolver_web)
 
-        # strip whitespaces and \n
-        hostnames = [hostname.strip() for hostname in args.resolver_web.readlines()]
+    if args.resolver_ipfile is not None:
+        ips = resolver.read_ips(args.resolver_ipfile)
 
-        # detect <RANk>,<HOSTNAME>\n format. used by alexa top 1m list.
-        hostnames = [line.split(',')[1] for line in hostnames if ',' in line]
+    if args.resolver_btdht is not None:
+        btdht_count = args.resolver_btdht
 
-        print("Using Web-resolver with {} Domains. Probe URL: {}".format(len(hostnames), resolver_url))
-        resolvers['web'] = pathspider.client.resolver.WebResolverClient(tls_state, resolver_url, hostnames=hostnames)
-
-    elif args.resolver_ipfile is not None:
-        addrs = [(ip, int(port)) for ip, port in [line.split(':', 1) for line in args.resolver_ipfile.readlines() if len(line) > 0]]
-
-        resolvers['ips'] = pathspider.client.resolver.IPListDummyResolver(addrs)
-    """
     if args.webui:
-        WebInterface(addr=('localhost', 37100), tls_state=tls_state, resolver_url=resolver_url, probe_urls=probe_urls, ipv=args.ipv, chunk_size=args.chunk_size)
+        ControlWeb(addr=('localhost', 37100), tls_state=tls_state, resolver_url=resolver_url, probe_urls=probe_urls, ipv=args.ipv, chunk_size=args.chunk_size)
+    else:
+        if args.report is None:
+            print("Error: --report is mandatory for client and standalone operation.")
+            exit(-1)
+
+        cb = ControlBatch(tls_state=tls_state, resolver_url=resolver_url, probe_urls=probe_urls, ipv=args.ipv, chunk_size=args.chunk_size,
+                          report_file=args.report,
+                          hostnames=hostnames, btdht_count=btdht_count, ips=ips)
+
+        cb.perform()
 
 
 def main():
@@ -448,12 +603,12 @@ def main():
     parser_client_ip.add_argument('--ip4', '-4', action='store_const', dest='ipv', const='ip4', default='ip4', help='Use IP version 4 (default).')
     parser_client_ip.add_argument('--ip6', '-6', action='store_const', dest='ipv', const='ip6', help='Use IP version 6.')
 
-    parser_client.add_argument('--resolver-btdht', '-B', action='store_true',
+    parser_client.add_argument('--resolver-btdht', '-B', type=int, metavar='N',
                                   help='Enable BitTorrent DHT resolver. Acquires addresses by browsing BitTorrent\'s Distributed Hash Table network.')
     parser_client.add_argument('--resolver-web', '-W', metavar='FILE', type=argparse.FileType('rt'),
-                                  help='Enable domain resolution. Given a file containing a list of hostnames, separated by newline. The format "<RANK>,<HOSTNAME>\n" is also supported. The hostnames are resolved on a remote server.')
+                                  help='Enable domain resolution. Given a file containing a list of hostnames, separated by newline. The format "rank,hostname\n" is also supported. The hostnames are resolved on a remote server.')
     parser_client.add_argument('--resolver-ipfile', '-I', metavar='FILE', type=argparse.FileType('rt'),
-                                  help='Use a file containing a list of \'ipaddress:port\' entries, separated by newline. IP addresses are directly fed to ecnspider.')
+                                  help='Use addresses given by this csv file. The program expects the column names ip, port and optionally hostname.')
 
     parser_client.add_argument('--chunk-size', type=int, default=1000, metavar='N', help='Number of addresses sent in a chunk to ecnspider. Default is 1000.')
 

@@ -52,6 +52,9 @@ class TbImp:
                 self.pending = None
         logger.info("Shutdown completed")
 
+    def is_busy(self):
+        return len(self.queued) > 0 or self.pending is not None
+
     def worker(self):
         logger = logging.getLogger('tbclient.imp-'+self.name)
         logger.info("Getting capabilities from {}".format(self.url))
@@ -193,8 +196,8 @@ class TbClient:
                 self.result_sink(ip, graph)
                 logger.debug("result_sink() returned.")
 
-    def queue_size(self):
-        return min([len(imp.queued) for imp in self.imps])
+    def is_busy(self):
+        return any(imp.is_busy() for imp in self.imps)
 
     def status(self):
         stat = []

@@ -23,6 +23,7 @@ Derived from ECN Spider (c) 2014 Damiano Boppart <hat.guy.repo@gmail.com>
 import mplane.client
 import logging
 import threading
+import pandas
 
 from . import BaseClientApi
 
@@ -105,4 +106,7 @@ def read_hostnames(fp):
         return hostnames
 
 def read_ips(fp):
-    return [(ip, int(port)) for ip, port in [line.split(':', 1) for line in fp.readlines() if len(line) > 0]]
+    df = pandas.read_csv(fp)
+
+    return [(row['ip'], row['port'], row['ĥostname'] or row['ip']) for idx, row in df.iterrows()]
+
