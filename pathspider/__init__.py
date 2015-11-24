@@ -13,6 +13,7 @@ import logging
 import json
 import threading
 import ipaddress
+from ipaddress import ip_address
 import itertools
 
 import traceback
@@ -26,6 +27,14 @@ with open(os.path.join(here, 'VERSION')) as version_file:
     version = version_file.read().strip()
 
 mplane.model.initialize_registry('ecnregistry.json')
+
+
+class IPAddressEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ipaddress.IPv4Address) or isinstance(obj, ipaddress.IPv6Address):
+            return obj.compressed
+        return json.JSONEncoder.default(self, obj)
+json._default_encoder = IPAddressEncoder()
 
 def run_service(args, config):
     if config["component"]["workflow"] == "component-initiated":
@@ -138,11 +147,6 @@ class GraphGenerator:
                     self.add_link(prev, str(ip), probe, 'missing')
 
 
-class IPAddressEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, ipaddress.IPv4Address) or isinstance(obj, ipaddress.IPv6Address):
-            return obj.compressed
-        return json.JSONEncoder.default(self, obj)
 
 class CommandHandler(tornado.web.RequestHandler):
     def initialize(self, engine):
