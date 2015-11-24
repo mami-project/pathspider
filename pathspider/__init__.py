@@ -98,28 +98,45 @@ class GraphGenerator:
         })
         self.nodes_idx.append(name)
 
-    def add_link(self, source_name, target_name, probe, mode='normal'):
+    def add_link(self, source_name, target_name, probe, classes, caption):
         self.links.append({
             'source': self.nodes_idx.index(source_name),
             'target': self.nodes_idx.index(target_name),
-            'mode': mode,
+            'classes': classes,
+            'caption': caption,
             'probe': probe
         })
+
+    def get_modifs_class(self, modifs):
+        if modifs in self.modifs_classes:
+            return self.modifs_classes[modifs]
+
+        classed = 'modifs-{}'.format(self.modifs_next)
+        self.modifs_next+=1
+
+        self.modifs_classes[modifs] = classed
+        return classed
 
     def __init__(self, ips, probes, subjects_map):
         self.nodes = []
         self.nodes_idx = []
         self.links = []
 
+
+        self.modifs_classes = {}
+        self.modifs_next = 0
+
         self.probe_step = 200
         self.target_step = 200
 
         # add probes
         for idx, (name, _) in enumerate(probes):
-            self.add_node(name, 10, idx*self.probe_step)
+            self.add_node(name, 10, (idx+1)*self.probe_step)
+
+        probe_height = len(probes)*self.probe_step
 
         for idx, ip in enumerate(ips):
-            self.add_node(ip, 800, idx*self.target_step)
+            self.add_node(ip, 800, (idx - len(ips)/2)*self.target_step + probe_height/2)
 
             if ip not in subjects_map:
                 continue
@@ -129,24 +146,27 @@ class GraphGenerator:
                 prev = probe
                 gap = False
                 hop_ip = None
-                for hop in trace:
-                    if hop is None:
+                for hop_ip, modifs in trace:
+                    if hop_ip is None:
                         gap = True
                         continue
 
-                    hop_ip = str(hop)
-
                     self.add_node(hop_ip)
 
-                    self.add_link(prev, hop_ip, probe, 'missing' if gap else 'normal')
+                    if gap:
+                        classes = 'missing'
+                        caption = classes
+                    else:
+                        classes = self.get_modifs_class(modifs)
+                        caption = modifs
+
+                    self.add_link(prev, hop_ip, probe, classes, caption)
                     gap = False
 
                     prev = hop_ip
 
                 if hop_ip != ip:
-                    self.add_link(prev, str(ip), probe, 'missing')
-
-
+                    self.add_link(prev, ip, probe, 'missing', 'missing')
 
 class CommandHandler(tornado.web.RequestHandler):
     def initialize(self, engine):
@@ -185,12 +205,26 @@ class CommandHandler(tornado.web.RequestHandler):
                 self.set_header("Content-Type", "application/json")
                 self.write(ansstr)
         elif cmd == 'graph':
-            ips = self.get_arguments('ip')
+            ips = [ip_address(ip) for ip in self.get_arguments('ip')]
             gg = GraphGenerator(ips, self.engine.probe_urls, self.engine.subjects_map)
             self.write({
                 'nodes': gg.nodes,
                 'links': gg.links
             })
+        elif cmd == 'save':
+            import pickle
+            fp = open('save.pickle', 'wb')
+            pickle.dump(self.engine.subjects_map, fp)
+            fp.close()
+        elif cmd == 'load':
+            import pickle
+            fp = open('save.pickle', 'rb')
+            self.engine.subjects_map = pickle.load(fp)
+            self.engine.subjects = list(self.engine.subjects_map.values())
+            #for sub in self.engine.subjects:
+            #    sub['tb'] = None
+            fp.close()
+
 
     def post(self, cmd):
         if cmd == 'resolve_btdht':
@@ -205,7 +239,7 @@ class CommandHandler(tornado.web.RequestHandler):
         elif cmd == 'order_tb':
             order_ip = self.get_body_argument('ip')
             order_port = self.get_body_argument('port')
-            self.engine.order_tb(order_ip, order_port)
+            self.engine.order_tb(ip_address(order_ip), order_port)
 
 
 class StatusHandler(tornado.websocket.WebSocketHandler):
@@ -398,7 +432,7 @@ class ControlWeb:
 
     def ecn_result_sink(self, result, chunk_id):
         for ip, status in result.get_ip_and_result():
-            self.subjects_map[str(ip)]['ecn'] = status
+            self.subjects_map[ip]['ecn'] = status
             if status != "safe":
                 print(ip, status)
 
@@ -406,7 +440,7 @@ class ControlWeb:
         self.tbclient.add_job(ip, port)
 
     def tb_result_sink(self, ip, graph):
-        self.subjects_map[str(ip)]['tb'] = graph
+        self.subjects_map[ip]['tb'] = graph
 
     def update(self):
         status = self.get_status()
@@ -603,6 +637,7 @@ def main():
     parser_client.add_argument('-u', '--webui', action='store_true', dest='webui', default=False, help='Start web interface.')
     #parser_client.add_argument('--webui-listen', metavar='HOST:PORT', dest='webui_listen', default=('localhost', 31343), help='Listen to ')
     parser_client.add_argument('--report', metavar='FILENAME', type=argparse.FileType('wt'), help='Save a report of all data in json format.')
+    parser_client.add_argument('--save-resolved', metavar='FILENAME', type=argparse.FileType('wt'), help='Save resolved entities to a csv with the columns ip, port and hostname. Can be loaded by --resolver-ipfile.')
     parser_client_ip = parser_client.add_mutually_exclusive_group()
     parser_client_ip.add_argument('--ip4', '-4', action='store_const', dest='ipv', const='ip4', default='ip4', help='Use IP version 4 (default).')
     parser_client_ip.add_argument('--ip6', '-6', action='store_const', dest='ipv', const='ip6', help='Use IP version 6.')

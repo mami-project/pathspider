@@ -6,6 +6,8 @@
   <script src="jquery.min.js" charset="utf-8"></script>
   <script src="bootstrap.min.js" charset="utf-8"></script>
   <script src="d3.min.js" charset="utf-8"></script>
+  <script src="jquery.tipsy.js" charset="utf-8"></script>
+  <link rel="stylesheet" href="tipsy.css" />
   <script src="view.js" charset="utf-8"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="utf-8"/>
@@ -147,33 +149,49 @@
       stroke:rgb(20, 255, 20);
     }
     
+    .nodes {
+      cursor: move;
+    }
+    
     .nodes text {
       font-size: 8pt;
     }
     
     .links {
       stroke:black;
-      stroke-width:2;
+      stroke-width:4;
     }
     
-    .probe_ams, .probe_ams2, .probe_ams3 {
-      stroke: green;
-    }
-    
-    .probe_nyc, .probe_nyc2, .probe_nyc3 {
-      stroke: orange;
-    }
-    
-    .probe_sin, .probe_sin2, .probe_sin3 {
-      stroke: blue;
-    }
-    
-    .probe_lon, .probe_lon2, .probe_lon3 {
+    .links:hover {
       stroke: yellow;
     }
     
-    .probe_sfo, .probe_sfo2, .probe_sfo3 {
-      stroke: purple;
+    .modifs-0 {
+      stroke: #0000ff;
+    }
+    .modifs-1 {
+      stroke: #3fa5ae;
+    }
+    .modifs-2 {
+      stroke: #00ffc1;
+    }
+    .modifs-3 {
+      stroke: #00002b;
+    }
+    .modifs-4 {
+      stroke: #ff1ab8;
+    }
+    .modifs-5 {
+      stroke: #ffd300;
+    }
+    .modifs-6 {
+      stroke: #005700;
+    }
+    .modifs-7 {
+      stroke: #8383ff;
+    }
+    .missing {
+      stroke: gray;
     }
   </style>
 </head>
@@ -332,7 +350,7 @@
     <h2>Statistics</h2>
   </div>
 </div>
-<svg style="border: 1px solid black; width:100vw; height: 3000px;">
+<svg style="border: 1px solid black; width:100vw; height: 100vh;">
 </svg>
 <script>
   function resolver_busy(value) {

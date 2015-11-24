@@ -4,8 +4,8 @@ import mplane.client
 import threading
 import logging
 import time
-from ipaddress import ip_address
 import pandas as pd
+import ipaddress
 
 TbJob = collections.namedtuple('TbJob', ['ip', 'port', 'ipv', 'probe', 'when'])
 
@@ -120,7 +120,8 @@ class TbImp:
         else:
             raise NotImplementedError("This mode is not implemented.")
 
-        self.queued.append(TbJob(ip, port, 'ip'+str(ip_address(ip).version), probe, 'now ... future'))
+
+        self.queued.append(TbJob(ip, port, 'ip'+str(ip.version), probe, 'now ... future'))
 
 
 class TbClient:
@@ -136,6 +137,9 @@ class TbClient:
         self.thread.start()
 
     def add_job(self, ip, port, mode='tcp'):
+        assert(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address))
+        assert(self.ipv == 'ip'+str(ip.version))
+
         for imp in self.imps:
             imp.add_job(ip, port, mode)
 
@@ -189,7 +193,7 @@ class TbClient:
                 graph = {}
                 for name, chunk in compiled_chunk.items():
                     if len(chunk) > 0:
-                        graph[name] = list(chunk['scamper.tracebox.hop.'+self.ipv])
+                        graph[name] = [(hop['scamper.tracebox.hop.'+self.ipv], hop['scamper.tracebox.hop.modifications']) for _, hop in chunk.iterrows()]
                     else:
                         graph[name] = []
 
