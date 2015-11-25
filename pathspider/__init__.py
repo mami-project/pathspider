@@ -180,13 +180,8 @@ class CommandHandler(tornado.web.RequestHandler):
             param_result = self.get_query_argument('result', None)
             assert(param_result is None or (param_stage in ['ecn', 'tb'] and param_result in ['safe', 'broken_path', 'broken_site', 'broken_other']))
 
-            subset = self.engine.subjects
-            if param_stage == 'none':
-                subset = (subject for subject in subset if subject['ecn'] is None and subject['tb'] is None)
-            elif param_stage == 'ecn':
-                subset = (subject for subject in subset if subject['ecn'] is not None and subject['tb'] is None)
-            elif param_stage == 'tb':
-                subset = (subject for subject in subset if subject['ecn'] is not None and subject['tb'] is not None)
+            get_stage = self.engine.subject_get_stage
+            subset = (subject for subject in self.engine.subjects if get_stage(subject) == param_stage)
 
             if param_result is not None:
                 subset = (subject for subject in subset if subject['ecn'] == param_result)
@@ -238,8 +233,8 @@ class CommandHandler(tornado.web.RequestHandler):
             self.engine.resolve_web(domains)
         elif cmd == 'order_tb':
             order_ip = self.get_body_argument('ip')
-            order_port = self.get_body_argument('port')
-            self.engine.order_tb(ip_address(order_ip), order_port)
+            self.engine.order_tb(ip_address(order_ip))
+            self.engine.send_update()
 
 
 class StatusHandler(tornado.websocket.WebSocketHandler):
@@ -360,6 +355,8 @@ class ControlWeb:
         self.subjects = []
         self.subjects_map = {}
 
+        self.subjects_changed = False
+
         self.addr = addr
         self.app = tornado.web.Application([
                 (r"/", tornado.web.RedirectHandler, {"url": "/control.html"}),
@@ -390,9 +387,24 @@ class ControlWeb:
 
             #TODO: rewrite ecn and tb client to do a similar workflow as in resolver
             #for client in clients: client.process() etc..
-            self.update()
+
+            self.send_update()
 
             time.sleep(5)
+
+    def subject_get_stage(self, subject):
+        if 'tb' in subject:
+            if subject['tb'] is not None:
+                return 'tb'
+            else:
+                return 'tb:pending'
+        elif 'ecn' in subject:
+            if subject['ecn'] is not None:
+                return 'ecn'
+            else:
+                return 'ecn:pending'
+        else:
+            return 'none'
 
     def resolve_btdht(self, count):
         self.resolver.resolve_btdht(count, self.resolve_sink)
@@ -414,7 +426,7 @@ class ControlWeb:
 
         # create subjects
         for ip, port, hostname in result:
-            subject = {'ip': ip, 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
+            subject = {'ip': ip, 'port': port, 'hostname': hostname}
             self.subjects.append(subject)
             self.subjects_map[ip] = subject
 
@@ -422,6 +434,7 @@ class ControlWeb:
         flavor = 'tcp'
         if label.startswith('webresolver-'):
             flavor = 'http'
+        self.subjects_changed = True
 
         self.order_ecn(result, flavor)
 
@@ -429,23 +442,30 @@ class ControlWeb:
         chunk_id = self.next_chunk_id
         self.next_chunk_id+=1
         self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
+        for ip, port, hostname in addrs:
+            self.subjects_map[ip]['ecn'] = None
 
     def ecn_result_sink(self, result, chunk_id):
         for ip, status in result.get_ip_and_result():
             self.subjects_map[ip]['ecn'] = status
-            if status != "safe":
-                print(ip, status)
+        self.subjects_changed = True
 
-    def order_tb(self, ip, port):
+    def order_tb(self, ip):
+        subject = self.subjects_map[ip]
+        subject['tb'] = None
+        port = subject['port']
         self.tbclient.add_job(ip, port)
+        self.subjects_changed = True
 
     def tb_result_sink(self, ip, graph):
         self.subjects_map[ip]['tb'] = graph
+        self.subjects_changed = True
 
-    def update(self):
+    def send_update(self):
         status = self.get_status()
         for socket in self.sockets:
             socket.send_status(status)
+        self.subjects_changed = False
 
     def get_status(self):
         return {
@@ -453,7 +473,8 @@ class ControlWeb:
                 'is_busy': self.resolver.is_busy()
             },
             'ecnclient': self.ecnclient.status(),
-            'tbclient': self.tbclient.status()
+            'tbclient': self.tbclient.status(),
+            'subjects_changed': self.subjects_changed
         }
 
 class ControlBatch:

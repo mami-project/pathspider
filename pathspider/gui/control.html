@@ -122,45 +122,44 @@
   <div class="section">
     <h2>Measurement Results</h2>
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#tb_safe">ECN safe</a></li>
-        <li><a data-toggle="tab" href="#tb_broken_site">Site-dependency</a></li>
-        <li><a data-toggle="tab" href="#tb_broken_path">Path-dependency</a></li>
-        <li><a data-toggle="tab" href="#tb_broken_other">Other</a></li>
-      </ul>
+      <li class="active"><a data-toggle="tab" href="#tb_safe">ECN safe</a></li>
+      <li><a data-toggle="tab" href="#tb_broken_site">Site-dependency</a></li>
+      <li><a data-toggle="tab" href="#tb_broken_path">Path-dependency</a></li>
+      <li><a data-toggle="tab" href="#tb_broken_other">Other</a></li>
+    </ul>
       
-      <div class="tab-content">
-        <div id="tb_safe" class="tab-pane fade in active">
-          <div class="count">
-          </div>
-          <ul class="pagination">
-          </ul>
-          <div class="results">
-          </div>
+    <div class="tab-content">
+      <div id="tb_safe" class="tab-pane fade in active">
+        <div class="count">
         </div>
-        <div id="tb_broken_site" class="tab-pane fade">
-          <div class="count">
-          </div>
-          <ul class="pagination">
-          </ul>
-          <div class="results">
-          </div><br />
+        <ul class="pagination">
+        </ul>
+        <div class="results">
         </div>
-        <div id="tb_broken_path" class="tab-pane fade">
-          <div class="count">
-          </div>
-          <ul class="pagination">
-          </ul>
-          <div class="results">
-          </div><br />
+      </div>
+      <div id="tb_broken_site" class="tab-pane fade">
+        <div class="count">
         </div>
-        <div id="tb_broken_other" class="tab-pane fade">
-          <div class="count">
-          </div>
-          <ul class="pagination">
-          </ul>
-          <div class="results">
-          </div><br />
+        <ul class="pagination">
+        </ul>
+        <div class="results">
+        </div><br />
+      </div>
+      <div id="tb_broken_path" class="tab-pane fade">
+        <div class="count">
         </div>
+        <ul class="pagination">
+        </ul>
+        <div class="results">
+        </div><br />
+      </div>
+      <div id="tb_broken_other" class="tab-pane fade">
+        <div class="count">
+        </div>
+        <ul class="pagination">
+        </ul>
+        <div class="results">
+        </div><br />
       </div>
     </div>
   </div>
@@ -245,17 +244,9 @@
     probes.exit().remove();
   }
   
-  function update_status(data) {
-    resolver_busy(data.resolver.is_busy);
-    
-    update_ecnclient(data.ecnclient);
-    update_tbclient(data.tbclient);
-  }
-  
   function update_page_content(id, start, count, url) {
     // empty container
     var sel = d3.select("#"+id+" .results");
-    sel.html("");
     
     // get data
     d3.json(url+"&start="+start+"&count="+count, function(data) {
@@ -265,7 +256,7 @@
           if(d.tb) {
             view_load("svg", [d.ip]);
           } else {
-            $.post('/command/order_tb', {'ip': d.ip, 'port': d.port});
+            $.post('/command/order_tb', {'ip': d.ip});
           }
         });
       
@@ -297,7 +288,7 @@
       d3.select("#"+id+" .count").text(count);
       
       // get current selected
-      var active_tab = d3.select("#"+id+" ul.active");
+      var active_tab = d3.select("#"+id+" ul.pagination li.active");
       var current = -1;
       if(active_tab.empty() == false) {
         current = active_tab.datum();
@@ -327,7 +318,8 @@
           });
       elems.exit().remove();
       
-      update_page_content(id, 0, items_per_page, url);
+      console.debug("current: ", current);
+      update_page_content(id, current*items_per_page, items_per_page, url);
     });
   }
   
@@ -341,6 +333,17 @@
     update_page_indicator("tb_broken_path", "/command/subjects?stage=tb&result=broken_path");
     update_page_indicator("tb_broken_site", "/command/subjects?stage=tb&result=broken_site");
     update_page_indicator("tb_broken_other", "/command/subjects?stage=tb&result=broken_other");
+  }
+  
+  function update_status(data) {
+    resolver_busy(data.resolver.is_busy);
+    
+    update_ecnclient(data.ecnclient);
+    update_tbclient(data.tbclient);
+    
+    if(data.subjects_changed) {
+      update_page_indicators();
+    }
   }
   
   update_page_indicators();

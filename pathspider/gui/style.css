@@ -96,6 +96,11 @@ hr {
     padding: 2pt;
 }
 
+#tbclient, #ecnclient {
+    text-align: center;
+    font-size: 8pt;
+}
+
 /*
 .inline {
   display: inline-block;
