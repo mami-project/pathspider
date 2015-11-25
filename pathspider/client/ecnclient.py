@@ -36,17 +36,16 @@ RESULT_WORKS = 3
 EcnJob = collections.namedtuple('EcnJob', ['chunk_id', 'addrs', 'ipv', 'when', 'flavor', 'token'])
 
 class EcnImp:
-    def __init__(self, name, tls_state, url):
+    def __init__(self, name, tls_state, url, result_sink):
         self.name = name
         self.queued = collections.deque()
         self.pending_token = None
         self.pending = None
-        self.finished = {}
+        self.result_sink = result_sink
 
         self.url = url
         self.client = mplane.client.HttpInitiatorClient({}, tls_state)
 
-        self.lock = threading.RLock()
         self.paused = False
         self.running = True
         self.last_exception = None
@@ -66,15 +65,14 @@ class EcnImp:
     def shutdown(self):
         logger = logging.getLogger('ecnclient.imp-'+self.name)
         logger.info("Attempting shutdown...")
-        with self.lock:
-            self.running = False
+        self.running = False
 
-            # interrupt running operations
-            if self.pending_token is not None:
-                logger.info("Interrupting measurement '{}'".format(self.pending_token))
-                self.client.interrupt_capability(self.pending_token)
-                self.pending_token = None
-                self.pending = None
+        # interrupt running operations
+        if self.pending_token is not None:
+            logger.info("Interrupting measurement '{}'".format(self.pending_token))
+            self.client.interrupt_capability(self.pending_token)
+            self.pending_token = None
+            self.pending = None
         logger.info("Shutdown completed")
 
     def is_busy(self):
@@ -87,77 +85,77 @@ class EcnImp:
         logger.info("Started.")
         while self.running:
             try:
-                with self.lock:
-                    if not self.paused and self.pending_token is None and len(self.queued) > 0:
-                        self.pending = self.queued.popleft()
-                        label = None
-                        params = None
-                        try:
-                            if self.pending.flavor == 'tcp':
-                                label = 'ecnspider-'+self.pending.ipv
-                                params = { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
-                                           "destination.port": [int(addr[1]) for addr in self.pending.addrs]}
-                            elif self.pending.flavor == 'http':
-                                label = 'ecnspider-http-'+self.pending.ipv
-                                params = { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
-                                           "destination.port": [int(addr[1]) for addr in self.pending.addrs],
-                                           "ecnspider.hostname": [addr[2] for addr in self.pending.addrs]}
+                if not self.paused and self.pending_token is None and len(self.queued) > 0:
+                    self.pending = self.queued.popleft()
+                    label = None
+                    params = None
+                    try:
+                        if self.pending.flavor == 'tcp':
+                            label = 'ecnspider-'+self.pending.ipv
+                            params = { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
+                                       "destination.port": [int(addr[1]) for addr in self.pending.addrs]}
+                        elif self.pending.flavor == 'http':
+                            label = 'ecnspider-http-'+self.pending.ipv
+                            params = { "destination."+self.pending.ipv: [str(addr[0]) for addr in self.pending.addrs],
+                                       "destination.port": [int(addr[1]) for addr in self.pending.addrs],
+                                       "ecnspider.hostname": [addr[2] for addr in self.pending.addrs]}
 
-                            if label is None or params is None:
-                                raise ValueError("imp-{}: ecnspider flavor {} is not supported by me.".format(self.name, self.pending.flavor))
+                        if label is None or params is None:
+                            raise ValueError("imp-{}: ecnspider flavor {} is not supported by me.".format(self.name, self.pending.flavor))
 
-                            logger.info("Invoking measurement {} of chunk {} (containing {} addresses)".format(label, self.pending.chunk_id, len(self.pending.addrs)))
-                            spec = self.client.invoke_capability(label, self.pending.when, params)
-                            self.pending_token = spec.get_token()
-                        except KeyError as e:
-                            logger.exception("Specified URL does not support '{}' capability.".format(label))
+                        logger.info("Invoking measurement {} of chunk {} (containing {} addresses)".format(label, self.pending.chunk_id, len(self.pending.addrs)))
+                        spec = self.client.invoke_capability(label, self.pending.when, params)
+                        self.pending_token = spec.get_token()
+                    except KeyError as e:
+                        logger.exception("Specified URL does not support '{}' capability.".format(label))
 
-                        if self.pending_token is None:
-                            logger.error("Could not acquire request token.")
-                            self.finished[self.pending.chunk_id] = None
-                            self.pending = None
+                    if self.pending_token is None:
+                        logger.error("Could not acquire request token.")
+                        self.result_sink(self.name, None, self.pending.chunk_id)
+                        self.pending = None
 
-                        # wait some time
-                        time.sleep(2)
+                    # wait some time
+                    time.sleep(2)
 
-                    elif self.pending_token is not None:
-                        try:
-                            self.client.retrieve_capabilities(self.url)
-                        except:
-                            logger.exception("URL '{}' is unreachable. Retrying in 5 seconds.".format(str(self.url)))
+                elif self.pending_token is not None:
+                    try:
+                        self.client.retrieve_capabilities(self.url)
+                    except:
+                        logger.exception("URL '{}' is unreachable. Retrying in 5 seconds.".format(str(self.url)))
 
-                        # check results
-                        result = self.client.result_for(self.pending_token)
-                        if isinstance(result, mplane.model.Exception):
-                            # upon exception, add to queued again.
-                            logger.error(result.__repr__())
-                            #TODO: mplane doesn't like to forget exceptions??
-                            #self.client.forget(self.pending_token)
-                            self.queued.appendleft(self.pending)
-                            self.pending_token = None
-                            self.pending = None
-                        elif isinstance(result, mplane.model.Receipt):
-                            # still ongoing.. wait for a moment
-                            time.sleep(10)
-                        elif isinstance(result, mplane.model.Result):
-                            # add to results
-                            self.client.forget(self.pending_token)
-                            self.finished[self.pending.chunk_id] = list(result.schema_dict_iterator())
-                            logger.info("Result for chunk id: {} ({} result rows)".format(self.pending.chunk_id, len(self.finished[self.pending.chunk_id])))
-                            self.pending_token = None
-                            self.pending = None
-                        else:
-                            # other result, just print it out
-                            logger.warn(str(result))
-                            time.sleep(10)
+                    # check results
+                    result = self.client.result_for(self.pending_token)
+                    if isinstance(result, mplane.model.Exception):
+                        # upon exception, add to queued again.
+                        logger.error(result.__repr__())
+                        #TODO: mplane doesn't like to forget exceptions??
+                        #self.client.forget(self.pending_token)
+                        self.queued.appendleft(self.pending)
+                        self.pending_token = None
+                        self.pending = None
+                    elif isinstance(result, mplane.model.Receipt):
+                        # still ongoing.. wait for a moment
+                        time.sleep(10)
+                    elif isinstance(result, mplane.model.Result):
+                        # add to results
+                        self.client.forget(self.pending_token)
+                        result_list = list(result.schema_dict_iterator())
+                        self.result_sink(self.name, result_list, self.pending.chunk_id)
+                        logger.info("Result for chunk id: {} ({} result rows)".format(self.pending.chunk_id, len(result_list)))
+                        self.pending_token = None
+                        self.pending = None
+                    else:
+                        # other result, just print it out
+                        logger.warn(str(result))
+                        time.sleep(10)
             except Exception as e:
                 self.last_exception = e
                 logger.exception("Error handling ecn component.")
             time.sleep(0.5)
 
     def add_job(self, addrs, chunk_id, ipv, flavor):
-        with self.lock:
-            self.queued.append(EcnJob(chunk_id, addrs, ipv, "now ... future", flavor, None))
+        job = EcnJob(chunk_id, addrs, ipv, "now ... future", flavor, None)
+        self.queued.append(job)
 
 
 class EcnAnalysis:
@@ -337,7 +335,11 @@ class EcnAnalysis:
 class EcnClient:
     def __init__(self, result_sink, tls_state, probes, ipv='ip4'):
         self.ipv = ipv
-        self.imps = [EcnImp(name, tls_state, url) for name, url in probes]
+        self.imps = [EcnImp(name, tls_state, url, self.imp_sink) for name, url in probes]
+
+
+        self.imps_results_lock = threading.RLock()
+        self.imps_results = {name: {} for name, _ in probes}
 
         self.result_sink = result_sink
 
@@ -366,6 +368,10 @@ class EcnClient:
 
         logger.info("Shutdown complete.")
 
+    def imp_sink(self, name, result, chunk_id):
+        with self.imps_results_lock:
+            self.imps_results[name][chunk_id] = result
+
     def analyzer_func(self):
         logger = logging.getLogger('ecnclient')
         logger.info("Started.")
@@ -373,15 +379,15 @@ class EcnClient:
         while self.running:
             # determine chunks which have been completed by all probes
             chunks_finished = None
-            for imp in self.imps:
-                with imp.lock:
-                    if len(imp.finished) > 0:
-                        logger.debug("{} finished chunks: {}".format(imp.name, ",".join([str(chunk_id) for chunk_id in imp.finished.keys()])))
+            with self.imps_results_lock:
+                for name, results in self.imps_results.items():
+                    if len(results) > 0:
+                        logger.debug("{} finished chunks: {}".format(name, ",".join([str(chunk_id) for chunk_id in results.keys()])))
 
                     if chunks_finished is None:
-                        chunks_finished = set(imp.finished.keys())
+                        chunks_finished = set(results.keys())
                     else:
-                        chunks_finished &= set(imp.finished.keys())
+                        chunks_finished &= set(results.keys())
 
             if len(chunks_finished) == 0:
                 time.sleep(1)
@@ -390,10 +396,11 @@ class EcnClient:
             logger.info("Measurement for chunks {} now completed by all probes.".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
 
             for chunk_id in chunks_finished:
+                # pop chunks finished by all probes from imp results pool
                 compiled_chunk = {}
-                for imp in self.imps:
-                    with imp.lock:
-                        compiled_chunk[imp.name] = pd.DataFrame(imp.finished.pop(chunk_id))
+                with self.imps_results_lock:
+                    for name, results in self.imps_results.items():
+                        compiled_chunk[name] = pd.DataFrame(results.pop(chunk_id))
 
                 logger.debug("processing chunk {}".format(chunk_id))
                 analysis = EcnAnalysis(compiled_chunk, self.ipv)
@@ -407,10 +414,13 @@ class EcnClient:
     def status(self):
         stat = []
         for imp in self.imps:
+            with self.imps_results_lock:
+                finished = list(self.imps_results[imp.name].keys())
+
             stat.append({
                 'name': imp.name,
                 'queued': [job.chunk_id for job in imp.queued],
-                'finished': [chunk_id for chunk_id in imp.finished.keys()],
+                'finished': finished,
                 'pending': imp.pending[0] if imp.pending is not None else None,
                 'running': imp.running,
                 'paused': imp.paused,
