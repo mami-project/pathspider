@@ -96,6 +96,9 @@ function view_generate(err, data, selector_svg) {
             } else {
                 return 16;
             }
+        })
+        .on("dblclick", function(d) {
+            window.open("http://stat.ripe.net/"+d.caption);
         });
     
     dnodes.exit().remove();
