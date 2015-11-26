@@ -94,7 +94,7 @@ class GraphGenerator:
             'caption': name,
             'x': x or 0,
             'y': y or 0,
-            'fixed': x is not None or y is not None
+            'fixed': False #x is not None or y is not None
         })
         self.nodes_idx.append(name)
 
@@ -452,8 +452,10 @@ class ControlWeb:
             self.subjects_map[ip]['ecn'] = None
 
     def ecn_result_sink(self, result, chunk_id):
-        for ip, status in result.get_ip_and_result():
+        for ip, status, res in result.get_ip_and_result():
             self.subjects_map[ip]['ecn'] = status
+            self.subjects_map[ip]['ecn_result'] = None#res.to_dict()
+            #import pdb; pdb.set_trace()
         self.subjects_changed = True
 
     def order_tb(self, ip):
@@ -612,10 +614,9 @@ class ControlBatch:
         self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
 
     def ecn_result_sink(self, result, chunk_id):
-        for ip, status in result.get_ip_and_result():
+        for ip, status, res in result.get_ip_and_result():
             self.subjects_map[str(ip)]['ecn'] = status
-            if status != "safe":
-                print(ip, status)
+            self.subjects_map[str(ip)]['ecn_result'] = res
 
     def tb_result_sink(self, ip, graph):
         self.subjects_map[str(ip)]['tb'] = graph

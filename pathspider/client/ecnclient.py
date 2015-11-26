@@ -172,20 +172,20 @@ class EcnAnalysis:
             self._analyze(compiled_chunk, ipv)
 
     def get_ip_and_result(self):
-        for ip in self.offline.index:
-            yield (ip, 'offline')
+        for ip, result in self.offline.iterrows():
+            yield (ip, 'offline', result)
 
-        for ip in self.always_works.index:
-            yield (ip, 'safe')
+        for ip, result in self.always_works.iterrows():
+            yield (ip, 'safe', result)
 
-        for ip in self.always_broken.index:
-            yield (ip, 'broken_path')
+        for ip, result in self.always_broken.iterrows():
+            yield (ip, 'broken_path', result)
 
-        for ip in self.works_per_site.index:
-            yield (ip, 'broken_site')
+        for ip, result in self.works_per_site.iterrows():
+            yield (ip, 'broken_site', result)
 
-        for ip in self.other.index:
-            yield (ip, 'broken_other')
+        for ip, result in self.other.iterrows():
+            yield (ip, 'broken_other', result)
 
     def __add__(self, other):
         if not isinstance(other, EcnAnalysis):
