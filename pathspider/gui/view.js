@@ -90,7 +90,13 @@ function view_generate(err, data, selector_svg) {
     
     // - add a circle
     dnodesEnterGroup.append("circle")
-        .attr("r", 8)
+        .attr("r", function(d) { 
+            if(data.targets.indexOf(d.caption) === -1) {
+                return 8;
+            } else {
+                return 16;
+            }
+        });
     
     dnodes.exit().remove();
     

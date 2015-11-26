@@ -9,6 +9,7 @@
   <script src="jquery.tipsy.js" charset="utf-8"></script>
   <link rel="stylesheet" href="tipsy.css" />
   <link rel="stylesheet" href="style.css" />
+  <script src="chart.js" charset="utf-8"></script>
   <script src="view.js" charset="utf-8"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="utf-8"/>
@@ -67,6 +68,7 @@
   </div>
   <div class="section">
     <h2>Measurement Results</h2>
+    <svg id="chart" style="width: 50vw; height: 30vw;"></svg>
     <div class="well">
     The results are gathered here. Click on an item to execute tracebox on all probes.
     </div>
@@ -167,7 +169,7 @@
     <h2>Statistics</h2>
   </div>
 </div>
-<svg style="border: 1px solid black; width:100vw; height: 100vh;">
+<svg id="graph" style="border: 1px solid black; width:100vw; height: 100vh;">
 </svg>
 <script>
   function resolver_busy(value) {
@@ -254,7 +256,7 @@
       results.enter().append("div")
         .on("click", function(d) {
           if(d.tb) {
-            view_load("svg", [d.ip]);
+            view_load("#graph", [d.ip]);
           } else {
             $.post('/command/order_tb', {'ip': d.ip});
           }
@@ -344,6 +346,8 @@
     if(data.subjects_changed) {
       update_page_indicators();
     }
+    
+    update_chart("#chart", data.stats);
   }
   
   update_page_indicators();
@@ -361,7 +365,7 @@
     var iplist = sel.val();
     sel.val("");
     resolver_busy(true);
-    $.post("/command/resolve_iplist", {'iplist': iplist});
+    $.post("/command/resolve_ips", {'iplist': iplist});
   });
   
   $("#resolve_btdht button").click(function() {
@@ -387,11 +391,10 @@
   };
   
   ws.onclose = function() {
-    alert("Connection to server dropped.");
+    alert("Connection to backend dropped.");
   };
   
   $("#resolver_order").hide();
-  
   
   //update();
 </script>

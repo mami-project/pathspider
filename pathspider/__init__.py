@@ -204,7 +204,8 @@ class CommandHandler(tornado.web.RequestHandler):
             gg = GraphGenerator(ips, self.engine.probe_urls, self.engine.subjects_map)
             self.write({
                 'nodes': gg.nodes,
-                'links': gg.links
+                'links': gg.links,
+                'targets': ips
             })
         elif cmd == 'save':
             import pickle
@@ -219,7 +220,8 @@ class CommandHandler(tornado.web.RequestHandler):
             #for sub in self.engine.subjects:
             #    sub['tb'] = None
             fp.close()
-
+        else:
+            self.write_error(404)
 
     def post(self, cmd):
         if cmd == 'resolve_btdht':
@@ -227,7 +229,7 @@ class CommandHandler(tornado.web.RequestHandler):
             self.engine.resolve_btdht(count)
         elif cmd == 'resolve_ips':
             ips = self.get_body_argument('iplist').splitlines()
-            self.engine.resolve_ips(ips)
+            self.engine.resolve_ips((ip_address(ip) for ip in ips))
         elif cmd == 'resolve_web':
             domains = self.get_body_argument('domains').splitlines()
             self.engine.resolve_web(domains)
@@ -235,6 +237,8 @@ class CommandHandler(tornado.web.RequestHandler):
             order_ip = self.get_body_argument('ip')
             self.engine.order_tb(ip_address(order_ip))
             self.engine.send_update()
+        else:
+            self.write_error(404)
 
 
 class StatusHandler(tornado.websocket.WebSocketHandler):
@@ -413,6 +417,8 @@ class ControlWeb:
         self.resolver.resolve_web(hostnames, self.resolve_sink)
 
     def resolve_ips(self, ips):
+        assert(all(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address) for ip in ips))
+        print(all(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address) for ip in ips))
         self.resolve_sink(label='', token='', result=[(ip, 80, ip) for ip in ips])
 
     def resolve_sink(self, label, token, error=None, result=None):
@@ -467,6 +473,8 @@ class ControlWeb:
             socket.send_status(status)
         self.subjects_changed = False
 
+    def num_subjects_ecn(self, status):
+        return sum(1 for subject in self.subjects if 'ecn' in subject and subject['ecn'] == status)
     def get_status(self):
         return {
             'resolver': {
@@ -474,6 +482,12 @@ class ControlWeb:
             },
             'ecnclient': self.ecnclient.status(),
             'tbclient': self.tbclient.status(),
+            'stats': [
+                ('safe', self.num_subjects_ecn('safe')),
+                ('broken_path', self.num_subjects_ecn('broken_path')),
+                ('broken_site', self.num_subjects_ecn('broken_site')),
+                ('broken_other', self.num_subjects_ecn('broken_other'))
+            ],
             'subjects_changed': self.subjects_changed
         }
 
