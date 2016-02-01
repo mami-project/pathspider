@@ -1,7 +1,7 @@
 { "registry-format": "mplane-0",
-    "registry-uri": "",
+    "registry-uri": "http://mami-project.eu/mplane/ecnregistry.json",
     "registry-revision": 0,
-    "includes": ["registry.json"],
+    "includes": ["http://ict-mplane.eu/registry/core"],
     "elements": [
         { "name": "btdhtresolver.nodeid",
             "prim": "string",

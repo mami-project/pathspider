@@ -1,0 +1,62 @@
+{
+    "Access" : {
+        "Roles" : {
+            "unauthenticated" : ["default"]
+        },
+        "Authorizations" : {
+            "default" : ["ecnspider", 
+                         "webresolver", 
+                         "bhdhtresolver",
+                         "scamper-tracebox-standard-ip4",
+                         "scamper-tracebox-specific-ip4",
+                         "scamper-tracebox-specific-quotesize-ip4",
+                         "scamper-tracebox-standard-ip6",
+                         "scamper-tracebox-specific-ip6",
+                         "scamper-tracebox-specific-quotesize-ip6"]
+        }
+    },
+
+    "Registries": {
+        "default": "http://mami-project.eu/mplane/ecnregistry.json",
+        "preload": [ "registry.json", "ecnregistry.json" ]
+    },
+
+    "Component": {
+        "Listener": {
+            "port": "18888",
+            "interfaces": []
+        },
+        "Modules": {
+            "pathspider.ecnspider2": {
+                "worker_count" : 200,
+                "connection_timeout" : 4,
+                "interface_uri" : "ring:eth0",
+                "qof_port": 54739,
+                "enable_ipv6" : 0
+            },
+
+            "pathspider.btdhtresolver" : {
+                "enable_ipv6" : true
+            },
+
+            "pathspider.scamper.scamper" : {
+                "ip4addr" : "1.2.3.4",
+                "ip6addr" : "::1"
+            },
+
+            "pathspider.webresolver" : {}
+        }
+    },
+
+    "Pathspider" : { 
+        "use_tracebox" : true,
+        "Probes" : {
+            "Amsterdam" :     "http://pto-nl.observatory.mami-project.eu:18888/",
+            "Frankfurt" :     "http://pto-de.observatory.mami-project.eu:18888/",
+            "London" :        "http://pto-uk.observatory.mami-project.eu:18888/",
+            "San Francisco" : "http://pto-us.observatory.mami-project.eu:18888/",
+            "Singapore" :     "http://pto-uk.observatory.mami-project.eu:18888/",
+            "Toronto" :       "http://pto-ca.observatory.mami-project.eu:18888/"
+        }
+    }
+}
