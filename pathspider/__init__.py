@@ -1,5 +1,4 @@
 import argparse
-import configparser
 import os
 import mplane.component
 import mplane.tls
@@ -624,13 +623,14 @@ class ControlBatch:
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
 
-    probe_urls = config.items('probes')
+    probe_urls = config["Pathspider"]["Probes"].iteritems()
+
     print("Probes specified in configuration file:")
     for name, url in probe_urls:
         print('# {} at {}'.format(name, url))
 
 
-    resolver_url = config['main']['resolver']
+    resolver_url = config["Pathspider"]["Resolver"]
 
     hostnames = None
     btdht_count = None
@@ -665,7 +665,7 @@ def main():
 
     # TODO: add mode 'cli' for command line interface, mode 'client' is the web interface. need a solution for standalone though...
     parser.add_argument('mode', choices=['standalone', 'client', 'service'], help='Set operating mode.')
-    parser.add_argument('--config', '-C', default='AUTO', help='Set pathspider configuration file. If set to AUTO, try to open either standalone.conf, client.conf or service.conf depending on operating mode. Default: AUTO.')
+    parser.add_argument('--config', '-C', default='AUTO', help='Set pathspider configuration file. If set to AUTO, try to open either standalone.json, client.json or service.json depending on operating mode. Default: AUTO.')
     parser.add_argument('-v', action='store_const', const=logging.INFO, dest='loglevel', help='Be verbose.')
     parser.add_argument('-vv', action='store_const', const=logging.DEBUG, dest='loglevel', help='Enable debug messages.')
 
@@ -698,16 +698,14 @@ def main():
 
     if args.config == 'AUTO':
         if args.mode == 'standalone':
-            args.config = 'standalone.conf'
+            args.config = 'standalone.json'
         elif args.mode == 'client':
-            args.config = 'client.conf'
+            args.config = 'client.json'
         elif args.mode == 'service':
-            args.config = 'service.conf'
+            args.config = 'service.json'
 
     # read the configuration file
-    config = configparser.ConfigParser()
-    config.optionxform = str
-    config.read(mplane.utils.search_path(args.config))
+    config = mplane.utils.get_config(args.config)
 
     if args.mode == 'standalone':
         run_standalone(args, config)

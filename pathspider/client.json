@@ -22,6 +22,7 @@
             "San Francisco" : "http://pto-us.observatory.mami-project.eu:18888/",
             "Singapore" :     "http://pto-uk.observatory.mami-project.eu:18888/",
             "Toronto" :       "http://pto-ca.observatory.mami-project.eu:18888/"
-        }
+        },
+        "Resolver" : "http://pto-de.observatory.mami-project.eu:18888/"
     }
 }
