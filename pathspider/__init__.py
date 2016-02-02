@@ -326,7 +326,7 @@ class ClientPool:
         if url in self.pool:
             return self.pool[url]
         else:
-            client = mplane.client.HttpInitiatorClient({}, self.tls_state, default_url=url)
+            client = mplane.client.HttpInitiatorClient(tls_state=self.tls_state, default_url=url)
             self.pool[url] = client
             return client
 
@@ -621,7 +621,7 @@ class ControlBatch:
 def run_client(args, config):
     tls_state = mplane.tls.TlsState(config)
 
-    probe_urls = config["Pathspider"]["Probes"].iteritems()
+    probe_urls = config["Pathspider"]["Probes"].items()
 
     print("Probes specified in configuration file:")
     for name, url in probe_urls:
