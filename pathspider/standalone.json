@@ -51,7 +51,7 @@
     "Pathspider" : { 
         "use_tracebox" : false,
         "Probes" : {
-            "Local" :     "http://localhost:18888/",
+            "Local" :     "http://localhost:18888/"
         },
         "Resolver" : "http://localhost:18888/"
     }

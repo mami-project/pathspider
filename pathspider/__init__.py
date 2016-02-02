@@ -36,16 +36,14 @@ class IPAddressEncoder(json.JSONEncoder):
 json._default_encoder = IPAddressEncoder()
 
 def run_service(args, config):
-    if config["component"]["workflow"] == "component-initiated":
-        component = mplane.component.InitiatorHttpComponent(config)
-    elif config["component"]["workflow"] == "client-initiated":
+    if "Listener" in config["Component"]:
         component = mplane.component.ListenerHttpComponent(config)
-    else:
-        raise ValueError("workflow setting in " + args.config + " can only be 'client-initiated' or 'component-initiated'")
+    elif "Initiator" in config["Component"]:
+        component = mplane.component.InitiatorHttpComponent(config)
+    else :
+        raise ValueError("Component section in " + args.config + " requires Listener or Initiator")
 
 def run_standalone(args, config):
-    config["component"]["workflow"] = "client-initiated"
-
     print("standalone mode: starting service...")
     # run service
     run_service(args, config)
