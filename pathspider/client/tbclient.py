@@ -13,7 +13,7 @@ class TbImp:
     def __init__(self, name, tls_state, url, result_sink):
         self.name = name
         self.url = url
-        self.client = mplane.client.HttpInitiatorClient({}, tls_state)
+        self.client = mplane.client.HttpInitiatorClient(tls_state=tls_state)
         self.queued = collections.deque()
         self.pending_token = None
         self.pending = None

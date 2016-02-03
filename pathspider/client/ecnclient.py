@@ -44,7 +44,7 @@ class EcnImp:
         self.result_sink = result_sink
 
         self.url = url
-        self.client = mplane.client.HttpInitiatorClient({}, tls_state)
+        self.client = mplane.client.HttpInitiatorClient(tls_state = tls_state)
 
         self.paused = False
         self.running = True
@@ -336,7 +336,6 @@ class EcnClient:
     def __init__(self, result_sink, tls_state, probes, ipv='ip4'):
         self.ipv = ipv
         self.imps = [EcnImp(name, tls_state, url, self.imp_sink) for name, url in probes]
-
 
         self.imps_results_lock = threading.RLock()
         self.imps_results = {name: {} for name, _ in probes}
