@@ -664,8 +664,10 @@ def main():
     # TODO: add mode 'cli' for command line interface, mode 'client' is the web interface. need a solution for standalone though...
     parser.add_argument('mode', choices=['standalone', 'client', 'service'], help='Set operating mode.')
     parser.add_argument('--config', '-C', default='AUTO', help='Set pathspider configuration file. If set to AUTO, try to open either standalone.json, client.json or service.json depending on operating mode. Default: AUTO.')
-    parser.add_argument('-v', action='store_const', const=logging.INFO, dest='loglevel', help='Be verbose.')
-    parser.add_argument('-vv', action='store_const', const=logging.DEBUG, dest='loglevel', help='Enable debug messages.')
+
+    # FIXME re-enable these after we're done tracking down logging stuff (hardcoded for now)
+    #parser.add_argument('-v', action='store_const', const=logging.INFO, dest='loglevel', help='Be verbose.')
+    #parser.add_argument('-vv', action='store_const', const=logging.DEBUG, dest='loglevel', help='Enable debug messages.')
 
     parser_client = parser.add_argument_group('client and standalone mode')
     parser_client.add_argument('-u', '--webui', action='store_true', dest='webui', default=False, help='Start web interface.')
@@ -687,9 +689,12 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=args.loglevel or logging.WARNING, format='%(asctime)s [%(name)-10.10s: %(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(name)-10.10s: %(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
+
+    # FIXME reenable after logging debug
+    #logging.basicConfig(level=args.loglevel or logging.INFO, format='%(asctime)s [%(name)-10.10s: %(threadName)-10.10s] [%(levelname)-5.5s]  %(message)s')
     # disable tornado messages
-    logging.getLogger('tornado').setLevel(logging.ERROR)
+    #logging.getLogger('tornado').setLevel(logging.ERROR)
 
     if args.report is not None:
         print("Saving report to {}".format(args.report.name))
