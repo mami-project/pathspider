@@ -24,6 +24,7 @@ import mplane.client
 import logging
 import threading
 import pandas
+import traceback
 
 from ipaddress import ip_address
 
@@ -36,7 +37,7 @@ class ResolverApi(BaseClientApi):
         self.ipv = ipv
         self.pending_tokens = {}
 
-        self.logger = logging.getLogger("agent.resolver.btdht")
+        self.logger = logging.getLogger(__name__)
 
         self.lock = threading.RLock()
 
@@ -48,6 +49,7 @@ class ResolverApi(BaseClientApi):
                 self.pending_tokens[token] = (label, result_sink)
             return token
         except KeyError as e:
+            traceback.print_tb(sys.exc_info()[2])
             self.logger.error("Probe does not support '"+label+"' capability.")
             return False
 
