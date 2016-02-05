@@ -161,6 +161,7 @@ class EcnImp:
 class EcnAnalysis:
     def __init__(self, compiled_chunk=None, ipv='ip4'):
         self.chunks = []
+        # FIXME make these actual empty dataframes with columns...
         self.offline = pd.DataFrame()
         self.always_works = pd.DataFrame()
         self.always_broken = pd.DataFrame()
