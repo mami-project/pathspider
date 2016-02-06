@@ -1,5 +1,7 @@
 import plt as libtrace
 import collections
+import logging
+import base64
 import heapq
 
 def _flow4_ids(ip):
@@ -13,7 +15,7 @@ def _flow4_ids(ip):
         # no ports, just 3-tuple
         fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10]
         rid = ip.dst_prefix.addr + ip.src_prefix.addr + ip.data[9:10]
-    return (fid, rid)
+    return (base64.b64encode(fid), base64.b64encode(rid))
 
 def _flow6_ids(ip6):
     # FIXME link ICMP by looking at payload
@@ -25,7 +27,7 @@ def _flow6_ids(ip6):
         # no ports, just 3-tuple
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[7:8]
         rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[7:8]
-    return (fid, rid)
+    return (base64.b64encode(fid), base64.b64encode(rid))
 
 PacketClockTimer = collections.namedtuple("PacketClockTimer", ("time", "fn"))
 
@@ -75,6 +77,7 @@ class Observer:
 
         # Statistics
         self._ct_nonip = 0
+        self._ct_shortkey = 0
 
     def _next_packet(self):
         # see if we're done iterating
@@ -122,6 +125,9 @@ class Observer:
         if not keep_flow:
             self._flow_complete(fid)
 
+        # we processed a packet, keep going
+        return True
+
     def _set_timer(self, delay, fn):
         # add to queue
         heapq.heappush(_tq, PacketClockTimer(self._pt + delay, 
@@ -133,15 +139,19 @@ class Observer:
         Create a new basic flow record 
         """
         # get possible a flow IDs for the packet
-        if self._pkt.ip:
-            (ffid, rfid) = _flow4_ids(self._pkt.ip)
-            ip = self._pkt.ip
-        elif self._pkt.ip6:
-            (ffid, rfid) = _flow6_ids(self._pkt_ip6)
-            ip = self._pkt.ip6
-        else:
-            # we don't care about non-IP packets
-            self._ct_nonip += 1
+        try:
+            if self._pkt.ip:
+                (ffid, rfid) = _flow4_ids(self._pkt.ip)
+                ip = self._pkt.ip
+            elif self._pkt.ip6:
+                (ffid, rfid) = _flow6_ids(self._pkt_ip6)
+                ip = self._pkt.ip6
+            else:
+                # we don't care about non-IP packets
+                self._ct_nonip += 1
+                return (None, None, False)
+        except ValueError:
+            self._ct_shortkey += 1
             return (None, None, False)
 
         # now look for forward and reverse in ignored, active, 
@@ -152,23 +162,30 @@ class Observer:
             return (None, None, False)
         elif ffid in self._active:
             (fid,rec) = (ffid, self._active[ffid])
+            logging.debug("found forward flow for "+str(ffid))
         elif ffid in self._expiring:
             (fid,rec) = (ffid, self._expiring[ffid])
+            logging.debug("found expiring forward flow for "+str(ffid))
         elif rfid in self._active:
             (fid,rec) = (rfid, self._active[rfid])
+            logging.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
             (fid,rec) =  (rfid, self._expiring[rfid])
+            logging.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
             rec = { 'first': ip.seconds }
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
+                    logging.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
                     return (None, None, False)
 
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
+            logging.debug("new flow for "+str(ffid))
+
 
         # update time and return record
         rec['last'] = ip.seconds
@@ -184,10 +201,18 @@ class Observer:
         del(self._active[fid])
 
         # set up a timer to fire to emit the flow after timeout
-        self.set_timer(delay, self._finish_expiry_tfn(fid))
+        self._set_timer(delay, self._finish_expiry_tfn(fid))
         
     def _emit_flow(self, rec):
         self._emitted.append(rec)
+
+    def _next_flow(self):
+        # FIXME needs to flush on interrupt
+        while len(self._emitted) == 0:
+            if not self._next_packet():
+                return None
+
+        return self._emitted.popleft()
 
     def _tick(self, pt):
         # Advance packet clock
@@ -226,10 +251,10 @@ class Observer:
         self._ignored.clear()
 
 def extract_ports(ip):
-    if pkt.udp:
-        return (pkt.udp.src_port, pkt.udp.dst_port)
-    elif pkt.tcp:
-        return (pkt.tcp.src_port, pkt.tcp.dst_port)
+    if ip.udp:
+        return (ip.udp.src_port, ip.udp.dst_port)
+    elif ip.tcp:
+        return (ip.tcp.src_port, ip.tcp.dst_port)
     else:
         return (None, None)
 
@@ -256,12 +281,14 @@ def basic_count(rec, ip, rev):
     Packet function that counts packets and octets per flow
     """
 
-    if is_rev:
+    if rev:
         rec["pkt_rev"] += 1
         rec["oct_rev"] += ip.size
     else:
         rec["pkt_fwd"] += 1
         rec["oct_fwd"] += ip.size
+
+    return True
 
 def simple_observer(lturi):
     return Observer(lturi, new_flow_chain=[basic_flow], ip4_chain=[basic_count], ip6_chain=[basic_count])
