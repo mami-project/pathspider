@@ -90,7 +90,8 @@ class SemaphoreN(threading.BoundedSemaphore):
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
-QOF_FINAL_SLEEP = 5
+QOF_INITIAL_SLEEP = 3
+QOF_FINAL_SLEEP = 3
 
 class QofSpider:
     """
@@ -385,6 +386,8 @@ class QofSpider:
                                           target=self.exception_wrapper,
                                           name='qofowner')
             self.qofowner_thread.start()
+            logger.debug("waiting "+str(QOF_INITIAL_SLEEP)+"s for qof to start")
+            time.sleep(QOF_INITIAL_SLEEP)
             logger.debug("owner up")
 
             # now start up ecnspider, backwards
@@ -504,7 +507,6 @@ class QofSpider:
             self.listener.shutdown()
             self.listener.server_close()
             logger.debug("QoF shutdown complete")
-
 
             # Wait for flow queue to empty
             self.flowqueue.join()
