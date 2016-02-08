@@ -159,8 +159,9 @@ class EcnImp:
 
 
 class EcnAnalysis:
-    def __init__(self, compiled_chunk=None, ipv='ip4'):
+    def __init__(self, compiled_chunk=None, ipv='ip4', sites=[]):
         self.chunks = []
+
         # FIXME make these actual empty dataframes with columns...
         self.offline = pd.DataFrame()
         self.always_works = pd.DataFrame()
@@ -168,6 +169,8 @@ class EcnAnalysis:
         self.works_per_site = pd.DataFrame()
         self.other = pd.DataFrame()
         self.incomplete = []
+
+        self.sites = sites
 
         if compiled_chunk is not None:
             self._analyze(compiled_chunk, ipv)
@@ -191,7 +194,7 @@ class EcnAnalysis:
     def __add__(self, other):
         if not isinstance(other, EcnAnalysis):
             raise NotImplementedError("Only instances of Analysis can be added here.")
-        newa = EcnAnalysis(None)
+        newa = EcnAnalysis(None, sites=self.sites)
 
         newa.chunks = self.chunks + other.chunks
         newa.offline = self.offline.append(other.offline)
@@ -233,6 +236,12 @@ class EcnAnalysis:
         return len(self.always_works) + len(self.always_broken) + len(self.works_per_site) + len(self.other)
 
     def _merge_results(self, compiled_chunk, ipv):
+
+        merged_site_columns = {}
+        for site in self.sites:
+            merged_site_columns[site+":conn"] = RESULT_NOBODYHOME
+            merged_site_columns[site+":nego"] = RESULT_NOBODYHOME
+
         merged = {}
         incomplete = []
         for site, chunk in compiled_chunk.items():
@@ -260,7 +269,9 @@ class EcnAnalysis:
                     conn = RESULT_OTHER
 
                 if ip not in merged:
-                    merged[ip] = {'destination.'+ipv: ip, 'destination.port': ecn_off['destination.port']}
+                    merged[ip] = merged_site_columns.copy()
+                    merged[ip]['destination.'+ipv] = ip
+                    merged[ip]['destination.port'] = ecn_off['destination.port']
 
                 merged[ip][site+':conn'] = conn
                 merged[ip][site+':nego'] = nego
@@ -337,6 +348,7 @@ class EcnClient:
     def __init__(self, result_sink, tls_state, probes, ipv='ip4'):
         self.ipv = ipv
         self.imps = [EcnImp(name, tls_state, url, self.imp_sink) for name, url in probes]
+        self.sites = [name for name, url in probes]
 
         self.imps_results_lock = threading.RLock()
         self.imps_results = {name: {} for name, _ in probes}
@@ -403,7 +415,7 @@ class EcnClient:
                         compiled_chunk[name] = pd.DataFrame(results.pop(chunk_id))
 
                 logger.debug("processing chunk {}".format(chunk_id))
-                analysis = EcnAnalysis(compiled_chunk, self.ipv)
+                analysis = EcnAnalysis(compiled_chunk, self.ipv, sites=self.sites)
                 logger.debug("calling result_sink() with result of chunk {}...".format(chunk_id))
                 self.result_sink(analysis, chunk_id)
                 logger.debug("result_sink() returned.")
