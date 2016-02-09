@@ -95,7 +95,7 @@ class EcnSpider2(qofspider.QofSpider):
         elif sys.platform == 'darwin':
             self.configurator_hooks = EcnSpider2ConfigDarwin()
         else:
-            raise NotImplemented("ECN configurator for your system {} is not implemented.".format(sys.platform))
+            raise NotImplementedError("ECN configurator for your system {} is not implemented.".format(sys.platform))
 
         if local_ip4:
             self.local_ip4 = ip_address(local_ip4) if isinstance(local_ip4, str) else local_ip4

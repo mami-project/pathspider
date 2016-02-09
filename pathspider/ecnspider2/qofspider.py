@@ -169,10 +169,10 @@ class QofSpider:
         self.sem_config_one.release_n(self.worker_count)
 
     def config_zero(self):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def config_one(self):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def interrupter(self):
         if self.check_interrupt is None:
@@ -237,10 +237,10 @@ class QofSpider:
         pass
 
     def connect(self, job, pcs, config):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def post_connect(self, job, conn, pcs, config):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def qofowner(self):
         logger = logging.getLogger('qofspider')
@@ -274,7 +274,7 @@ class QofSpider:
                 raise Exception("qof terminated with signal "+str(-rv))
 
     def qof_config(self):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     class QofCollectorHandler(socketserver.StreamRequestHandler):
         def handle(self):
@@ -306,7 +306,7 @@ class QofSpider:
             logger.debug("listener stopped")
 
     def tupleize_flow(self, flow):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def merger(self):
         logger = logging.getLogger('qofspider')
@@ -352,7 +352,7 @@ class QofSpider:
                     self.resqueue.task_done()
 
     def merge(self, flow, res):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def exception_wrapper(self, target):
         try:
