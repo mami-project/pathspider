@@ -245,7 +245,7 @@ def _tracebox4_process(sipaddr, dipaddr, v=4, udp=None, dport=None, probe=None, 
 def _tracebox6_process(sipaddr, dipaddr, v=6, udp=None, dport=None, probe=None, get_icmp_payload_len=None):
     return _tracebox_process(sipaddr, dipaddr, v, udp, dport, probe, get_icmp_payload_len)
 
-def _ping_process(sipaddr, dipaddr, period, count, payload, chksum, dport, sport, ttl, pattern, method, rr, size, tos, rcount):
+def _ping_process(sipaddr, dipaddr, period, count, payload=None, chksum=None, dport=None, sport=None, ttl=None, pattern=None, method=None, rr=None, size=None, tos=None, rcount=None):
     ping_argv = list(_pingcmd)
     if period is not None:
         ping_argv[-1] += " "+_pingopt_period+" "+str(period)
