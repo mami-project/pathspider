@@ -59,9 +59,9 @@ QOF_SACKOPT =    0x20
 QOF_WSOPT =      0x40
 
 Connection = collections.namedtuple("Connection",["client","port","state"])
-Connection.OK = 0
-Connection.FAILED = 1
-Connection.TIMEOUT = 2
+CONN_OK = 0
+CONN_FAILED = 1
+CONN_TIMEOUT = 2
 
 # HTTP constants
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0'
@@ -123,14 +123,14 @@ class EcnSpider2(qofspider.QofSpider):
             sock.settimeout(self.conn_timeout)
             sock.connect((str(job.ip), job.rport))
 
-            return Connection(sock, sock.getsockname()[1], Connection.OK)
+            return Connection(sock, sock.getsockname()[1], CONN_OK)
         except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], Connection.TIMEOUT)
+            return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
         except OSError as e:
-            return Connection(sock, sock.getsockname()[1], Connection.FAILED)
+            return Connection(sock, sock.getsockname()[1], CONN_FAILED)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.state == Connection.OK:
+        if conn.state == CONN_OK:
             sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, job.userval)
 
         else:
@@ -255,14 +255,14 @@ class EcnSpider2Http(EcnSpider2):
         try:
             client.connect()
         except socket.timeout:
-            return Connection(None, None, Connection.TIMEOUT)
+            return Connection(None, None, CONN_TIMEOUT)
         except OSError as e:
-            return Connection(None, None, Connection.FAILED)
+            return Connection(None, None, CONN_FAILED)
         else:
-            return Connection(client, client.sock.getsockname()[1], Connection.OK)
+            return Connection(client, client.sock.getsockname()[1], CONN_OK)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.state == Connection.OK:
+        if conn.state == CONN_OK:
             headers = {'User-Agent': USER_AGENT,
                        'Connection': 'close',
                        'Host': job.host}
