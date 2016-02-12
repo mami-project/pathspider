@@ -595,7 +595,7 @@ class ControlBatch:
 
         # create subjects
         for ip, port, hostname in result:
-            subject = {'ip': ip, 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
+            subject = {'ip': str(ip), 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
             self.subjects.append(subject)
             self.subjects_map[str(ip)] = subject
 
