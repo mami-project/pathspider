@@ -567,6 +567,9 @@ class ControlBatch:
         except KeyboardInterrupt:
             print("measurement aborted.")
 
+        self.ecnclient.shutdown()
+        self.tbclient.shutdown()
+
         print("writing results...")
         try:
             json.dump({'subjects': self.subjects}, self.report_file, cls=IPAddressEncoder)
@@ -578,8 +581,6 @@ class ControlBatch:
             print("Starting debugger console...")
             import pdb; pdb.set_trace()
 
-        self.ecnclient.shutdown()
-        self.tbclient.shutdown()
 
         print("Bye.")
         exit(0)
