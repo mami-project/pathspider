@@ -61,7 +61,7 @@ def services(ip4addr=None, ip6addr=None, worker_count=None,
         connection_timeout=None, interface_uri=None, qof_port=54739,
         enable_ipv6=True):
     """
-    Return a list of mplane.scheduler.Service instances implementing 
+    Return a list of mplane.scheduler.Service instances implementing
     the mPlane capabilities for ecnspider.
 
     """
@@ -78,7 +78,7 @@ def services(ip4addr=None, ip6addr=None, worker_count=None,
     if strbool(enable_ipv6):
         servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
         servicelist.append(EcnspiderHttpService(ecnspider_http_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
-    
+
     return servicelist
 
 def ecnspider_cap(ip_version):

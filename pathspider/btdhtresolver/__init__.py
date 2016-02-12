@@ -38,7 +38,7 @@ def strbool(s):
 
 def services(ip4addr='0.0.0.0', ip6addr='::', port4='9881', port6='6882', enable_ipv6=True):
     """
-    Return a list of mplane.scheduler.Service instances implementing 
+    Return a list of mplane.scheduler.Service instances implementing
     the mPlane capabilities for btdhtresolver.
 
     """
