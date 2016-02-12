@@ -597,7 +597,7 @@ class ControlBatch:
         for ip, port, hostname in result:
             subject = {'ip': ip, 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
             self.subjects.append(subject)
-            self.subjects_map[ip] = subject
+            self.subjects_map[str(ip)] = subject
 
         flavor = 'tcp'
         if label.startswith('webresolver-'):
