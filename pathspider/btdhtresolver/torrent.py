@@ -79,8 +79,10 @@ class BtDhtSpider:
         dht.stop()
     """
 
-    def __init__(self, bindaddr=('', 6881), ip_version='ip4', unique=False, bootstrap=(('dht.transmissionbt.com', 6881),),
-                bandwidth = 5*1024, max_addr_cache_size = 100, max_requests_running = 100, max_addr_pool_size = 100, request_timeout = 15, slot_time = 0.1):
+    def __init__(self, bindaddr=('', 6881), ip_version='ip4', unique=False,
+            bootstrap=(('dht.transmissionbt.com', 6881),), bandwidth=5*1024,
+            max_addr_cache_size=100, max_requests_running=100,
+            max_addr_pool_size=100, request_timeout=15, slot_time=0.1):
         """
         :param bindaddr: Address to bind to. (Needs to contain either an IPv4 or IPv6 address depending on parameter ip_version)
         :param ip_version: Of which IP version addresses should be collected. ip_version='ip4' or ip_version='ip6'.

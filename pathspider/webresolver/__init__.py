@@ -28,7 +28,7 @@ import mplane
 from datetime import datetime
 from . import resolution
 
-def services(ip4addr = None, ip6addr = None, max_workers_str = None):
+def services(ip4addr=None, ip6addr=None, max_workers_str=None):
     """
     Return a list of mplane.scheduler.Service instances implementing
     the mPlane capabilities for webresolver.

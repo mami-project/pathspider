@@ -44,7 +44,7 @@ class EcnImp:
         self.result_sink = result_sink
 
         self.url = url
-        self.client = mplane.client.HttpInitiatorClient(tls_state = tls_state)
+        self.client = mplane.client.HttpInitiatorClient(tls_state=tls_state)
 
         self.paused = False
         self.running = True

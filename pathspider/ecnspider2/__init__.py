@@ -57,8 +57,9 @@ def strbool(s):
     else:
         return False
 
-def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None,
-             interface_uri = None, qof_port=54739, enable_ipv6=True):
+def services(ip4addr=None, ip6addr=None, worker_count=None,
+        connection_timeout=None, interface_uri=None, qof_port=54739,
+        enable_ipv6=True):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for ecnspider.
@@ -104,7 +105,7 @@ def ecnspider_cap(ip_version):
     return cap
 
 class EcnspiderService(mplane.scheduler.Service):
-    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr = None, ip6addr = None):
+    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr=None, ip6addr=None):
         super().__init__(cap)
 
         self.worker_count = int(worker_count)
@@ -132,10 +133,11 @@ class EcnspiderService(mplane.scheduler.Service):
             # setup ecnspider
             result_sink = collections.deque()
             ecn = ecnspider.EcnSpider2(result_sink.append,
-                     worker_count=self.worker_count, conn_timeout=self.connection_timeout,
-                     interface_uri=self.interface_uri,
-                     local_ip4 = self.ip4addr, local_ip6 = self.ip6addr,
-                     qof_port=self.qof_port, check_interrupt=check_interrupt)
+                    worker_count=self.worker_count,
+                    conn_timeout=self.connection_timeout,
+                    interface_uri=self.interface_uri, local_ip4=self.ip4addr,
+                    local_ip6=self.ip6addr, qof_port=self.qof_port,
+                    check_interrupt=check_interrupt)
 
             # formulate jobs
             ports = spec.get_parameter_value("destination.port")
@@ -205,7 +207,7 @@ def ecnspider_http_cap(ip_version):
     return cap
 
 class EcnspiderHttpService(mplane.scheduler.Service):
-    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr = None, ip6addr = None):
+    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr=None, ip6addr=None):
         super().__init__(cap)
 
         self.worker_count = int(worker_count)
@@ -233,10 +235,11 @@ class EcnspiderHttpService(mplane.scheduler.Service):
             # setup ecnspider
             result_sink = collections.deque()
             ecn = ecnspider.EcnSpider2Http(result_sink.append,
-                     worker_count=self.worker_count, conn_timeout=self.connection_timeout,
-                     interface_uri=self.interface_uri,
-                     local_ip4 = self.ip4addr, local_ip6 = self.ip6addr,
-                     qof_port=self.qof_port, check_interrupt=check_interrupt)
+                    worker_count=self.worker_count,
+                    conn_timeout=self.connection_timeout,
+                    interface_uri=self.interface_uri, local_ip4=self.ip4addr,
+                    local_ip6=self.ip6addr, qof_port=self.qof_port,
+                    check_interrupt=check_interrupt)
 
             # formulate jobs
             ports = spec.get_parameter_value("destination.port")

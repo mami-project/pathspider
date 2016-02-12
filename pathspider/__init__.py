@@ -83,7 +83,7 @@ def grouper(iterable, count):
             break
 
 class GraphGenerator:
-    def add_node(self, name, x = None, y = None):
+    def add_node(self, name, x=None, y=None):
         if name in self.nodes_idx:
             return
 

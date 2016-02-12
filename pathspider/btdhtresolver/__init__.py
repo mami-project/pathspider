@@ -36,7 +36,7 @@ def strbool(s):
         return s
     return s.lower() == "true" or s == "1" or s.lower() == "y" or s.lower() == "yes"
 
-def services(ip4addr = '0.0.0.0', ip6addr = '::', port4 = '9881', port6 = '6882', enable_ipv6=True):
+def services(ip4addr='0.0.0.0', ip6addr='::', port4='9881', port6='6882', enable_ipv6=True):
     """
     Return a list of mplane.scheduler.Service instances implementing 
     the mPlane capabilities for btdhtresolver.

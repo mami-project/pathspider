@@ -82,7 +82,7 @@ class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
                  interface_uri,
-                 local_ip4 = None, local_ip6 = None,
+                 local_ip4=None, local_ip6=None,
                  qof_port=4739,
                  check_interrupt=None):
         super().__init__(worker_count=worker_count, interface_uri=interface_uri, qof_port=qof_port, check_interrupt=check_interrupt)
@@ -242,7 +242,7 @@ class EcnSpider2Http(EcnSpider2):
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
                  interface_uri,
-                 local_ip4 = None, local_ip6 = None,
+                 local_ip4=None, local_ip6=None,
                  qof_port=4739,
                  check_interrupt=None):
         super().__init__(result_sink=result_sink, worker_count=worker_count, conn_timeout=conn_timeout,
