@@ -58,7 +58,7 @@ QOF_TSOPT =      0x10
 QOF_SACKOPT =    0x20
 QOF_WSOPT =      0x40
 
-Connection = collections.namedtuple("Connection",["client","port","state"])
+Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 CONN_OK = 0
 CONN_FAILED = 1
 CONN_TIMEOUT = 2
@@ -67,14 +67,15 @@ CONN_TIMEOUT = 2
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0'
 
 SpiderRecord = collections.namedtuple("SpiderRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "userval"])
+    ["ip", "host", "port", "rport", "ecnstate", "connstate", "httpstatus",
+        "userval"])
 
 FlowRecord = collections.namedtuple("FlowRecord",
-    ["ip","port","octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
+    ["ip", "port", "octets", "fif", "fsf", "fuf", "fir", "fsr", "fur", "ttl"])
 
 MergedRecord = collections.namedtuple("MergedRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "userval",
-     "octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
+    ["ip", "host", "port", "rport", "ecnstate", "connstate", "httpstatus",
+        "userval", "octets", "fif", "fsf", "fuf", "fir", "fsr", "fur", "ttl"])
 
 Job = collections.namedtuple("Job", ["ip", "host", "rport", "userval"])
 

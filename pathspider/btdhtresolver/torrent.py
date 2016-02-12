@@ -203,7 +203,7 @@ class BtDhtSpider:
             if last != int(tnow) and bandwidth  > 0:
                 last = int(tnow)
                 success_rate = self.requests_success / (self.requests_timeout + self.requests_success) if self.requests_success > 0 else 0
-                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth/1024 , self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, success_rate))
+                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth/1024, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, success_rate))
 
             # cleanup bandwidth track
             while len(track) > 0:

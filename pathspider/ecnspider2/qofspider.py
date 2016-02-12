@@ -247,7 +247,7 @@ class QofSpider:
 
         with tempfile.TemporaryDirectory(prefix="qoftmp") as confdir:
             # create a QoF configuration file
-            confpath = os.path.join(confdir,"qof.yaml")
+            confpath = os.path.join(confdir, "qof.yaml")
             with open(confpath, "w") as conffile:
                 conffile.write(yaml.dump(self.qof_config()))
                 logger.debug("wrote qof configuration file in "+confpath)
@@ -297,7 +297,8 @@ class QofSpider:
 
     def qoflistener(self):
         logger = logging.getLogger('qofspider')
-        self.listener = QofSpider.QofCollectorListener(("",self.qof_port), QofSpider.QofCollectorHandler, self)
+        self.listener = QofSpider.QofCollectorListener(("", self.qof_port),
+                QofSpider.QofCollectorHandler, self)
         logger.info("starting listener: "+repr(self.listener))
         self.listener.serve_forever()
         if self.stopping is False:
