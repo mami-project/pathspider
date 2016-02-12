@@ -614,7 +614,7 @@ class ControlBatch:
     def ecn_result_sink(self, result, chunk_id):
         for ip, status, res in result.get_ip_and_result():
             self.subjects_map[str(ip)]['ecn'] = status
-            self.subjects_map[str(ip)]['ecn_result'] = res
+            self.subjects_map[str(ip)]['ecn_result'] = json.loads(res.to_json())
 
     def tb_result_sink(self, ip, graph):
         self.subjects_map[str(ip)]['tb'] = graph
