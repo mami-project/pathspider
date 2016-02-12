@@ -386,7 +386,7 @@ class EcnClient:
 
     def analyzer_func(self):
         logger = logging.getLogger('ecnclient')
-        logger.info("Started.")
+        logger.info("Analyzer started.")
 
         while self.running:
             # determine chunks which have been completed by all probes
@@ -419,6 +419,8 @@ class EcnClient:
                 logger.debug("calling result_sink() with result of chunk {}...".format(chunk_id))
                 self.result_sink(analysis, chunk_id)
                 logger.debug("result_sink() returned.")
+
+        logger.info("Analyzer complete.")
 
     def is_busy(self):
         return any(imp.is_busy() for imp in self.imps)

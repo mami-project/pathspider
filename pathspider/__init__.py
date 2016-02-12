@@ -607,7 +607,7 @@ class ControlBatch:
 
     def order_ecn(self, addrs, flavor):
         chunk_id = self.next_chunk_id
-        self.next_chunk_id+=1
+        self.next_chunk_id += 1
         self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
 
     def ecn_result_sink(self, result, chunk_id):
