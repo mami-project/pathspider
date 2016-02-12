@@ -446,12 +446,12 @@ class ControlWeb:
         self.next_chunk_id+=1
         self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
         for ip, port, hostname in addrs:
-            self.subjects_map[ip]['ecn'] = None
+            self.subjects_map[str(ip)]['ecn'] = None
 
     def ecn_result_sink(self, result, chunk_id):
         for ip, status, res in result.get_ip_and_result():
-            self.subjects_map[ip]['ecn'] = status
-            self.subjects_map[ip]['ecn_result'] = None#res.to_dict()
+            self.subjects_map[str(ip)]['ecn'] = status
+            self.subjects_map[str(ip)]['ecn_result'] = None#res.to_dict()
             #import pdb; pdb.set_trace()
         self.subjects_changed = True
 
