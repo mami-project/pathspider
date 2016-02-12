@@ -73,6 +73,7 @@ class EcnImp:
             self.client.interrupt_capability(self.pending_token)
             self.pending_token = None
             self.pending = None
+
         logger.info("Shutdown completed")
 
     def is_busy(self):
@@ -356,6 +357,8 @@ class EcnClient:
         self.result_sink = result_sink
 
         self.running = True
+        self.wait_final_analysis = False
+
         self.thread = threading.Thread(target=self.analyzer_func, daemon=True, name="ecnclient")
         self.thread.start()
 
@@ -374,10 +377,15 @@ class EcnClient:
     def shutdown(self):
         logger = logging.getLogger('ecnclient')
         logger.info("Attempting shutdown...")
-        self.running = False
         for imp in self.imps:
             imp.shutdown()
 
+        self.wait_final_analysis = True
+        while self.wait_final_analysis:
+            logger.info("ECN client waiting for final analysis on shutdown...")
+            time.sleep(1)
+
+        self.running = False
         logger.info("Shutdown complete.")
 
     def imp_sink(self, name, result, chunk_id):
@@ -403,6 +411,7 @@ class EcnClient:
 
             if len(chunks_finished) == 0:
                 time.sleep(1)
+                self.wait_final_analysis = False
                 continue
 
             logger.info("Measurement for chunks {} now completed by all probes.".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
