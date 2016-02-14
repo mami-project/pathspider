@@ -414,9 +414,7 @@ class ControlWeb:
         self.resolver.resolve_web(hostnames, self.resolve_sink)
 
     def resolve_ips(self, ips):
-        assert(all(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address) for ip in ips))
-        print(all(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address) for ip in ips))
-        self.resolve_sink(label='', token='', result=[(ip, 80, ip) for ip in ips])
+        self.resolve_sink(label='', token='', result=[(str(ip), 80, str(ip)) for ip in ips])
 
     def resolve_sink(self, label, token, error=None, result=None):
         """
