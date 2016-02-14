@@ -197,7 +197,7 @@ class CommandHandler(tornado.web.RequestHandler):
                 self.set_header("Content-Type", "application/json")
                 self.write(ansstr)
         elif cmd == 'graph':
-            ips = [ip_address(ip) for ip in self.get_arguments('ip')]
+            ips = self.get_arguments('ip')
             gg = GraphGenerator(ips, self.engine.probe_urls, self.engine.subjects_map)
             self.write({
                 'nodes': gg.nodes,
@@ -226,13 +226,13 @@ class CommandHandler(tornado.web.RequestHandler):
             self.engine.resolve_btdht(count)
         elif cmd == 'resolve_ips':
             ips = self.get_body_argument('iplist').splitlines()
-            self.engine.resolve_ips((ip_address(ip) for ip in ips))
+            self.engine.resolve_ips(ips)
         elif cmd == 'resolve_web':
             domains = self.get_body_argument('domains').splitlines()
             self.engine.resolve_web(domains)
         elif cmd == 'order_tb':
             order_ip = self.get_body_argument('ip')
-            self.engine.order_tb(ip_address(order_ip))
+            self.engine.order_tb(order_ip)
             self.engine.send_update()
         else:
             self.write_error(404)

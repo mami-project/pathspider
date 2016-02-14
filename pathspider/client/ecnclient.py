@@ -160,18 +160,20 @@ class EcnImp:
 
 
 class EcnAnalysis:
-    def __init__(self, compiled_chunk=None, ipv='ip4', sites=[]):
+    def __init__(self, sites, compiled_chunk=None, ipv='ip4'):
+        self.sites = sites
         self.chunks = []
 
-        # FIXME make these actual empty dataframes with columns...
-        self.offline = pd.DataFrame()
-        self.always_works = pd.DataFrame()
-        self.always_broken = pd.DataFrame()
-        self.works_per_site = pd.DataFrame()
-        self.other = pd.DataFrame()
-        self.incomplete = []
+        columns = ['destination.'+ipv, 'destination.port'] + \
+                  [site+':conn' for site in sites] + \
+                  [site+':nego' for site in sites]
 
-        self.sites = sites
+        self.offline = pd.DataFrame(columns=columns)
+        self.always_works = pd.DataFrame(columns=columns)
+        self.always_broken = pd.DataFrame(columns=columns)
+        self.works_per_site = pd.DataFrame(columns=columns)
+        self.other = pd.DataFrame(columns=columns)
+        self.incomplete = []
 
         if compiled_chunk is not None:
             self._analyze(compiled_chunk, ipv)
@@ -246,7 +248,12 @@ class EcnAnalysis:
         merged = {}
         incomplete = []
         for site, chunk in compiled_chunk.items():
-            for ip, result in chunk.groupby('destination.'+ipv):
+            if len(chunk) == 0:
+                print("analyzer: probe {} did not return any results".format(site))
+                continue
+
+            for ip_addr, result in chunk.groupby('destination.'+ipv):
+                ip = str(ip_addr)
                 if result.shape[0] != 2:
                     incomplete.append((site, ip, result))
                     continue
@@ -424,7 +431,7 @@ class EcnClient:
                         compiled_chunk[name] = pd.DataFrame(results.pop(chunk_id))
 
                 logger.debug("processing chunk {}".format(chunk_id))
-                analysis = EcnAnalysis(compiled_chunk, self.ipv, sites=self.sites)
+                analysis = EcnAnalysis(sites=self.sites, compiled_chunk=compiled_chunk, ipv=self.ipv)
                 logger.debug("calling result_sink() with result of chunk {}...".format(chunk_id))
                 self.result_sink(analysis, chunk_id)
                 logger.debug("result_sink() returned.")
