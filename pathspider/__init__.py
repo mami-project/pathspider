@@ -52,7 +52,7 @@ def run_standalone(args, config):
 
     print("standalone mode: starting client...")
     # run client
-    return run_client(args, config)
+    return run_client(args, config, is_standalone=True)
 
 def skip_and_truncate(iterable, filename, skip, count):
     if skip != 0:
@@ -619,7 +619,28 @@ class ControlBatch:
     def tb_result_sink(self, ip, graph):
         self.subjects_map[str(ip)]['tb'] = graph
 
-def run_client(args, config):
+def run_client(args, config, is_standalone = False):
+    # boot the registry if we have to
+    # FIXME: change this with mplane SDK issue 15 
+    if not is_standalone:
+        if config is not None:
+            # preload any registries necessary
+            if "Registries" in config:
+                if "preload" in config["Registries"]:
+                    for reg in config["Registries"]["preload"]:
+                        mplane.model.preload_registry(reg)
+                if "default" in config["Registries"]:
+                    registry_uri = config["Registries"]["default"]
+                else:
+                    registry_uri = None
+            else:
+                registry_uri = None
+        else:
+            registry_uri = None
+
+        # load default registry
+        mplane.model.initialize_registry(registry_uri)
+
     tls_state = mplane.tls.TlsState(config)
 
     probe_urls = config["Pathspider"]["Probes"].items()
