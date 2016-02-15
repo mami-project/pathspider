@@ -5,14 +5,18 @@ import threading
 import logging
 import time
 import pandas as pd
-import ipaddress
+from ipaddress import ip_address
 
 TbJob = collections.namedtuple('TbJob', ['ip', 'port', 'ipv', 'probe', 'when'])
 
+def str_or_none(obj):
+    return str(obj) if obj is not None else None
+
 class TbImp:
-    def __init__(self, name, tls_state, url, result_sink):
+    def __init__(self, name, tls_state, url, result_sink, ipv='ip4'):
         self.name = name
         self.url = url
+        self.ipv = ipv
         self.client = mplane.client.HttpInitiatorClient(tls_state=tls_state)
         self.queued = collections.deque()
         self.pending_token = None
@@ -119,13 +123,13 @@ class TbImp:
             raise NotImplementedError("This mode is not implemented.")
 
 
-        self.queued.append(TbJob(ip, port, 'ip'+str(ip.version), probe, 'now ... future'))
+        self.queued.append(TbJob(ip, port, self.ipv, probe, 'now ... future'))
 
 
 class TbClient:
     def __init__(self, result_sink, tls_state, probes, ipv='ip4'):
         self.ipv = ipv
-        self.imps = [TbImp(name, tls_state, url, self.imp_sink) for name, url in probes]
+        self.imps = [TbImp(name, tls_state, url, self.imp_sink, self.ipv) for name, url in probes]
 
         self.result_sink = result_sink
 
@@ -138,8 +142,7 @@ class TbClient:
         self.thread.start()
 
     def add_job(self, ip, port, mode='tcp'):
-        assert(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address))
-        assert(self.ipv == 'ip'+str(ip.version))
+        assert(self.ipv == 'ip{}'.format(ip_address(ip).version))
 
         for imp in self.imps:
             imp.add_job(ip, port, mode)
@@ -199,7 +202,7 @@ class TbClient:
                 graph = {}
                 for name, chunk in compiled_chunk.items():
                     if len(chunk) > 0:
-                        graph[name] = [(hop['scamper.tracebox.hop.'+self.ipv], hop['scamper.tracebox.hop.modifications']) for _, hop in chunk.iterrows()]
+                        graph[name] = [(str_or_none(hop['scamper.tracebox.hop.'+self.ipv]), hop['scamper.tracebox.hop.modifications']) for _, hop in chunk.iterrows()]
                     else:
                         graph[name] = []
 

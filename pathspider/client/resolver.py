@@ -62,10 +62,10 @@ class ResolverApi(BaseClientApi):
 
     def _process_result(self, label, token, result_sink, result):
         if label == 'btdhtresolver-ip4' or label == 'btdhtresolver-ip6':
-            addrs = [(row['destination.'+self.ipv], row['destination.port'], str(row['destination.'+self.ipv])) for row in result.schema_dict_iterator()]
+            addrs = [(str(row['destination.'+self.ipv]), row['destination.port'], str(row['destination.'+self.ipv])) for row in result.schema_dict_iterator()]
             result_sink(label=label, token=token, result=addrs)
         elif label == 'webresolver-ip4' or label == 'webresolver-ip6':
-            addrs = [(row['destination.'+self.ipv], 80, str(row['ecnspider.hostname'])) for row in result.schema_dict_iterator()]
+            addrs = [(str(row['destination.'+self.ipv]), 80, str(row['ecnspider.hostname'])) for row in result.schema_dict_iterator()]
             result_sink(label=label, token=token, result=addrs)
 
     def is_busy(self):

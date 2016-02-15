@@ -73,6 +73,7 @@ class EcnImp:
             self.client.interrupt_capability(self.pending_token)
             self.pending_token = None
             self.pending = None
+
         logger.info("Shutdown completed")
 
     def is_busy(self):
@@ -159,18 +160,20 @@ class EcnImp:
 
 
 class EcnAnalysis:
-    def __init__(self, compiled_chunk=None, ipv='ip4', sites=[]):
+    def __init__(self, sites, compiled_chunk=None, ipv='ip4'):
+        self.sites = sites
         self.chunks = []
 
-        # FIXME make these actual empty dataframes with columns...
-        self.offline = pd.DataFrame()
-        self.always_works = pd.DataFrame()
-        self.always_broken = pd.DataFrame()
-        self.works_per_site = pd.DataFrame()
-        self.other = pd.DataFrame()
-        self.incomplete = []
+        columns = ['destination.'+ipv, 'destination.port'] + \
+                  [site+':conn' for site in sites] + \
+                  [site+':nego' for site in sites]
 
-        self.sites = sites
+        self.offline = pd.DataFrame(columns=columns)
+        self.always_works = pd.DataFrame(columns=columns)
+        self.always_broken = pd.DataFrame(columns=columns)
+        self.works_per_site = pd.DataFrame(columns=columns)
+        self.other = pd.DataFrame(columns=columns)
+        self.incomplete = []
 
         if compiled_chunk is not None:
             self._analyze(compiled_chunk, ipv)
@@ -245,7 +248,12 @@ class EcnAnalysis:
         merged = {}
         incomplete = []
         for site, chunk in compiled_chunk.items():
-            for ip, result in chunk.groupby('destination.'+ipv):
+            if len(chunk) == 0:
+                print("analyzer: probe {} did not return any results".format(site))
+                continue
+
+            for ip_addr, result in chunk.groupby('destination.'+ipv):
+                ip = str(ip_addr)
                 if result.shape[0] != 2:
                     incomplete.append((site, ip, result))
                     continue
@@ -356,6 +364,8 @@ class EcnClient:
         self.result_sink = result_sink
 
         self.running = True
+        self.wait_final_analysis = False
+
         self.thread = threading.Thread(target=self.analyzer_func, daemon=True, name="ecnclient")
         self.thread.start()
 
@@ -374,10 +384,15 @@ class EcnClient:
     def shutdown(self):
         logger = logging.getLogger('ecnclient')
         logger.info("Attempting shutdown...")
-        self.running = False
         for imp in self.imps:
             imp.shutdown()
 
+        self.wait_final_analysis = True
+        while self.wait_final_analysis:
+            logger.info("ECN client waiting for final analysis on shutdown...")
+            time.sleep(1)
+
+        self.running = False
         logger.info("Shutdown complete.")
 
     def imp_sink(self, name, result, chunk_id):
@@ -386,7 +401,7 @@ class EcnClient:
 
     def analyzer_func(self):
         logger = logging.getLogger('ecnclient')
-        logger.info("Started.")
+        logger.info("Analyzer started.")
 
         while self.running:
             # determine chunks which have been completed by all probes
@@ -403,6 +418,7 @@ class EcnClient:
 
             if len(chunks_finished) == 0:
                 time.sleep(1)
+                self.wait_final_analysis = False
                 continue
 
             logger.info("Measurement for chunks {} now completed by all probes.".format(",".join([str(chunk_id) for chunk_id in chunks_finished])))
@@ -415,10 +431,12 @@ class EcnClient:
                         compiled_chunk[name] = pd.DataFrame(results.pop(chunk_id))
 
                 logger.debug("processing chunk {}".format(chunk_id))
-                analysis = EcnAnalysis(compiled_chunk, self.ipv, sites=self.sites)
+                analysis = EcnAnalysis(sites=self.sites, compiled_chunk=compiled_chunk, ipv=self.ipv)
                 logger.debug("calling result_sink() with result of chunk {}...".format(chunk_id))
                 self.result_sink(analysis, chunk_id)
                 logger.debug("result_sink() returned.")
+
+        logger.info("Analyzer complete.")
 
     def is_busy(self):
         return any(imp.is_busy() for imp in self.imps)
