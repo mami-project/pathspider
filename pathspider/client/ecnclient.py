@@ -197,7 +197,7 @@ class EcnAnalysis:
     def __add__(self, other):
         if not isinstance(other, EcnAnalysis):
             raise NotImplementedError("Only instances of Analysis can be added here.")
-        newa = EcnAnalysis(None, sites=self.sites)
+        newa = EcnAnalysis(None, self.sites)
 
         newa.chunks = self.chunks + other.chunks
         newa.offline = self.offline.append(other.offline)
