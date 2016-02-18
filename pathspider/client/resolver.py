@@ -113,5 +113,6 @@ def read_hostnames(fp):
 def read_ips(fp):
     df = pandas.read_csv(fp)
 
-    return [(ip_address(row['ip']), row['port'], row['ĥostname'] or row['ip']) for idx, row in df.iterrows()]
+    return [(ip_address(row['ip']), row['port'], row['hostname'] or row['ip'])
+            for idx, row in df.iterrows()] # pylint: disable=no-member
 
