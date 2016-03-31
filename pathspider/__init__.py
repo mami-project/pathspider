@@ -52,7 +52,7 @@ def run_standalone(args, config):
 
     print("standalone mode: starting client...")
     # run client
-    return run_client(args, config)
+    return run_client(args, config, is_standalone=True)
 
 def skip_and_truncate(iterable, filename, skip, count):
     if skip != 0:
@@ -83,7 +83,7 @@ def grouper(iterable, count):
             break
 
 class GraphGenerator:
-    def add_node(self, name, x = None, y = None):
+    def add_node(self, name, x=None, y=None):
         if name in self.nodes_idx:
             return
 
@@ -197,7 +197,7 @@ class CommandHandler(tornado.web.RequestHandler):
                 self.set_header("Content-Type", "application/json")
                 self.write(ansstr)
         elif cmd == 'graph':
-            ips = [ip_address(ip) for ip in self.get_arguments('ip')]
+            ips = self.get_arguments('ip')
             gg = GraphGenerator(ips, self.engine.probe_urls, self.engine.subjects_map)
             self.write({
                 'nodes': gg.nodes,
@@ -226,13 +226,13 @@ class CommandHandler(tornado.web.RequestHandler):
             self.engine.resolve_btdht(count)
         elif cmd == 'resolve_ips':
             ips = self.get_body_argument('iplist').splitlines()
-            self.engine.resolve_ips((ip_address(ip) for ip in ips))
+            self.engine.resolve_ips(ips)
         elif cmd == 'resolve_web':
             domains = self.get_body_argument('domains').splitlines()
             self.engine.resolve_web(domains)
         elif cmd == 'order_tb':
             order_ip = self.get_body_argument('ip')
-            self.engine.order_tb(ip_address(order_ip))
+            self.engine.order_tb(order_ip)
             self.engine.send_update()
         else:
             self.write_error(404)
@@ -414,9 +414,7 @@ class ControlWeb:
         self.resolver.resolve_web(hostnames, self.resolve_sink)
 
     def resolve_ips(self, ips):
-        assert(all(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address) for ip in ips))
-        print(all(isinstance(ip, ipaddress.IPv4Address) or isinstance(ip, ipaddress.IPv6Address) for ip in ips))
-        self.resolve_sink(label='', token='', result=[(ip, 80, ip) for ip in ips])
+        self.resolve_sink(label='', token='', result=[(str(ip), 80, str(ip)) for ip in ips])
 
     def resolve_sink(self, label, token, error=None, result=None):
         """
@@ -446,12 +444,12 @@ class ControlWeb:
         self.next_chunk_id+=1
         self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
         for ip, port, hostname in addrs:
-            self.subjects_map[ip]['ecn'] = None
+            self.subjects_map[str(ip)]['ecn'] = None
 
     def ecn_result_sink(self, result, chunk_id):
         for ip, status, res in result.get_ip_and_result():
-            self.subjects_map[ip]['ecn'] = status
-            self.subjects_map[ip]['ecn_result'] = None#res.to_dict()
+            self.subjects_map[str(ip)]['ecn'] = status
+            self.subjects_map[str(ip)]['ecn_result'] = None#res.to_dict()
             #import pdb; pdb.set_trace()
         self.subjects_changed = True
 
@@ -567,6 +565,9 @@ class ControlBatch:
         except KeyboardInterrupt:
             print("measurement aborted.")
 
+        self.ecnclient.shutdown()
+        self.tbclient.shutdown()
+
         print("writing results...")
         try:
             json.dump({'subjects': self.subjects}, self.report_file, cls=IPAddressEncoder)
@@ -578,8 +579,6 @@ class ControlBatch:
             print("Starting debugger console...")
             import pdb; pdb.set_trace()
 
-        self.ecnclient.shutdown()
-        self.tbclient.shutdown()
 
         print("Bye.")
         exit(0)
@@ -595,9 +594,9 @@ class ControlBatch:
 
         # create subjects
         for ip, port, hostname in result:
-            subject = {'ip': ip, 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
+            subject = {'ip': str(ip), 'port': port, 'hostname': hostname, 'ecn':None, 'tb': None}
             self.subjects.append(subject)
-            self.subjects_map[ip] = subject
+            self.subjects_map[str(ip)] = subject
 
         flavor = 'tcp'
         if label.startswith('webresolver-'):
@@ -607,18 +606,39 @@ class ControlBatch:
 
     def order_ecn(self, addrs, flavor):
         chunk_id = self.next_chunk_id
-        self.next_chunk_id+=1
+        self.next_chunk_id += 1
         self.ecnclient.add_job(addrs, chunk_id, self.ipv, flavor)
 
     def ecn_result_sink(self, result, chunk_id):
         for ip, status, res in result.get_ip_and_result():
             self.subjects_map[str(ip)]['ecn'] = status
-            self.subjects_map[str(ip)]['ecn_result'] = res
+            self.subjects_map[str(ip)]['ecn_result'] = json.loads(res.to_json())
 
     def tb_result_sink(self, ip, graph):
         self.subjects_map[str(ip)]['tb'] = graph
 
-def run_client(args, config):
+def run_client(args, config, is_standalone = False):
+    # boot the registry if we have to
+    # FIXME: change this with mplane SDK issue 15 
+    if not is_standalone:
+        if config is not None:
+            # preload any registries necessary
+            if "Registries" in config:
+                if "preload" in config["Registries"]:
+                    for reg in config["Registries"]["preload"]:
+                        mplane.model.preload_registry(reg)
+                if "default" in config["Registries"]:
+                    registry_uri = config["Registries"]["default"]
+                else:
+                    registry_uri = None
+            else:
+                registry_uri = None
+        else:
+            registry_uri = None
+
+        # load default registry
+        mplane.model.initialize_registry(registry_uri)
+
     tls_state = mplane.tls.TlsState(config)
 
     probe_urls = config["Pathspider"]["Probes"].items()

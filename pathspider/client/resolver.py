@@ -25,6 +25,7 @@ import logging
 import threading
 import pandas
 import traceback
+import sys
 
 from ipaddress import ip_address
 
@@ -61,10 +62,10 @@ class ResolverApi(BaseClientApi):
 
     def _process_result(self, label, token, result_sink, result):
         if label == 'btdhtresolver-ip4' or label == 'btdhtresolver-ip6':
-            addrs = [(row['destination.'+self.ipv], row['destination.port'], str(row['destination.'+self.ipv])) for row in result.schema_dict_iterator()]
+            addrs = [(str(row['destination.'+self.ipv]), row['destination.port'], str(row['destination.'+self.ipv])) for row in result.schema_dict_iterator()]
             result_sink(label=label, token=token, result=addrs)
         elif label == 'webresolver-ip4' or label == 'webresolver-ip6':
-            addrs = [(row['destination.'+self.ipv], 80, str(row['ecnspider.hostname'])) for row in result.schema_dict_iterator()]
+            addrs = [(str(row['destination.'+self.ipv]), 80, str(row['ecnspider.hostname'])) for row in result.schema_dict_iterator()]
             result_sink(label=label, token=token, result=addrs)
 
     def is_busy(self):
@@ -112,5 +113,6 @@ def read_hostnames(fp):
 def read_ips(fp):
     df = pandas.read_csv(fp)
 
-    return [(ip_address(row['ip']), row['port'], row['ĥostname'] or row['ip']) for idx, row in df.iterrows()]
+    return [(ip_address(row['ip']), row['port'], row['hostname'] or row['ip'])
+            for idx, row in df.iterrows()] # pylint: disable=no-member
 

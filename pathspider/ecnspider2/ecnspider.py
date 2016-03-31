@@ -58,23 +58,24 @@ QOF_TSOPT =      0x10
 QOF_SACKOPT =    0x20
 QOF_WSOPT =      0x40
 
-Connection = collections.namedtuple("Connection",["client","port","state"])
-Connection.OK = 0
-Connection.FAILED = 1
-Connection.TIMEOUT = 2
+Connection = collections.namedtuple("Connection", ["client", "port", "state"])
+CONN_OK = 0
+CONN_FAILED = 1
+CONN_TIMEOUT = 2
 
 # HTTP constants
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0'
 
 SpiderRecord = collections.namedtuple("SpiderRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "userval"])
+    ["ip", "host", "port", "rport", "ecnstate", "connstate", "httpstatus",
+        "userval"])
 
 FlowRecord = collections.namedtuple("FlowRecord",
-    ["ip","port","octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
+    ["ip", "port", "octets", "fif", "fsf", "fuf", "fir", "fsr", "fur", "ttl"])
 
 MergedRecord = collections.namedtuple("MergedRecord",
-    ["ip","host","port","rport","ecnstate","connstate","httpstatus", "userval",
-     "octets","fif","fsf","fuf","fir","fsr","fur","ttl"])
+    ["ip", "host", "port", "rport", "ecnstate", "connstate", "httpstatus",
+        "userval", "octets", "fif", "fsf", "fuf", "fir", "fsr", "fur", "ttl"])
 
 Job = collections.namedtuple("Job", ["ip", "host", "rport", "userval"])
 
@@ -82,7 +83,7 @@ class EcnSpider2(qofspider.QofSpider):
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
                  interface_uri,
-                 local_ip4 = None, local_ip6 = None,
+                 local_ip4=None, local_ip6=None,
                  qof_port=4739,
                  check_interrupt=None):
         super().__init__(worker_count=worker_count, interface_uri=interface_uri, qof_port=qof_port, check_interrupt=check_interrupt)
@@ -95,7 +96,7 @@ class EcnSpider2(qofspider.QofSpider):
         elif sys.platform == 'darwin':
             self.configurator_hooks = EcnSpider2ConfigDarwin()
         else:
-            raise NotImplemented("ECN configurator for your system {} is not implemented.".format(sys.platform))
+            raise NotImplementedError("ECN configurator for your system {} is not implemented.".format(sys.platform))
 
         if local_ip4:
             self.local_ip4 = ip_address(local_ip4) if isinstance(local_ip4, str) else local_ip4
@@ -123,14 +124,14 @@ class EcnSpider2(qofspider.QofSpider):
             sock.settimeout(self.conn_timeout)
             sock.connect((str(job.ip), job.rport))
 
-            return Connection(sock, sock.getsockname()[1], Connection.OK)
+            return Connection(sock, sock.getsockname()[1], CONN_OK)
         except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], Connection.TIMEOUT)
+            return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
         except OSError as e:
-            return Connection(sock, sock.getsockname()[1], Connection.FAILED)
+            return Connection(sock, sock.getsockname()[1], CONN_FAILED)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.state == Connection.OK:
+        if conn.state == CONN_OK:
             sr = SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, job.userval)
 
         else:
@@ -242,7 +243,7 @@ class EcnSpider2Http(EcnSpider2):
     def __init__(self, result_sink,
                  worker_count, conn_timeout,
                  interface_uri,
-                 local_ip4 = None, local_ip6 = None,
+                 local_ip4=None, local_ip6=None,
                  qof_port=4739,
                  check_interrupt=None):
         super().__init__(result_sink=result_sink, worker_count=worker_count, conn_timeout=conn_timeout,
@@ -255,14 +256,14 @@ class EcnSpider2Http(EcnSpider2):
         try:
             client.connect()
         except socket.timeout:
-            return Connection(None, None, Connection.TIMEOUT)
+            return Connection(None, None, CONN_TIMEOUT)
         except OSError as e:
-            return Connection(None, None, Connection.FAILED)
+            return Connection(None, None, CONN_FAILED)
         else:
-            return Connection(client, client.sock.getsockname()[1], Connection.OK)
+            return Connection(client, client.sock.getsockname()[1], CONN_OK)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.state == Connection.OK:
+        if conn.state == CONN_OK:
             headers = {'User-Agent': USER_AGENT,
                        'Connection': 'close',
                        'Host': job.host}

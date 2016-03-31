@@ -79,8 +79,10 @@ class BtDhtSpider:
         dht.stop()
     """
 
-    def __init__(self, bindaddr=('', 6881), ip_version='ip4', unique=False, bootstrap=(('dht.transmissionbt.com', 6881),),
-                bandwidth = 5*1024, max_addr_cache_size = 100, max_requests_running = 100, max_addr_pool_size = 100, request_timeout = 15, slot_time = 0.1):
+    def __init__(self, bindaddr=('', 6881), ip_version='ip4', unique=False,
+            bootstrap=(('dht.transmissionbt.com', 6881),), bandwidth=5*1024,
+            max_addr_cache_size=100, max_requests_running=100,
+            max_addr_pool_size=100, request_timeout=15, slot_time=0.1):
         """
         :param bindaddr: Address to bind to. (Needs to contain either an IPv4 or IPv6 address depending on parameter ip_version)
         :param ip_version: Of which IP version addresses should be collected. ip_version='ip4' or ip_version='ip6'.
@@ -201,7 +203,7 @@ class BtDhtSpider:
             if last != int(tnow) and bandwidth  > 0:
                 last = int(tnow)
                 success_rate = self.requests_success / (self.requests_timeout + self.requests_success) if self.requests_success > 0 else 0
-                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth/1024 , self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, success_rate))
+                logger.debug("bandwidth: {:0.3f} kiB/s, addr_cache: {}, addr_pool: {}, requests: {}, success: {}, success rate: {:0.0%}".format(bandwidth/1024, self.addr_cache.qsize(), len(self.addr_pool), len(self.requests), self.requests_success, success_rate))
 
             # cleanup bandwidth track
             while len(track) > 0:

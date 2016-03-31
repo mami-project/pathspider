@@ -90,7 +90,8 @@ class SemaphoreN(threading.BoundedSemaphore):
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
-QOF_FINAL_SLEEP = 5
+QOF_INITIAL_SLEEP = 3
+QOF_FINAL_SLEEP = 3
 
 class QofSpider:
     """
@@ -168,10 +169,10 @@ class QofSpider:
         self.sem_config_one.release_n(self.worker_count)
 
     def config_zero(self):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def config_one(self):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def interrupter(self):
         if self.check_interrupt is None:
@@ -236,17 +237,17 @@ class QofSpider:
         pass
 
     def connect(self, job, pcs, config):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def post_connect(self, job, conn, pcs, config):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def qofowner(self):
         logger = logging.getLogger('qofspider')
 
         with tempfile.TemporaryDirectory(prefix="qoftmp") as confdir:
             # create a QoF configuration file
-            confpath = os.path.join(confdir,"qof.yaml")
+            confpath = os.path.join(confdir, "qof.yaml")
             with open(confpath, "w") as conffile:
                 conffile.write(yaml.dump(self.qof_config()))
                 logger.debug("wrote qof configuration file in "+confpath)
@@ -273,7 +274,7 @@ class QofSpider:
                 raise Exception("qof terminated with signal "+str(-rv))
 
     def qof_config(self):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     class QofCollectorHandler(socketserver.StreamRequestHandler):
         def handle(self):
@@ -296,7 +297,8 @@ class QofSpider:
 
     def qoflistener(self):
         logger = logging.getLogger('qofspider')
-        self.listener = QofSpider.QofCollectorListener(("",self.qof_port), QofSpider.QofCollectorHandler, self)
+        self.listener = QofSpider.QofCollectorListener(("", self.qof_port),
+                QofSpider.QofCollectorHandler, self)
         logger.info("starting listener: "+repr(self.listener))
         self.listener.serve_forever()
         if self.stopping is False:
@@ -305,7 +307,7 @@ class QofSpider:
             logger.debug("listener stopped")
 
     def tupleize_flow(self, flow):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def merger(self):
         logger = logging.getLogger('qofspider')
@@ -351,7 +353,7 @@ class QofSpider:
                     self.resqueue.task_done()
 
     def merge(self, flow, res):
-        raise NotImplemented("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
 
     def exception_wrapper(self, target):
         try:
@@ -385,6 +387,8 @@ class QofSpider:
                                           target=self.exception_wrapper,
                                           name='qofowner')
             self.qofowner_thread.start()
+            logger.debug("waiting "+str(QOF_INITIAL_SLEEP)+"s for qof to start")
+            time.sleep(QOF_INITIAL_SLEEP)
             logger.debug("owner up")
 
             # now start up ecnspider, backwards
@@ -504,7 +508,6 @@ class QofSpider:
             self.listener.shutdown()
             self.listener.server_close()
             logger.debug("QoF shutdown complete")
-
 
             # Wait for flow queue to empty
             self.flowqueue.join()

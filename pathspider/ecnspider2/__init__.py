@@ -57,10 +57,11 @@ def strbool(s):
     else:
         return False
 
-def services(ip4addr = None, ip6addr = None, worker_count = None, connection_timeout = None,
-             interface_uri = None, qof_port=54739, enable_ipv6=True):
+def services(ip4addr=None, ip6addr=None, worker_count=None,
+        connection_timeout=None, interface_uri=None, qof_port=54739,
+        enable_ipv6=True):
     """
-    Return a list of mplane.scheduler.Service instances implementing 
+    Return a list of mplane.scheduler.Service instances implementing
     the mPlane capabilities for ecnspider.
 
     """
@@ -77,7 +78,7 @@ def services(ip4addr = None, ip6addr = None, worker_count = None, connection_tim
     if strbool(enable_ipv6):
         servicelist.append(EcnspiderService(ecnspider_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip6addr=ip6addr, singleton_lock=lock))
         servicelist.append(EcnspiderHttpService(ecnspider_http_cap(6), worker_count=worker_count, connection_timeout=connection_timeout, interface_uri=interface_uri, qof_port=qof_port, ip4addr=ip4addr, singleton_lock=lock))
-    
+
     return servicelist
 
 def ecnspider_cap(ip_version):
@@ -104,7 +105,7 @@ def ecnspider_cap(ip_version):
     return cap
 
 class EcnspiderService(mplane.scheduler.Service):
-    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr = None, ip6addr = None):
+    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr=None, ip6addr=None):
         super().__init__(cap)
 
         self.worker_count = int(worker_count)
@@ -132,10 +133,11 @@ class EcnspiderService(mplane.scheduler.Service):
             # setup ecnspider
             result_sink = collections.deque()
             ecn = ecnspider.EcnSpider2(result_sink.append,
-                     worker_count=self.worker_count, conn_timeout=self.connection_timeout,
-                     interface_uri=self.interface_uri,
-                     local_ip4 = self.ip4addr, local_ip6 = self.ip6addr,
-                     qof_port=self.qof_port, check_interrupt=check_interrupt)
+                    worker_count=self.worker_count,
+                    conn_timeout=self.connection_timeout,
+                    interface_uri=self.interface_uri, local_ip4=self.ip4addr,
+                    local_ip6=self.ip6addr, qof_port=self.qof_port,
+                    check_interrupt=check_interrupt)
 
             # formulate jobs
             ports = spec.get_parameter_value("destination.port")
@@ -158,18 +160,18 @@ class EcnspiderService(mplane.scheduler.Service):
             res.set_when(mplane.model.When(a=starttime, b=stoptime))
 
             for i, result in enumerate(result_sink):
-                res.set_result_value("source.port",                 result.port, i)
-                res.set_result_value("destination."+ipv,            result.ip, i)
-                res.set_result_value("destination.port",            result.rport, i)
-                res.set_result_value("connectivity.ip",             result.connstate, i)
-                res.set_result_value("ecnspider.ecnstate",          result.ecnstate, i)
-                res.set_result_value("ecnspider.initflags.fwd",     result.fif, i)
-                res.set_result_value("ecnspider.synflags.fwd",      result.fsf, i)
-                res.set_result_value("ecnspider.unionflags.fwd",    result.fuf, i)
-                res.set_result_value("ecnspider.initflags.rev",     result.fir, i)
-                res.set_result_value("ecnspider.synflags.rev",      result.fsr, i)
-                res.set_result_value("ecnspider.unionflags.rev",    result.fur, i)
-                res.set_result_value("ecnspider.ttl.rev.min",       result.ttl, i)
+                 res.set_result_value("source.port", result.port, i)
+                 res.set_result_value("destination."+ipv, result.ip, i)
+                 res.set_result_value("destination.port", result.rport, i)
+                 res.set_result_value("connectivity.ip", result.connstate, i)
+                 res.set_result_value("ecnspider.ecnstate", result.ecnstate, i)
+                 res.set_result_value("ecnspider.initflags.fwd", result.fif, i)
+                 res.set_result_value("ecnspider.synflags.fwd", result.fsf, i)
+                 res.set_result_value("ecnspider.unionflags.fwd", result.fuf, i)
+                 res.set_result_value("ecnspider.initflags.rev", result.fir, i)
+                 res.set_result_value("ecnspider.synflags.rev", result.fsr, i)
+                 res.set_result_value("ecnspider.unionflags.rev", result.fur, i)
+                 res.set_result_value("ecnspider.ttl.rev.min", result.ttl, i)
             print("ecnspider2: returning {} records".format(len(result_sink)))
         except Exception as e:
             self.singleton_lock.release()
@@ -205,7 +207,7 @@ def ecnspider_http_cap(ip_version):
     return cap
 
 class EcnspiderHttpService(mplane.scheduler.Service):
-    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr = None, ip6addr = None):
+    def __init__(self, cap, worker_count, connection_timeout, interface_uri, qof_port, singleton_lock, ip4addr=None, ip6addr=None):
         super().__init__(cap)
 
         self.worker_count = int(worker_count)
@@ -233,10 +235,11 @@ class EcnspiderHttpService(mplane.scheduler.Service):
             # setup ecnspider
             result_sink = collections.deque()
             ecn = ecnspider.EcnSpider2Http(result_sink.append,
-                     worker_count=self.worker_count, conn_timeout=self.connection_timeout,
-                     interface_uri=self.interface_uri,
-                     local_ip4 = self.ip4addr, local_ip6 = self.ip6addr,
-                     qof_port=self.qof_port, check_interrupt=check_interrupt)
+                    worker_count=self.worker_count,
+                    conn_timeout=self.connection_timeout,
+                    interface_uri=self.interface_uri, local_ip4=self.ip4addr,
+                    local_ip6=self.ip6addr, qof_port=self.qof_port,
+                    check_interrupt=check_interrupt)
 
             # formulate jobs
             ports = spec.get_parameter_value("destination.port")
@@ -263,20 +266,20 @@ class EcnspiderHttpService(mplane.scheduler.Service):
             res.set_when(mplane.model.When(a=starttime, b=stoptime))
 
             for i, result in enumerate(result_sink):
-                res.set_result_value("source.port",                 result.port, i)
-                res.set_result_value("destination."+ipv,            result.ip, i)
-                res.set_result_value("destination.port",            result.rport, i)
-                res.set_result_value("connectivity.ip",             result.connstate, i)
-                res.set_result_value("ecnspider.hostname",          result.host)
-                res.set_result_value("ecnspider.ecnstate",          result.ecnstate, i)
-                res.set_result_value("ecnspider.httpstatus",        result.httpstatus)
-                res.set_result_value("ecnspider.initflags.fwd",     result.fif, i)
-                res.set_result_value("ecnspider.synflags.fwd",      result.fsf, i)
-                res.set_result_value("ecnspider.unionflags.fwd",    result.fuf, i)
-                res.set_result_value("ecnspider.initflags.rev",     result.fir, i)
-                res.set_result_value("ecnspider.synflags.rev",      result.fsr, i)
-                res.set_result_value("ecnspider.unionflags.rev",    result.fur, i)
-                res.set_result_value("ecnspider.ttl.rev.min",       result.ttl, i)
+                res.set_result_value("source.port", result.port, i)
+                res.set_result_value("destination."+ipv, result.ip, i)
+                res.set_result_value("destination.port", result.rport, i)
+                res.set_result_value("connectivity.ip", result.connstate, i)
+                res.set_result_value("ecnspider.hostname", result.host)
+                res.set_result_value("ecnspider.ecnstate", result.ecnstate, i)
+                res.set_result_value("ecnspider.httpstatus", result.httpstatus)
+                res.set_result_value("ecnspider.initflags.fwd", result.fif, i)
+                res.set_result_value("ecnspider.synflags.fwd", result.fsf, i)
+                res.set_result_value("ecnspider.unionflags.fwd", result.fuf, i)
+                res.set_result_value("ecnspider.initflags.rev", result.fir, i)
+                res.set_result_value("ecnspider.synflags.rev", result.fsr, i)
+                res.set_result_value("ecnspider.unionflags.rev", result.fur, i)
+                res.set_result_value("ecnspider.ttl.rev.min", result.ttl, i)
 
             print("ecnspider2: returning {} records".format(len(result_sink)))
         except Exception as e:
