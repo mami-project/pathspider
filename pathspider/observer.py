@@ -250,6 +250,14 @@ class Observer:
 
         self._ignored.clear()
 
+    def run_flow_enqueuer(self, queue):
+        while True:
+            f = self._next_flow()
+            if f:
+                queue.put(f)
+            else:
+                break
+
 def extract_ports(ip):
     if ip.udp:
         return (ip.udp.src_port, ip.udp.dst_port)
