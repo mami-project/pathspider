@@ -242,7 +242,7 @@ class Spider:
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def merger(self):
-        logger = logging.getLogger('obspider')
+        logger = logging.getLogger('pathspider')
         while self.running:
             if self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
@@ -294,7 +294,7 @@ class Spider:
             target(*args, **kwargs)
         except:
             #FIXME: What exceptions do we expect?
-            logger = logging.getLogger('obspider')
+            logger = logging.getLogger('pathspider')
             logger.exception("exception occurred. initiating termination and" +
                              "notify ecnspider component.")
             if self.exception is None:
@@ -303,7 +303,7 @@ class Spider:
             self.terminate()
 
     def run(self):
-        logger = logging.getLogger('obspider')
+        logger = logging.getLogger('pathspider')
 
         logger.info("starting obspider")
 
@@ -366,7 +366,7 @@ class Spider:
 
         self.terminating = True
 
-        logger = logging.getLogger('obspider')
+        logger = logging.getLogger('pathspider')
         logger.error("terminating obspider.")
 
         self.running = False
@@ -413,7 +413,7 @@ class Spider:
             self.merger_thread.join()
 
     def stop(self):
-        logger = logging.getLogger('obspider')
+        logger = logging.getLogger('pathspider')
 
         logger.info("stopping obspider")
 
