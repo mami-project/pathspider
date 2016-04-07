@@ -144,7 +144,7 @@ class Observer:
                 (ffid, rfid) = _flow4_ids(self._pkt.ip)
                 ip = self._pkt.ip
             elif self._pkt.ip6:
-                (ffid, rfid) = _flow6_ids(self._pkt_ip6)
+                (ffid, rfid) = _flow6_ids(self._pkt.ip6)
                 ip = self._pkt.ip6
             else:
                 # we don't care about non-IP packets
