@@ -1,7 +1,7 @@
 """
 Basic framework for Pathspider: coordinate active measurements on large target
 lists with both system-level network stack state (sysctls, iptables rules, etc)
-as well as information derived from flow-level passive observation of traffic at 
+as well as information derived from flow-level passive observation of traffic at
 the sender.
 
 .. moduleauthor:: Brian Trammell <brian@trammell.ch>
@@ -25,21 +25,14 @@ Derived and generalized from ECN Spider
 
 """
 
-from collections import namedtuple
-from ipaddress import ip_address
-import tempfile
-import subprocess
-import threading
-import socketserver
-import queue
-import ipfix.reader
-import ipfix
-import yaml
 import sys
-import os
 import time
 import logging
 import socket
+
+from ipaddress import ip_address
+import threading
+import queue
 
 ###
 ### Utility Classes
@@ -47,23 +40,27 @@ import socket
 
 class SemaphoreN(threading.BoundedSemaphore):
     """
-    An extension to the standard library's BoundedSemaphore that provides functions to handle n tokens at once.
+    An extension to the standard library's BoundedSemaphore that provides
+    functions to handle n tokens at once.
     """
     def __init__(self, value):
-        self._VALUE = value
-        super().__init__(self._VALUE)
+        self._value = value
+        super().__init__(self._value)
         self.empty()
 
     def __str__(self):
-        return 'SemaphoreN with a maximum value of {}.'.format(self._VALUE)
+        return 'SemaphoreN with a maximum value of {}.'.format(self._value)
 
     def acquire_n(self, value=1, blocking=True, timeout=None):
         """
         Acquire ``value`` number of tokens at once.
 
-        The parameters ``blocking`` and ``timeout`` have the same semantics as :class:`BoundedSemaphore`.
+        The parameters ``blocking`` and ``timeout`` have the same semantics as
+        :class:`BoundedSemaphore`.
 
-        :returns: The same value as the last call to `BoundedSemaphore`'s :meth:`acquire` if :meth:`acquire` were called ``value`` times instead of the call to this method.
+        :returns: The same value as the last call to `BoundedSemaphore`'s
+        :meth:`acquire` if :meth:`acquire` were called ``value`` times instead
+        of the call to this method.
         """
         ret = None
         for _ in range(value):
@@ -74,7 +71,9 @@ class SemaphoreN(threading.BoundedSemaphore):
         """
         Release ``value`` number of tokens at once.
 
-        :returns: The same value as the last call to `BoundedSemaphore`'s :meth:`release` if :meth:`release` were called ``value`` times instead of the call to this method.
+        :returns: The same value as the last call to `BoundedSemaphore`'s
+        :meth:`release` if :meth:`release` were called ``value`` times instead
+        of the call to this method.
         """
         ret = None
         for _ in range(value):
@@ -96,10 +95,10 @@ QOF_FINAL_SLEEP = 3
 
 class Spider:
     """
-    A spider consists of a configurator (which alternates between two
-    system configurations), a large number of workers (for performing some
-    network action for each configuration), an Observer which derives information
-    from passively observed traffic, and a thread that merges results from the 
+    A spider consists of a configurator (which alternates between two system
+    configurations), a large number of workers (for performing some network
+    action for each configuration), an Observer which derives information from
+    passively observed traffic, and a thread that merges results from the
     workers with flow records from the collector.
 
     """
@@ -124,7 +123,7 @@ class Spider:
 
         self.jobqueue = queue.Queue()
         self.flowqueue = queue.Queue(QUEUE_SIZE)
-        self.resqueue =  queue.Queue(QUEUE_SIZE)
+        self.resqueue = queue.Queue(QUEUE_SIZE)
 
         self.restab = {}
         self.flowtab = {}
@@ -178,8 +177,8 @@ class Spider:
         logger = logging.getLogger('pathspider')
         while self.running:
             if self.check_interrupt():
-                logger.warn("spider interrupted")
-                logger.warn("trying to abort %d jobs", self.jobqueue.qsize())
+                logger.warning("spider interrupted")
+                logger.warning("trying to abort %d jobs", self.jobqueue.qsize())
                 while not self.jobqueue.empty():
                     self.jobqueue.get()
                     self.jobqueue.task_done()
@@ -243,7 +242,7 @@ class Spider:
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def merger(self):
-        logger = logging.getLogger('qofspider')
+        logger = logging.getLogger('obspider')
         while self.running:
             if self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
@@ -253,7 +252,8 @@ class Spider:
 
                 else:
                     flowkey = (flow.ip, flow.port)
-                    logger.debug("got a flow ("+str(flow.ip)+", "+str(flow.port)+")")
+                    logger.debug("got a flow (" + str(flow.ip) + ", " +
+                                 str(flow.port) + ")")
 
                     if flowkey in self.restab:
                         logger.debug("merging flow")
@@ -272,7 +272,8 @@ class Spider:
                     time.sleep(QUEUE_SLEEP)
                 else:
                     reskey = (res.ip, res.port)
-                    logger.debug("got a result ("+str(res.ip)+", "+str(res.port)+")")
+                    logger.debug("got a result (" + str(res.ip) + ", " +
+                                 str(res.port) + ")")
 
                     if reskey in self.flowtab:
                         logger.debug("merging result")
@@ -292,17 +293,19 @@ class Spider:
         try:
             target(*args, **kwargs)
         except:
-            logger = logging.getLogger('qofspider')
-            logger.exception("exception occurred. initiating termination and notify ecnspider component.")
+            #FIXME: What exceptions do we expect?
+            logger = logging.getLogger('obspider')
+            logger.exception("exception occurred. initiating termination and" +
+                             "notify ecnspider component.")
             if self.exception is None:
                 self.exception = sys.exc_info()[1]
 
             self.terminate()
 
     def run(self):
-        logger = logging.getLogger('qofspider')
+        logger = logging.getLogger('obspider')
 
-        logger.info("starting qofspider")
+        logger.info("starting obspider")
 
         with self.lock:
             # set the running flag
@@ -312,38 +315,48 @@ class Spider:
             self.observer = self.create_observer()
 
             self.observer_thread = threading.Thread(
-                             args=( self.observer.run_flow_enqueuer,
-                                    self.flowqueue),
-                             target=self.exception_wrapper,
-                             name='observer',
-                             daemon=True)
+                args=(self.observer.run_flow_enqueuer,
+                      self.flowqueue),
+                target=self.exception_wrapper,
+                name='observer',
+                daemon=True)
             self.observer_thread.start()
 
             # now start up ecnspider, backwards
-            self.merger_thread = threading.Thread(args=(self.merger,),
-                             target=self.exception_wrapper,
-                             name="merger",
-                             daemon=True)
+            self.merger_thread = threading.Thread(
+                args=(self.merger,),
+                target=self.exception_wrapper,
+                name="merger",
+                daemon=True)
             self.merger_thread.start()
             logger.debug("merger up")
 
-            self.configurator_thread = threading.Thread(args=(self.configurator,),
-                             target=self.exception_wrapper,
-                             name="configurator",
-                             daemon=True)
+            self.configurator_thread = threading.Thread(
+                args=(self.configurator,),
+                target=self.exception_wrapper,
+                name="configurator",
+                daemon=True)
             self.configurator_thread.start()
             logger.debug("configurator up")
 
             self.worker_threads = []
             for i in range(self.worker_count):
-                t = threading.Thread(args=(self.worker,), target=self.exception_wrapper, name='worker_{}'.format(i), daemon=True)
-                self.worker_threads.append(t)
-                t.start()
+                worker_thread = threading.Thread(
+                    args=(self.worker,),
+                    target=self.exception_wrapper,
+                    name='worker_{}'.format(i),
+                    daemon=True)
+                self.worker_threads.append(worker_thread)
+                worker_thread.start()
 
             logger.debug("workers up")
 
             if self.check_interrupt is not None:
-                self.interrupter_thread = threading.Thread(args=(self.interrupter,), target=self.exception_wrapper, name="interrupter", daemon=True)
+                self.interrupter_thread = threading.Thread(
+                    args=(self.interrupter,),
+                    target=self.exception_wrapper,
+                    name="interrupter",
+                    daemon=True)
                 self.interrupter_thread.start()
                 logger.debug("interrupter up")
 
@@ -353,8 +366,8 @@ class Spider:
 
         self.terminating = True
 
-        logger = logging.getLogger('qofspider')
-        logger.error("terminating qofspider.")
+        logger = logging.getLogger('obspider')
+        logger.error("terminating obspider.")
 
         self.running = False
 
@@ -392,16 +405,17 @@ class Spider:
         if threading.current_thread() != self.configurator_thread:
             self.configurator_thread.join()
 
-        if self.interrupter_thread is not None and threading.current_thread() != self.interrupter_thread:
+        if (self.interrupter_thread is not None and
+                threading.current_thread() != self.interrupter_thread):
             self.interrupter_thread.join()
 
         if threading.current_thread() != self.merger_thread:
             self.merger_thread.join()
 
     def stop(self):
-        logger = logging.getLogger('qofspider')
+        logger = logging.getLogger('obspider')
 
-        logger.info("stopping qofspider")
+        logger.info("stopping obspider")
 
         with self.lock:
             # Set stopping flag
@@ -431,15 +445,16 @@ class Spider:
 
 def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
     if ipv == 4:
-        af = socket.AF_INET
+        addrfamily = socket.AF_INET
     elif ipv == 6:
-        af = socket.AF_INET6
+        addrfamily = socket.AF_INET6
     else:
         assert False
 
     try:
-        s = socket.socket(af, socket.SOCK_DGRAM)
-        s.connect((target, port))
-        return ip_address(s.getsockname()[0])
+        sock = socket.socket(addrfamily, socket.SOCK_DGRAM)
+        sock.connect((target, port))
+        return ip_address(sock.getsockname()[0])
     except:
+        #FIXME: What exceptions do we expect?
         return None
