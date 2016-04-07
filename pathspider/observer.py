@@ -19,7 +19,7 @@ def _flow4_ids(ip):
 
 def _flow6_ids(ip6):
     # FIXME link ICMP by looking at payload
-    if ip.proto == 6 or ip.proto == 17:
+    if ip6.proto == 6 or ip6.proto == 17:
         # key includes ports
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[7:8] + ip6.payload[0:4]
         rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[7:8] + ip6.payload[2:4] + ip6.payload[0:2]

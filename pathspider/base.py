@@ -29,10 +29,11 @@ import sys
 import time
 import logging
 import socket
-
-from ipaddress import ip_address
+import collections
 import threading
 import queue
+
+from ipaddress import ip_address
 
 ###
 ### Utility Classes
@@ -305,7 +306,7 @@ class Spider:
     def run(self):
         logger = logging.getLogger('pathspider')
 
-        logger.info("starting obspider")
+        logger.info("starting pathspider")
 
         with self.lock:
             # set the running flag
@@ -367,7 +368,7 @@ class Spider:
         self.terminating = True
 
         logger = logging.getLogger('pathspider')
-        logger.error("terminating obspider.")
+        logger.error("terminating pathspider.")
 
         self.running = False
 
@@ -415,7 +416,7 @@ class Spider:
     def stop(self):
         logger = logging.getLogger('pathspider')
 
-        logger.info("stopping obspider")
+        logger.info("stopping pathspider")
 
         with self.lock:
             # Set stopping flag
