@@ -52,3 +52,6 @@ nullspider.add_job("139.133.210.32")
 nullspider.add_job("2001:630:241:210:569f:35ff:fe0a:116a")
 nullspider.run()
 
+while nullspider.running:
+    pass
+
