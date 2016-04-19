@@ -7,7 +7,7 @@ import heapq
 def _flow4_ids(ip):
     # FIXME keep map of fragment IDs to keys
     # FIXME link ICMP by looking at payload
-    if ip.proto == 6 or ip.proto == 17:
+    if ip.proto == 6 or ip.proto == 17 or ip.proto == 132:
         # key includes ports
         fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10] + ip.payload[0:4]
         rid = ip.dst_prefix.addr + ip.src_prefix.addr + ip.data[9:10] + ip.payload[2:4] + ip.payload[0:2]
