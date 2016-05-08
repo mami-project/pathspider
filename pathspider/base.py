@@ -129,6 +129,8 @@ class Spider:
         self.restab = {}
         self.flowtab = {}
 
+        self.merged_results = collections.deque()
+
         self.observer = None
 
         self.worker_threads = []
@@ -250,11 +252,10 @@ class Spider:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
-
                 else:
-                    flowkey = (flow.ip, flow.port)
-                    logger.debug("got a flow (" + str(flow.ip) + ", " +
-                                 str(flow.port) + ")")
+                    flowkey = (flow['dip'], flow['sp'])
+                    logger.debug("got a flow (" + str(flow['sip']) + ", " +
+                                 str(flow['sp']) + ")")
 
                     if flowkey in self.restab:
                         logger.debug("merging flow")
@@ -271,6 +272,7 @@ class Spider:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
+                    logger.debug("result queue is empty")
                 else:
                     reskey = (res.ip, res.port)
                     logger.debug("got a result (" + str(res.ip) + ", " +

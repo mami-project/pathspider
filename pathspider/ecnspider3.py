@@ -3,17 +3,17 @@ import sys
 import logging
 import subprocess
 
-import http.client
+import socket
 import collections
 
 from base import Spider
 from observer import Observer
+from observer import basic_flow
+from observer import basic_count
 
-Job = collections.namedtuple("Job", ["ip", "host", "rport"])
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord",
-            ["ip", "host", "port", "rport", "ecnstate", "connstate", "httpstatus",
-                        "userval"])
+            ["ip", "rport", "port", "host", "ecnstate", "connstate"])
 
 CONN_OK = 0
 CONN_FAILED = 1
@@ -22,6 +22,9 @@ CONN_TIMEOUT = 2
 USER_AGENT = "pathspider"
 
 class ECNSpider(Spider):
+
+    def tcpcompleted(self, rec, tcp, rev):
+        return not tcp.fin_flag
 
     def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
         super().__init__(worker_count=worker_count,
@@ -43,57 +46,53 @@ class ECNSpider(Spider):
         logger.info("Configurator enabled ECN")
 
     def connect(self, job, pcs, config):
-        client = http.client.HTTPConnection(str(job.ip), timeout=self.conn_timeout)
-        client.auto_open = 0
+        sock = socket.socket()
+
         try:
-            client.connect()
-        except socket.timeout:
-            return Connection(None, None, CONN_TIMEOUT)
+            sock.settimeout(self.conn_timeout)
+            sock.connect((job[0], job[1]))
+
+            return Connection(sock, sock.getsockname()[1], CONN_OK)
+        except TimeoutError:
+            return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
         except OSError as e:
-            return Connection(None, None, CONN_FAILED)
-        else:
-            return Connection(client, client.sock.getsockname()[1], CONN_OK)
+            return Connection(sock, sock.getsockname()[1], CONN_FAILED)
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == CONN_OK:
-            headers = {'User-Agent': USER_AGENT,
-                       'Connection': 'close',
-                       'Host': job.host}
-            try:
-                conn.client.request('GET', '/', headers=headers)
-                res = conn.client.getresponse()
-                conn.client.close()
-
-                return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, res.status, None)
-            except:
-                return SpiderRecord(job.ip, job.host, conn.port, job.rport, config, True, 0, None)
-            finally:
-                conn.client.close()
+            sr = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
         else:
-            return SpiderRecord(job.ip, job.host, 0, job.rport, config, False, 0, None)
+            sr = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
+
+        try:
+            conn.client.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
+
+        try:
+            conn.client.close()
+        except:
+            pass
+
+        return sr
 
     def create_observer(self):
         logger = logging.getLogger('ecnspider3')
         logger.info("Creating observer")
         try:
-            return Observer(self.libtrace_uri)
+            return Observer(self.libtrace_uri,
+                    new_flow_chain = [basic_flow],
+                    ip4_chain = [basic_count],
+                    ip6_chain = [basic_count],
+                    tcp_chain = [self.tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
             sys.exit()
 
     def merge(self, flow, res):
         logger = logging.getLogger('ecnspider3')
-        logger.info("Merging " + str(flow) + " with " + str(res))
-
-logging.getLogger('ecnspider3').setLevel(logging.DEBUG)
-logging.getLogger('pathspider').setLevel(logging.DEBUG)
-ecnspider = ECNSpider(2, "int:enp0s25")
-ecnspider.add_job(Job("139.133.210.32", "galactica.erg.abdn.ac.uk", "80"))
-ecnspider.add_job(Job("139.133.210.32", "galactica.erg.abdn.ac.uk", "80"))
-ecnspider.add_job(Job("139.133.210.32", "galactica.erg.abdn.ac.uk", "80"))
-#ecnspider.add_job(Job("2001:630:241:210:569f:35ff:fe0a:116a", "galactica.erg.abdn.ac.uk", "80"))
-ecnspider.run()
-
-while ecnspider.running:
-    pass
+        flow['connstate'] = res.connstate
+        flow['ecnstate'] = res.ecnstate
+        logger.info("Result: " + str(flow))
+        self.merged_results.append(flow)
 

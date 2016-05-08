@@ -19,7 +19,7 @@ def _flow4_ids(ip):
 
 def _flow6_ids(ip6):
     # FIXME link ICMP by looking at payload
-    if ip6.proto == 6 or ip6.proto == 17:
+    if ip6.proto == 6 or ip6.proto == 17 or ip6.proto == 132:
         # key includes ports
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[7:8] + ip6.payload[0:4]
         rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[7:8] + ip6.payload[2:4] + ip6.payload[0:2]
@@ -128,9 +128,9 @@ class Observer:
         # we processed a packet, keep going
         return True
 
-    def _set_timer(self, delay, fn):
+    def _set_timer(self, delay, fid):
         # add to queue
-        heapq.heappush(_tq, PacketClockTimer(self._pt + delay, 
+        heapq.heappush(self._tq, PacketClockTimer(self._pt + delay, 
                 self._finish_expiry_tfn(fid)))
 
     def _get_flow(self):
@@ -138,6 +138,7 @@ class Observer:
         Get a flow record for the given packet.
         Create a new basic flow record 
         """
+        logger = logging.getLogger("observer")
         # get possible a flow IDs for the packet
         try:
             if self._pkt.ip:
@@ -162,29 +163,29 @@ class Observer:
             return (None, None, False)
         elif ffid in self._active:
             (fid,rec) = (ffid, self._active[ffid])
-            logging.debug("found forward flow for "+str(ffid))
+            logger.debug("found forward flow for "+str(ffid))
         elif ffid in self._expiring:
             (fid,rec) = (ffid, self._expiring[ffid])
-            logging.debug("found expiring forward flow for "+str(ffid))
+            logger.debug("found expiring forward flow for "+str(ffid))
         elif rfid in self._active:
             (fid,rec) = (rfid, self._active[rfid])
-            logging.debug("found reverse flow for "+str(rfid))
+            logger.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
             (fid,rec) =  (rfid, self._expiring[rfid])
-            logging.debug("found expiring reverse flow for "+str(rfid))
+            logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
             rec = { 'first': ip.seconds }
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
-                    logging.debug("ignoring "+str(ffid))
+                    logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
                     return (None, None, False)
 
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
-            logging.debug("new flow for "+str(ffid))
+            logger.debug("new flow for "+str(ffid))
 
 
         # update time and return record
@@ -195,13 +196,17 @@ class Observer:
         """
         Mark a given flow ID as complete
         """
-
+        logger = logging.getLogger("observer")
         # move flow to expiring table
-        self._expiring[fid] = self._active[fid]
-        del(self._active[fid])
-
-        # set up a timer to fire to emit the flow after timeout
-        self._set_timer(delay, self._finish_expiry_tfn(fid))
+        logging.debug("Moving flow " + str(fid) + " to expiring queue")
+        try:
+            self._expiring[fid] = self._active[fid]
+        except KeyError:
+            logger.debug("Tried to expire an already expired flow")
+        else:
+            del(self._active[fid])
+            # set up a timer to fire to emit the flow after timeout
+            self._set_timer(delay, fid)
         
     def _emit_flow(self, rec):
         self._emitted.append(rec)
@@ -219,7 +224,7 @@ class Observer:
         self._pt = pt
 
         # fire all timers whose time has come
-        while len(self._tq) and pt > heapq.nsmallest(1, self._tq).time:
+        while len(self._tq) > 0 and pt > min(self._tq, key=lambda x: x.time).time:
             heapq.heappop(self._tq).fn()
 
     def _finish_expiry_tfn(self, fid):
@@ -229,7 +234,7 @@ class Observer:
         """
         def tfn():
             if fid in self._expiring:
-                self._emit_flow(fid, self._expiring[fid])
+                self._emit_flow(self._expiring[fid])
                 del(self._expiring[fid])
         return tfn
 
@@ -272,7 +277,7 @@ def basic_flow(rec, ip):
     """
 
     # Extract addresses and ports
-    (rec['sip'], rec['dip'], rec['proto']) = (ip.src_prefix, ip.dst_prefix, ip.proto)
+    (rec['sip'], rec['dip'], rec['proto']) = (str(ip.src_prefix), str(ip.dst_prefix), ip.proto)
     (rec['sp'] , rec['dp']) = extract_ports(ip)
 
     # Initialize counters
