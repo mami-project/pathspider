@@ -3,23 +3,22 @@ from ecnspider3 import ECNSpider
 import collections 
 import csv
 import time
-
-parser = argparse.ArgumentParser(description='''Pathspider will spider the
-        paths.''')
-parser.add_argument('-s', '--standalone', action='store_true', help='''run in
-    standalone mode. this is the default mode (and currently the only supported
-    mode). in the future, mplane will be supported as a mode of operation.''')
-parser.add_argument('-i', '--input-file', dest='inputfile', metavar='INPUTFILE', help='''a file
-        containing a list of remote hosts to test, with any accompanying
-        metadata expected by the pathspider test. this file should be formatted
-        as a comma-seperated values file.''')
-parser.add_argument('-o', '--output-file', dest='outputfile', metavar='OUTPUTFILE')
-
-args = parser.parse_args()
+import logging
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='''Pathspider will spider the
+            paths.''')
+    parser.add_argument('-s', '--standalone', action='store_true', help='''run in
+        standalone mode. this is the default mode (and currently the only supported
+        mode). in the future, mplane will be supported as a mode of operation.''')
+    parser.add_argument('-i', '--input-file', dest='inputfile', metavar='INPUTFILE', help='''a file
+            containing a list of remote hosts to test, with any accompanying
+            metadata expected by the pathspider test. this file should be formatted
+            as a comma-seperated values file.''')
+    parser.add_argument('-o', '--output-file', dest='outputfile', metavar='OUTPUTFILE')
 
-    import logging
+    args = parser.parse_args()
+
     logging.getLogger().setLevel(logging.INFO)
     
     try:
