@@ -24,7 +24,7 @@ USER_AGENT = "pathspider"
 
 ## Chain functions
 
-def tcpcompleted(self, rec, tcp, rev): # pylint: disable=W0612,W0613
+def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
 ## ECNSpider main class
@@ -90,7 +90,7 @@ class ECNSpider(Spider):
                             new_flow_chain=[basic_flow],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
-                            tcp_chain=[self.tcpcompleted])
+                            tcp_chain=[tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
             sys.exit()
