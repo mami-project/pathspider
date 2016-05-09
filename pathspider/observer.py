@@ -1,8 +1,10 @@
-import plt as libtrace
 import collections
 import logging
 import base64
 import heapq
+
+import plt as libtrace
+
 
 def _flow4_ids(ip):
     # FIXME keep map of fragment IDs to keys
@@ -40,12 +42,12 @@ class Observer:
     """
 
     def __init__(self, lturi,
-                    new_flow_chain = [],
-                    ip4_chain = [],
-                    ip6_chain = [],
-                    tcp_chain = [],
-                    udp_chain = [],
-                    l4_chain = []):
+                 new_flow_chain=[],
+                 ip4_chain=[],
+                 ip6_chain=[],
+                 tcp_chain=[],
+                 udp_chain=[],
+                 l4_chain=[]):
 
         # Control
         self._interrupted = False
@@ -101,7 +103,7 @@ class Observer:
             return True
 
         keep_flow = True
- 
+
         # run IP header chains
         if self._pkt.ip:
             for fn in self._ip4_chain:
@@ -130,13 +132,13 @@ class Observer:
 
     def _set_timer(self, delay, fid):
         # add to queue
-        heapq.heappush(self._tq, PacketClockTimer(self._pt + delay, 
-                self._finish_expiry_tfn(fid)))
+        heapq.heappush(self._tq, PacketClockTimer(self._pt + delay,
+                       self._finish_expiry_tfn(fid)))
 
     def _get_flow(self):
         """
         Get a flow record for the given packet.
-        Create a new basic flow record 
+        Create a new basic flow record
         """
         logger = logging.getLogger("observer")
         # get possible a flow IDs for the packet
@@ -155,27 +157,27 @@ class Observer:
             self._ct_shortkey += 1
             return (None, None, False)
 
-        # now look for forward and reverse in ignored, active, 
+        # now look for forward and reverse in ignored, active,
         # and expiring tables.
         if ffid in self._ignored:
             return (None, None, False)
         elif rfid in self._ignored:
             return (None, None, False)
         elif ffid in self._active:
-            (fid,rec) = (ffid, self._active[ffid])
+            (fid, rec) = (ffid, self._active[ffid])
             logger.debug("found forward flow for "+str(ffid))
         elif ffid in self._expiring:
-            (fid,rec) = (ffid, self._expiring[ffid])
+            (fid, rec) = (ffid, self._expiring[ffid])
             logger.debug("found expiring forward flow for "+str(ffid))
         elif rfid in self._active:
-            (fid,rec) = (rfid, self._active[rfid])
+            (fid, rec) = (rfid, self._active[rfid])
             logger.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
-            (fid,rec) =  (rfid, self._expiring[rfid])
+            (fid, rec) =  (rfid, self._expiring[rfid])
             logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
-            rec = { 'first': ip.seconds }
+            rec = {'first': ip.seconds}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
                     logger.debug("ignoring "+str(ffid))
@@ -204,10 +206,10 @@ class Observer:
         except KeyError:
             logger.debug("Tried to expire an already expired flow")
         else:
-            del(self._active[fid])
+            del self._active[fid]
             # set up a timer to fire to emit the flow after timeout
             self._set_timer(delay, fid)
-        
+
     def _emit_flow(self, rec):
         self._emitted.append(rec)
 
@@ -229,13 +231,13 @@ class Observer:
 
     def _finish_expiry_tfn(self, fid):
         """
-        On expiry timer, emit the flow 
+        On expiry timer, emit the flow
         and delete it from the expiring queue
         """
         def tfn():
             if fid in self._expiring:
                 self._emit_flow(self._expiring[fid])
-                del(self._expiring[fid])
+                del self._expiring[fid]
         return tfn
 
     def purge_idle(self, timeout=30):
@@ -278,7 +280,7 @@ def basic_flow(rec, ip):
 
     # Extract addresses and ports
     (rec['sip'], rec['dip'], rec['proto']) = (str(ip.src_prefix), str(ip.dst_prefix), ip.proto)
-    (rec['sp'] , rec['dp']) = extract_ports(ip)
+    (rec['sp'], rec['dp']) = extract_ports(ip)
 
     # Initialize counters
     rec['pkt_fwd'] = 0
@@ -304,4 +306,7 @@ def basic_count(rec, ip, rev):
     return True
 
 def simple_observer(lturi):
-    return Observer(lturi, new_flow_chain=[basic_flow], ip4_chain=[basic_count], ip6_chain=[basic_count])
+    return Observer(lturi,
+                    new_flow_chain=[basic_flow],
+                    ip4_chain=[basic_count],
+                    ip6_chain=[basic_count])

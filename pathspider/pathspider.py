@@ -1,9 +1,10 @@
+
 import argparse
-from ecnspider3 import ECNSpider
-import collections 
 import csv
-import time
 import logging
+import time
+
+from pathspider.ecnspider3 import ECNSpider
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='''Pathspider will spider the
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.INFO)
-    
+
     try:
         ecnspider = ECNSpider(2, "int:enp0s25")
         ecnspider.run()

@@ -1,5 +1,5 @@
 #!/bin/sh
 
-pylint setup.py pathspider
+pylint3 setup.py pathspider
 #pep8 setup.py pathspider
 

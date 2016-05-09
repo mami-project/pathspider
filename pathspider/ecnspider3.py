@@ -6,14 +6,15 @@ import subprocess
 import socket
 import collections
 
-from base import Spider
-from observer import Observer
-from observer import basic_flow
-from observer import basic_count
+from pathspider.base import Spider
+from pathspider.observer import Observer
+from pathspider.observer import basic_flow
+from pathspider.observer import basic_count
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
-SpiderRecord = collections.namedtuple("SpiderRecord",
-            ["ip", "rport", "port", "host", "ecnstate", "connstate"])
+SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
+                                                       "host", "ecnstate",
+                                                       "connstate"])
 
 CONN_OK = 0
 CONN_FAILED = 1
@@ -21,10 +22,15 @@ CONN_TIMEOUT = 2
 
 USER_AGENT = "pathspider"
 
+## Chain functions
+
+def tcpcompleted(self, rec, tcp, rev): # pylint: disable=W0612,W0613
+    return not tcp.fin_flag
+
+## ECNSpider main class
+
 class ECNSpider(Spider):
 
-    def tcpcompleted(self, rec, tcp, rev):
-        return not tcp.fin_flag
 
     def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
         super().__init__(worker_count=worker_count,
@@ -55,14 +61,14 @@ class ECNSpider(Spider):
             return Connection(sock, sock.getsockname()[1], CONN_OK)
         except TimeoutError:
             return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
-        except OSError as e:
+        except OSError:
             return Connection(sock, sock.getsockname()[1], CONN_FAILED)
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == CONN_OK:
-            sr = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
+            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
         else:
-            sr = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
+            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
@@ -74,17 +80,17 @@ class ECNSpider(Spider):
         except:
             pass
 
-        return sr
+        return rec
 
     def create_observer(self):
         logger = logging.getLogger('ecnspider3')
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                    new_flow_chain = [basic_flow],
-                    ip4_chain = [basic_count],
-                    ip6_chain = [basic_count],
-                    tcp_chain = [self.tcpcompleted])
+                            new_flow_chain=[basic_flow],
+                            ip4_chain=[basic_count],
+                            ip6_chain=[basic_count],
+                            tcp_chain=[self.tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
             sys.exit()
