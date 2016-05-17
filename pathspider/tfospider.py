@@ -42,6 +42,7 @@ class TFOSpider(Spider):
 
     def config_zero(self):
         #systemwide changes not necessary if tfo is turned on once (is by default on my machine)
+        pass
         """
         logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
@@ -51,6 +52,7 @@ class TFOSpider(Spider):
 
     def config_one(self):
         #systemwide changes not necessary if tfo is turned on once (is by default on my machine)
+        pass
         """
         logger = logging.getLogger('ecnspider3')
 
