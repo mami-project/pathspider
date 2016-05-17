@@ -12,6 +12,7 @@ from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
+#ecnstate? can it be changed to tfostate?
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "ecnstate",
                                                        "connstate"])
@@ -27,9 +28,9 @@ USER_AGENT = "pathspider"
 def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
-## ECNSpider main class
+## TFOSpider main class
 
-class ECNSpider(Spider):
+class TFOSpider(Spider):
 
 
     def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
@@ -40,16 +41,23 @@ class ECNSpider(Spider):
         self.conn_timeout = 10
 
     def config_zero(self):
+        #systemwide changes not necessary if tfo is turned on once (is by default on my machine)
+        """
         logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.info("Configurator disabled ECN")
+        """
 
     def config_one(self):
+        #systemwide changes not necessary if tfo is turned on once (is by default on my machine)
+        """
         logger = logging.getLogger('ecnspider3')
+
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.info("Configurator enabled ECN")
+        """
 
     def connect(self, job, pcs, config):
 
@@ -122,7 +130,7 @@ class ECNSpider(Spider):
         return rec
 
     def create_observer(self):
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('tfospider')
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
@@ -135,7 +143,7 @@ class ECNSpider(Spider):
             sys.exit()
 
     def merge(self, flow, res):
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('tfospider')
         flow['connstate'] = res.connstate
         flow['ecnstate'] = res.ecnstate
         logger.info("Result: " + str(flow))
