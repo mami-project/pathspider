@@ -4,7 +4,7 @@ import csv
 import logging
 import time
 
-from pathspider.ecnspider3 import ECNSpider
+from pathspider.tfospider import TFOSpider
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='''Pathspider will spider the
@@ -23,8 +23,8 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
 
     try:
-        ecnspider = ECNSpider(2, "int:enp0s25")
-        ecnspider.run()
+        tfospider = TFOSpider(2, "int:enp0s25")
+        tfospider.run()
 
         with open(args.inputfile) as inputfile:
             reader = csv.reader(inputfile, delimiter=',', quotechar='"')
@@ -32,12 +32,12 @@ if __name__ == "__main__":
                 # port numbers should be integers
                 row[1] = int(row[1])
 
-                ecnspider.add_job(row)
+                tfospider.add_job(row)
 
         with open(args.outputfile, 'w') as outputfile:
-            while ecnspider.running:
+            while tfospider.running:
                 try:
-                    result = ecnspider.merged_results.popleft()
+                    result = tfospider.merged_results.popleft()
                 except IndexError:
                     time.sleep(1)
                 else:
