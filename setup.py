@@ -20,7 +20,6 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 with open(path.join(here, 'pathspider', 'VERSION'), encoding='utf-8') as version_file:
     version = version_file.read().strip()
 
-
 setup(
     name='pathspider',
 
@@ -33,7 +32,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/britram/pathtools',
+    url='https://github.com/mami-project/pathspider',
 
     # Author details
     author='Elio Gubser',

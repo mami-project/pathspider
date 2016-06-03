@@ -34,6 +34,7 @@ import threading
 import queue
 
 from ipaddress import ip_address
+from zope.interface import Interface
 
 ###
 ### Utility Classes
@@ -104,7 +105,28 @@ class Spider:
 
     """
 
-    def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
+    def __init__(self):
+        """
+        Bare minimum initalisation for a pathspider plugin.
+
+        .. warning::
+         This function should not be overloaded by any plugin. Its purpose here
+         is only to set the "activated" flag to false, to prevent the plugin
+         functions being used before it has been activated.
+        """
+
+        self.activated = False
+
+    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
+        """
+        The activate function performs initialisation of a pathspider plugin.
+
+        It is expected that this function will be overloaded by plugins, though
+        the plugin should always make a call to the activate() function of the
+        abstract Spider class as this initialises all of the base functionality.
+        """
+
+        self.activated = True
         self.running = False
         self.stopping = False
         self.terminating = False
@@ -168,9 +190,19 @@ class Spider:
         self.sem_config_one.release_n(self.worker_count)
 
     def config_zero(self):
+        """
+        Function to handle the global state or system configuration for the
+        baseline measurements.
+        """
+
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def config_one(self):
+        """
+        Function to handle the global state or system configuration for the
+        experimental measurements.
+        """
+
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def interrupter(self):
@@ -306,6 +338,10 @@ class Spider:
             self.terminate()
 
     def run(self):
+        if self.activated == False:
+            logger.exception("tried to run plugin without activating first")
+            sys.exit(1)
+
         logger = logging.getLogger('pathspider')
 
         logger.info("starting pathspider")
@@ -461,3 +497,69 @@ def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
     except:
         #FIXME: What exceptions do we expect?
         return None
+
+class ISpider(Interface):
+    """
+    The ISpider class defines the expected interface for pathspider plugins.
+    """
+
+    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
+        """
+        This method should initialise the spider class. It should always begin
+        with a call to the superclass' activate() method if this is overloaded:
+
+        .. code-block:: python
+
+         super().activate(worker_count=worker_count,
+                          libtrace_uri=libtrace_uri,
+                          check_interrupt=check_interrupt)
+
+        This can be used to initialise any variables which may be required in
+        the object. Do not initialise any variables in the __init__ method, or
+        perform any other operations there as all plugins must be instantiated
+        in order to be loaded and this will cause unnecessary delays in the
+        starting of pathspider.
+        """
+
+    def config_zero(self):
+        pass
+
+    def config_one(self):
+        pass
+
+    def pre_connect(self, job):
+        pass
+
+    def connect(self, job, pcs, config):
+        pass
+
+    def post_connect(self, job, conn, pcs, config):
+        pass
+
+    def create_observer(self):
+        pass
+
+    def merger(self):
+        pass
+
+    def merge(self, flow, res):
+        pass
+
+    def exception_wrapper(self, target, *args, **kwargs):
+        pass
+
+    def run(self):
+        pass
+
+    def terminate(self):
+        pass
+
+    def join_threads(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def add_job(self, job):
+        pass
+

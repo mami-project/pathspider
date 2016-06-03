@@ -6,7 +6,11 @@ import subprocess
 import socket
 import collections
 
+from twisted.plugin import IPlugin
+from zope.interface import implementer
+
 from pathspider.base import Spider
+from pathspider.base import ISpider
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -30,11 +34,12 @@ def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
 
 ## TFOSpider main class
 
+@implementer(ISpider, IPlugin)
 class TFOSpider(Spider):
 
 
-    def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
-        super().__init__(worker_count=worker_count,
+    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
+        super().activate(worker_count=worker_count,
                          libtrace_uri=libtrace_uri,
                          check_interrupt=check_interrupt)
         self.tos = None # set by configurator
@@ -151,3 +156,4 @@ class TFOSpider(Spider):
         logger.info("Result: " + str(flow))
         self.merged_results.append(flow)
 
+tfospider = TFOSpider()
