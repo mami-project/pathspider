@@ -19,16 +19,16 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--standalone', action='store_true', help='''run in
         standalone mode. this is the default mode (and currently the only supported
         mode). in the future, mplane will be supported as a mode of operation.''')
-    parser.add_argument('-i', '--input-file', dest='inputfile', metavar='INPUTFILE', help='''a file
-            containing a list of remote hosts to test, with any accompanying
-            metadata expected by the pathspider test. this file should be formatted
-            as a comma-seperated values file.''')
-    parser.add_argument('-o', '--output-file', dest='outputfile', metavar='OUTPUTFILE')
     parser.add_argument('-l', '--list-plugins', action='store_true',
             help='''print the list of installed plugins''')
     parser.add_argument('-p', '--plugin', help='''use named plugin''')
     parser.add_argument('-i', '--interface', help='''the interface to use for the observer''')
     parser.add_argument('-w', '--worker-count', help='''number of workers to use''')
+    parser.add_argument('input-file', dest='inputfile', metavar='INPUTFILE', help='''a file
+            containing a list of remote hosts to test, with any accompanying
+            metadata expected by the pathspider test. this file should be formatted
+            as a comma-seperated values file.''')
+    parser.add_argument('output-file', dest='outputfile', metavar='OUTPUTFILE')
 
     args = parser.parse_args()
 
