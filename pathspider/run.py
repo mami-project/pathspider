@@ -24,11 +24,11 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--plugin', help='''use named plugin''')
     parser.add_argument('-i', '--interface', help='''the interface to use for the observer''')
     parser.add_argument('-w', '--worker-count', help='''number of workers to use''')
-    parser.add_argument('input-file', dest='inputfile', metavar='INPUTFILE', help='''a file
+    parser.add_argument('inputfile', metavar='INPUTFILE', help='''a file
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
             as a comma-seperated values file.''')
-    parser.add_argument('output-file', dest='outputfile', metavar='OUTPUTFILE')
+    parser.add_argument('outputfile', metavar='OUTPUTFILE')
 
     args = parser.parse_args()
 
