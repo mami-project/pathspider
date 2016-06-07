@@ -32,6 +32,40 @@ USER_AGENT = "pathspider"
 def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
+def ecnsetup(rec, ip):
+    rec.ecn_zero = False
+    rec.ecn_one = False
+    rec.ce = False
+
+def ecnflags(rec, tcp, rev):
+    SYN = 0x02
+    CWR = 0x40
+    ECE = 0x80
+
+    flags = tcp.flags
+
+    if flags & SYN:
+        if rev = 0:
+            rec.fwd_syn_flags = flags
+        if rev = 1:
+            rec.rev_syn_flags = flags
+
+    return True
+
+def ecncode(rec, ip, rev):
+    EZ = 0x01
+    EO = 0x02
+    CE = 0x03
+
+    if (ip.traffic_class & EZ == EZ):
+        rec.ecn_zero = True
+    if (ip.traffic_class & EO == EO):
+        rec.ecn_one = True
+    if (ip.traffic_class & CE == CE):
+        rec.ce = True
+
+    return True
+
 ## ECNSpider main class
 
 @implementer(ISpider, IPlugin)
@@ -92,10 +126,10 @@ class ECNSpider(Spider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow],
-                            ip4_chain=[basic_count],
-                            ip6_chain=[basic_count],
-                            tcp_chain=[tcpcompleted])
+                            new_flow_chain=[basic_flow, ecnsetup],
+                            ip4_chain=[basic_count, ecncode],
+                            ip6_chain=[basic_count, ecncode],
+                            tcp_chain=[ecnflags, tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
