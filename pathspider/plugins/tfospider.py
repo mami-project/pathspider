@@ -32,6 +32,56 @@ USER_AGENT = "pathspider"
 def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
+def tfosetup(rec, ip):
+    print("tfosetup")
+    rec['tfo_seq'] = -1000
+    rec['tfo_len'] = -1000
+    rec['tfo_working'] = 0
+
+def tfocookie(tcp):
+    options = tcp.data[20:tcp.doff*4]
+    while True:
+        if not options:
+            return 0
+        if (options[0] == 0):
+            return 0
+        if options[0] == 1:
+            options = options[1:]
+            continue
+        if options[0] == 34:
+            if options[1] == 2:
+                return 0
+            else:
+                return 1
+        else:
+            if options[1] == len(options):
+                return 0
+            else:
+                options = options[options[1]:]
+                continue
+
+def tfoworking(rec, tcp, rev):
+    print("tfoworking")
+    
+    data_len = (len(tcp.data) - tcp.doff*4)
+    has_cookie = tfocookie(tcp)
+    has_data = (data_len > 0)
+    outgoing = 1 #implement
+    incomming = not outgoing
+    
+    if incomming and (tcp.ack_nbr == rec['tfo_seq'] + rec['tfo_len'] + 1):#TFO acknowledged
+        rec['tfo_working'] = 1
+        #signal success
+        #exit flow
+        
+    if has_cookie and has_data and outgoing:#TFO data sent
+        rec['tfo_seq'] = tcp.seq_nbr
+        rec['tfo_len'] = data_len
+    
+    if outgoing and has_data and (tcp.seq_nbr == rec['tfo_seq'] + 1):#TCP fall back, retransmission
+        rec['tfo_seq'] = -1000
+        rec['tfo_len'] = -1000
+
 ## TFOSpider main class
 
 @implementer(ISpider, IPlugin)
@@ -68,9 +118,14 @@ class TFOSpider(Spider):
 
     def connect(self, job, pcs, config):
 
-        #regular TCP now with IPv6
+        #determine ip version
+        print("connect")
+        if job[0].count(':') >= 1: ipv = 6
+        else: ipv = 4
+        
+        #regular TCP
         if config == 0:
-            if job.ip.version == 4:
+            if ipv == 4:
                 sock = socket.socket()
             else:
                 sock = socket.socket(socket.AF_INET6)
@@ -86,37 +141,35 @@ class TFOSpider(Spider):
                 return Connection(sock, sock.getsockname()[1], CONN_FAILED)    
         
         #with TFO
-        #TODO: implement timeout 
         if config == 1:
-            if job.ip.version == 4:
+            message = bytes("GET / HTTP/1.1\r\n\r\n", "utf-8")
+            if ipv == 4:
                 addr = socket.AF_INET
             else:
                 addr = socket.AF_INET6
             
-            #request TFO cookie
-            #falls back to TCP if no cookie received
-            #passes if TCP fall back fails
+            #request cookie
             try:
                 sock = socket.socket(addr, socket.SOCK_STREAM)
-                #sock.settimeout(10)
-                #fails with "BlockingIOError Errno 115 Operation now in progress" if timeout is set
-                sock.sendto(bytes("hello cookie request\n", "utf-8"), socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.settimeout(self.conn_timeout)
+                sock.recv(1)
                 sock.close()
             except:
                 pass
             
             #use cookie
-            #falls back to TCP if cookie not accepted or no cookie received before
-            #returns CONN_FAILED if TCP fall back also fails
             try:
                 sock = socket.socket(addr, socket.SOCK_STREAM)
-                #sock.settimeout(10)
-                #fails with "BlockingIOError Errno 115 Operation now in progress" if timeout is set
-                sock.sendto(bytes("hello cookie use\n", "utf-8"), socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.settimeout(self.conn_timeout)
+                sock.recv(1)
                 
                 return Connection(sock, sock.getsockname()[1], CONN_OK)
-            except:
-                return Connection(sock, sock.getsockname()[1], CONN_FAILED)
+            except TimeoutError:
+                return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
+            except OSError:
+                return Connection(sock, sock.getsockname()[1], CONN_FAILED)  
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == CONN_OK:
@@ -141,10 +194,10 @@ class TFOSpider(Spider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow],
+                            new_flow_chain=[basic_flow, tfosetup],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
-                            tcp_chain=[tcpcompleted])
+                            tcp_chain=[tfoworking, tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
             sys.exit()
