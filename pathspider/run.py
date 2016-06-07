@@ -32,6 +32,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     logger = logging.getLogger("pathspider")
 
@@ -66,12 +67,12 @@ if __name__ == "__main__":
                 # port numbers should be integers
                 row[1] = int(row[1])
 
-                ecnspider.add_job(row)
+                spider.add_job(row)
 
         with open(args.outputfile, 'w') as outputfile:
-            while ecnspider.running:
+            while spider.running:
                 try:
-                    result = ecnspider.merged_results.popleft()
+                    result = spider.merged_results.popleft()
                 except IndexError:
                     time.sleep(1)
                 else:

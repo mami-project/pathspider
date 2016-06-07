@@ -338,11 +338,10 @@ class Spider:
             self.terminate()
 
     def run(self):
+        logger = logging.getLogger('pathspider')
         if self.activated == False:
             logger.exception("tried to run plugin without activating first")
             sys.exit(1)
-
-        logger = logging.getLogger('pathspider')
 
         logger.info("starting pathspider")
 

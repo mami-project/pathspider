@@ -2,6 +2,7 @@
 import sys
 import logging
 import subprocess
+import traceback
 
 import socket
 import collections
@@ -97,7 +98,8 @@ class ECNSpider(Spider):
                             tcp_chain=[tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
-            sys.exit()
+            traceback.print_exc()
+            sys.exit(-1)
 
     def merge(self, flow, res):
         logger = logging.getLogger('ecnspider3')
