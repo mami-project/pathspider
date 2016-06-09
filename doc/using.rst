@@ -76,7 +76,7 @@ Example
 You can run a small study using ECNSpider and the included `webinput.csv` file
 to measure path transparency to ECN for a small selection of web servers:
 
-code-block:: shell
+.. code-block:: shell
 
  $ pathspider -i eth0 -w 10 examples/webinput.csv /tmp/results.txt
 
