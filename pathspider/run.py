@@ -43,7 +43,7 @@ if __name__ == "__main__":
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
             as a comma-seperated values file.''')
-    parser.add_argument('outputfile', metavar='OUTPUTFILE')
+    parser.add_argument('outputfile', metavar='OUTPUTFILE', help='''the file to output results data to''')
 
     args = parser.parse_args()
 
