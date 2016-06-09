@@ -14,16 +14,16 @@ you need installed.
 If you are working from the source distribution (e.g. cloned git repository)
 then you will need to install some dependencies. On Debian GNU/Linux:
 
-.. codeblock:: shell
+.. code-block:: shell
 
- apt install python3-libtrace python3-twisted python3-zope.interface
+ # sudo apt install python3-libtrace python3-twisted python3-zope.interface
 
 In order to build the documentation from source, you will also need the
 following dependencies:
 
-.. codeblock:: shell 
+.. code-block:: shell 
  
- python3-sphinx python3-repoze.sphinx.autointerface
+ # sudo apt install python3-sphinx python3-repoze.sphinx.autointerface
 
 Usage
 ~~~~~
@@ -40,11 +40,11 @@ will have been setuid or will have filesystem permissions set.
 
  .. code-block:: shell 
  
-  $ sudo /usr/bin/env PYTHONPATH=. python3 pathspider/run.py [...]
+  # sudo /usr/bin/env PYTHONPATH=. python3 pathspider/run.py [...]
 
 .. code-block:: shell
 
- $ pathspider -h
+ # pathspider -h
  usage: run.py [-h] [-s] [-l] [-p PLUGIN] [-i INTERFACE] [-w WORKER_COUNT]
                INPUTFILE OUTPUTFILE
  
@@ -78,7 +78,7 @@ to measure path transparency to ECN for a small selection of web servers:
 
 .. code-block:: shell
 
- $ pathspider -i eth0 -w 10 examples/webinput.csv /tmp/results.txt
+ # pathspider -i eth0 -w 10 examples/webinput.csv /tmp/results.txt
 
 .. note::
 
