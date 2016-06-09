@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Twisted plugin stuff
+dropin.cache
+
 # C extensions
 *.so
 
