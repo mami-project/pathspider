@@ -80,6 +80,11 @@ class Observer:
         # Statistics
         self._ct_nonip = 0
         self._ct_shortkey = 0
+    
+    def interrupt(self):
+        logger = logging.getLogger("observer")
+        logger.debug("being interrupted")
+        self._interrupted = True
 
     def _next_packet(self):
         # see if we're done iterating

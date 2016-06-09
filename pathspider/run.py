@@ -3,6 +3,7 @@ import argparse
 import csv
 import logging
 import time
+import threading
 
 from twisted.plugin import getPlugins
 
@@ -12,6 +13,20 @@ import pathspider.plugins
 import sys
 
 plugins = list(getPlugins(ISpider, package=pathspider.plugins))
+
+def job_feeder(inputfile, spider):
+    with open(inputfile) as fp:
+        print("job_feeder: started")
+        reader = csv.reader(fp, delimiter=',', quotechar='"')
+        for row in reader:
+            # port numbers should be integers
+            row[1] = int(row[1])
+
+            spider.add_job(row)
+        
+        print("job_feeder: all jobs added, waiting for spider to finish")
+        spider.stop()
+        print("job_feeder: stopped")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='''Pathspider will spider the
@@ -23,7 +38,7 @@ if __name__ == "__main__":
             help='''print the list of installed plugins''')
     parser.add_argument('-p', '--plugin', help='''use named plugin''')
     parser.add_argument('-i', '--interface', help='''the interface to use for the observer''')
-    parser.add_argument('-w', '--worker-count', help='''number of workers to use''')
+    parser.add_argument('-w', '--worker-count', type=int, help='''number of workers to use''')
     parser.add_argument('inputfile', metavar='INPUTFILE', help='''a file
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
@@ -57,18 +72,15 @@ if __name__ == "__main__":
             logger.error("Plugin not found! Cannot continue.")
             logger.error("Use -l to list all plugins.")
             sys.exit(1)
-
+        
+        print("activating spider...")
+        
         spider.activate(worker_count, "int:" + interface)
         spider.run()
 
-        with open(args.inputfile) as inputfile:
-            reader = csv.reader(inputfile, delimiter=',', quotechar='"')
-            for row in reader:
-                # port numbers should be integers
-                row[1] = int(row[1])
-
-                spider.add_job(row)
-
+        print("starting to add jobs")
+        threading.Thread(target=job_feeder, args=(args.inputfile, spider)).start()
+        
         with open(args.outputfile, 'w') as outputfile:
             while spider.running:
                 try:

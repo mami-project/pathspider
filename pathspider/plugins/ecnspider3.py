@@ -33,9 +33,10 @@ def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
 def ecnsetup(rec, ip):
-    rec.ecn_zero = False
-    rec.ecn_one = False
-    rec.ce = False
+    rec['ecn_zero'] = False
+    rec['ecn_one'] = False
+    rec['ce'] = False
+    return True
 
 def ecnflags(rec, tcp, rev):
     SYN = 0x02
@@ -45,10 +46,10 @@ def ecnflags(rec, tcp, rev):
     flags = tcp.flags
 
     if flags & SYN:
-        if rev = 0:
-            rec.fwd_syn_flags = flags
-        if rev = 1:
-            rec.rev_syn_flags = flags
+        if rev == 0:
+            rec['fwd_syn_flags'] = flags
+        if rev == 1:
+            rec['rev_syn_flags'] = flags
 
     return True
 
@@ -58,11 +59,11 @@ def ecncode(rec, ip, rev):
     CE = 0x03
 
     if (ip.traffic_class & EZ == EZ):
-        rec.ecn_zero = True
+        rec['ecn_zero'] = True
     if (ip.traffic_class & EO == EO):
-        rec.ecn_one = True
+        rec['ecn_one'] = True
     if (ip.traffic_class & CE == CE):
-        rec.ce = True
+        rec['ce'] = True
 
     return True
 

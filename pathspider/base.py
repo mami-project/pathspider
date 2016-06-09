@@ -144,7 +144,7 @@ class Spider:
         self.sem_config_one_rdy = SemaphoreN(worker_count)
         self.sem_config_one_rdy.empty()
 
-        self.jobqueue = queue.Queue()
+        self.jobqueue = queue.Queue(QUEUE_SIZE)
         self.flowqueue = queue.Queue(QUEUE_SIZE)
         self.resqueue = queue.Queue(QUEUE_SIZE)
 
@@ -433,22 +433,37 @@ class Spider:
         logger.error("termination complete. joined all threads, emptied all queues.")
 
     def join_threads(self):
+        logger = logging.getLogger('pathspider')
+        logger.debug("joining threads")
         for worker in self.worker_threads:
             if threading.current_thread() != worker:
+                logger.debug("joining worker: " + repr(worker))
                 worker.join()
-
+        logger.debug("all workers joined")
+        
         if threading.current_thread() != self.observer_thread:
+            self.observer.interrupt()
             self.observer_thread.join()
+        
+        logger.debug("observer joined")
 
         if threading.current_thread() != self.configurator_thread:
             self.configurator_thread.join()
+        
+        logger.debug("configurator joined")
 
         if (self.interrupter_thread is not None and
                 threading.current_thread() != self.interrupter_thread):
             self.interrupter_thread.join()
+        
+        logger.debug("interrupter joined")
 
         if threading.current_thread() != self.merger_thread:
             self.merger_thread.join()
+        
+        logger.debug("merger joined")
+        
+        logger.debug("joining threads complete")
 
     def stop(self):
         logger = logging.getLogger('pathspider')
