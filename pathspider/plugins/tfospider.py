@@ -16,9 +16,8 @@ from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
-#ecnstate? can it be changed to tfostate?
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "host", "ecnstate",
+                                                       "host", "tfostate",
                                                        "connstate"])
 
 CONN_OK = 0
@@ -33,55 +32,65 @@ def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
 def tfosetup(rec, ip):
-    print("tfosetup")
-    rec['tfo_seq'] = -1000
-    rec['tfo_len'] = -1000
-    rec['tfo_working'] = 0
+    if ip.proto == 6:
+        rec['tfo_seq'] = -1000
+        rec['tfo_len'] = -1000
+        rec['tfostate'] = False
+        return True
+    else:
+        rec['tfostate'] = False
+        return False
 
 def tfocookie(tcp):
     options = tcp.data[20:tcp.doff*4]
     while True:
         if not options:
-            return 0
+            return False
         if (options[0] == 0):
-            return 0
+            return False
         if options[0] == 1:
             options = options[1:]
             continue
         if options[0] == 34:
             if options[1] == 2:
-                return 0
+                return False
             else:
-                return 1
+                return True
         else:
             if options[1] == len(options):
-                return 0
+                return False
             else:
                 options = options[options[1]:]
                 continue
+    return False
+
 
 def tfoworking(rec, tcp, rev):
-    print("tfoworking")
     
+    outgoing = (rec['sp'] == tcp.src_port)
+    incomming = not outgoing
     data_len = (len(tcp.data) - tcp.doff*4)
     has_cookie = tfocookie(tcp)
     has_data = (data_len > 0)
-    outgoing = 1 #implement
-    incomming = not outgoing
     
-    if incomming and (tcp.ack_nbr == rec['tfo_seq'] + rec['tfo_len'] + 1):#TFO acknowledged
-        rec['tfo_working'] = 1
-        #signal success
-        #exit flow
-        
-    if has_cookie and has_data and outgoing:#TFO data sent
+    if ((rec['tfo_seq'] < 0) & (not has_cookie)):#no TFO data sent or received
+        return True
+    
+    if (has_cookie & has_data & outgoing):#TFO data sent
         rec['tfo_seq'] = tcp.seq_nbr
         rec['tfo_len'] = data_len
+        return True
+       
+    if (incomming & (rec['tfo_seq'] > 0) & (tcp.ack_nbr == rec['tfo_seq'] + rec['tfo_len'] + 1)):#TFO acknowledged
+        rec['tfostate'] = True
+        return False
     
-    if outgoing and has_data and (tcp.seq_nbr == rec['tfo_seq'] + 1):#TCP fall back, retransmission
-        rec['tfo_seq'] = -1000
-        rec['tfo_len'] = -1000
-
+    if (outgoing & has_data & (tcp.seq_nbr == rec['tfo_seq'] + 1)):#TCP fall back, retransmission
+        rec['tfo_seq'] = -500
+        rec['tfo_len'] = -500
+    
+    return True
+    
 ## TFOSpider main class
 
 @implementer(ISpider, IPlugin)
@@ -119,7 +128,6 @@ class TFOSpider(Spider):
     def connect(self, job, pcs, config):
 
         #determine ip version
-        print("connect")
         if job[0].count(':') >= 1: ipv = 6
         else: ipv = 4
         
@@ -205,7 +213,7 @@ class TFOSpider(Spider):
     def merge(self, flow, res):
         logger = logging.getLogger('tfospider')
         flow['connstate'] = res.connstate
-        flow['ecnstate'] = res.ecnstate
+        flow['tfostate'] = res.tfostate
         logger.info("Result: " + str(flow))
         self.merged_results.append(flow)
 
