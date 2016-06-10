@@ -35,10 +35,10 @@ def tfosetup(rec, ip):
     if ip.proto == 6:
         rec['tfo_seq'] = -1000
         rec['tfo_len'] = -1000
-        rec['tfostate'] = False
+        rec['tfoworking'] = False
         return True
     else:
-        rec['tfostate'] = False
+        rec['tfoworking'] = False
         return False
 
 def tfocookie(tcp):
@@ -82,7 +82,7 @@ def tfoworking(rec, tcp, rev):
         return True
        
     if (incomming & (rec['tfo_seq'] > 0) & (tcp.ack_nbr == rec['tfo_seq'] + rec['tfo_len'] + 1)):#TFO acknowledged
-        rec['tfostate'] = True
+        rec['tfoworking'] = True
         return False
     
     if (outgoing & has_data & (tcp.seq_nbr == rec['tfo_seq'] + 1)):#TCP fall back, retransmission
@@ -105,28 +105,12 @@ class TFOSpider(Spider):
         self.conn_timeout = 10
 
     def config_zero(self):
-        #systemwide changes not necessary if tfo is turned on once (is by default on my machine)
         pass
-        """
-        logger = logging.getLogger('ecnspider3')
-        subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.info("Configurator disabled ECN")
-        """
 
     def config_one(self):
-        #systemwide changes not necessary if tfo is turned on once (is by default on my machine)
         pass
-        """
-        logger = logging.getLogger('ecnspider3')
-
-        subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.info("Configurator enabled ECN")
-        """
-
+        
     def connect(self, job, pcs, config):
-
         #determine ip version
         if job[0].count(':') >= 1: ipv = 6
         else: ipv = 4
@@ -150,7 +134,7 @@ class TFOSpider(Spider):
         
         #with TFO
         if config == 1:
-            message = bytes("GET / HTTP/1.1\r\n\r\n", "utf-8")
+            message = bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
             if ipv == 4:
                 addr = socket.AF_INET
             else:
@@ -160,8 +144,7 @@ class TFOSpider(Spider):
             try:
                 sock = socket.socket(addr, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
-                sock.settimeout(self.conn_timeout)
-                sock.recv(1)
+                sock.shutdown(socket.SHUT_RDWR)
                 sock.close()
             except:
                 pass
@@ -170,8 +153,6 @@ class TFOSpider(Spider):
             try:
                 sock = socket.socket(addr, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
-                sock.settimeout(self.conn_timeout)
-                sock.recv(1)
                 
                 return Connection(sock, sock.getsockname()[1], CONN_OK)
             except TimeoutError:
@@ -212,7 +193,9 @@ class TFOSpider(Spider):
 
     def merge(self, flow, res):
         logger = logging.getLogger('tfospider')
-        flow['connstate'] = res.connstate
+        if res.tfostate == 1: flow['connstate'] = flow['tfoworking']
+        else: flow['connstate'] = res.connstate
+        flow['host'] = res.host
         flow['tfostate'] = res.tfostate
         logger.info("Result: " + str(flow))
         self.merged_results.append(flow)
