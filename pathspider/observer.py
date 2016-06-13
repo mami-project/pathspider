@@ -80,11 +80,16 @@ class Observer:
         # Statistics
         self._ct_nonip = 0
         self._ct_shortkey = 0
-    
-    def interrupt(self):
-        logger = logging.getLogger("observer")
-        logger.debug("being interrupted")
-        self._interrupted = True
+ 
+    # FIXME interrupting does not work like this in multiprocessing
+    # need to create an interrupt command pipe and read from it,
+    # or a control queue and read from it.
+    # For now, see if we can get by without this.
+       
+    # def interrupt(self):
+    #     logger = logging.getLogger("observer")
+    #     logger.debug("being interrupted")
+    #     self._interrupted = True
 
     def _next_packet(self):
         # see if we're done iterating

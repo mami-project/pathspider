@@ -31,6 +31,7 @@ import logging
 import socket
 import collections
 import threading
+import multiprocessing as mp
 import queue
 
 from ipaddress import ip_address
@@ -145,7 +146,7 @@ class Spider:
         self.sem_config_one_rdy.empty()
 
         self.jobqueue = queue.Queue(QUEUE_SIZE)
-        self.flowqueue = queue.Queue(QUEUE_SIZE)
+        self.flowqueue = mp.Queue(QUEUE_SIZE)
         self.resqueue = queue.Queue(QUEUE_SIZE)
 
         self.restab = {}
@@ -158,8 +159,9 @@ class Spider:
         self.worker_threads = []
         self.configurator_thread = None
         self.interrupter_thread = None
-        self.observer_thread = None
         self.merger_thread = None
+
+        self.observer_process = None
 
         self.lock = threading.Lock()
         self.exception = None
@@ -322,7 +324,7 @@ class Spider:
                     self.resqueue.task_done()
 
     def merge(self, flow, res):
-        raise NotImplementedError("Cannot instantiate an abstract Qofspider")
+        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def exception_wrapper(self, target, *args, **kwargs):
         try:
@@ -349,16 +351,15 @@ class Spider:
             # set the running flag
             self.running = True
 
-            # create an observer and start its thread
+            # create an observer and start its process
             self.observer = self.create_observer()
-
-            self.observer_thread = threading.Thread(
+            self.observer_process = mp.Process(
                 args=(self.observer.run_flow_enqueuer,
                       self.flowqueue),
                 target=self.exception_wrapper,
                 name='observer',
                 daemon=True)
-            self.observer_thread.start()
+            self.observer_process.start()
 
             # now start up ecnspider, backwards
             self.merger_thread = threading.Thread(
@@ -441,11 +442,12 @@ class Spider:
                 worker.join()
         logger.debug("all workers joined")
         
-        if threading.current_thread() != self.observer_thread:
-            self.observer.interrupt()
-            self.observer_thread.join()
+        # FIXME okay to leave the observer process unjoined?
+        # if threading.current_thread() != self.observer_thread:
+        #     self.observer.interrupt()
+        #     self.observer_thread.join()
         
-        logger.debug("observer joined")
+        # logger.debug("observer joined")
 
         if threading.current_thread() != self.configurator_thread:
             self.configurator_thread.join()
