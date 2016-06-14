@@ -146,8 +146,10 @@ class Spider:
         self.sem_config_one_rdy.empty()
 
         self.jobqueue = queue.Queue(QUEUE_SIZE)
-        self.flowqueue = mp.Queue(QUEUE_SIZE)
         self.resqueue = queue.Queue(QUEUE_SIZE)
+
+        self.flowqueue = mp.Queue(QUEUE_SIZE)
+        self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
 
         self.restab = {}
         self.flowtab = {}
@@ -300,7 +302,8 @@ class Spider:
                     else:
                         self.flowtab[flowkey] = flow
 
-                    self.flowqueue.task_done()
+                    # no task_done in flowqueue
+                    # self.flowqueue.task_done()
             else:
                 try:
                     res = self.resqueue.get_nowait()
@@ -355,7 +358,8 @@ class Spider:
             self.observer = self.create_observer()
             self.observer_process = mp.Process(
                 args=(self.observer.run_flow_enqueuer,
-                      self.flowqueue),
+                      self.flowqueue, 
+                      self.observer_shutdown_queue),
                 target=self.exception_wrapper,
                 name='observer',
                 daemon=True)
@@ -425,11 +429,13 @@ class Spider:
         except ValueError:
             pass
 
-        try:
-            while True:
-                self.flowqueue.task_done()
-        except ValueError:
-            pass
+        # FIXME task_done doesn't exist in mp.Queue()
+        # Use close() on the sender side.
+        # try:
+        #     while True:
+        #         self.flowqueue.task_done()
+        # except ValueError:
+        #     pass
 
         logger.error("termination complete. joined all threads, emptied all queues.")
 
@@ -481,8 +487,11 @@ class Spider:
             self.resqueue.join()
             logger.debug("job and result queues empty")
 
+            # Shut down the observer
+            self.observer_shutdown_queue.put(True)
+
             # Wait for flow queue to empty
-            self.flowqueue.join()
+            self.flowqueue.join_thread()
             logger.debug("flow queue empty")
 
             # Shut down threads

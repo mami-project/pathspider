@@ -50,7 +50,8 @@ class Observer:
                  l4_chain=[]):
 
         # Control
-        self._interrupted = False
+        self._irq = None
+        self._irq_fired = False
 
         # Libtrace initialization
         self._trace = libtrace.trace(lturi)
@@ -80,16 +81,16 @@ class Observer:
         # Statistics
         self._ct_nonip = 0
         self._ct_shortkey = 0
- 
-    # FIXME interrupting does not work like this in multiprocessing
-    # need to create an interrupt command pipe and read from it,
-    # or a control queue and read from it.
-    # For now, see if we can get by without this.
-       
-    # def interrupt(self):
-    #     logger = logging.getLogger("observer")
-    #     logger.debug("being interrupted")
-    #     self._interrupted = True
+
+    def _interrupted(self):
+        try:
+            if not self._irq_fired and self._irq is not None:
+                self._irq.get_nowait()
+                self._irq_fired = True
+        except queue.Empty:
+            pass
+
+        return self._irq_fired
 
     def _next_packet(self):
         # see if we're done iterating
@@ -97,7 +98,7 @@ class Observer:
             return False
 
         # see if someone told us to stop
-        if self._interrupted:
+        if self._interrupted():
             return False
 
         # advance the packet clock
@@ -267,11 +268,15 @@ class Observer:
 
         self._ignored.clear()
 
-    def run_flow_enqueuer(self, queue):
+    def run_flow_enqueuer(self, flowqueue, irqueue=None):
+        if irqueue:
+            self._irq = irqueue
+            self._irq_fired = None
+
         while True:
             f = self._next_flow()
             if f:
-                queue.put(f)
+                flowqueue.put(f)
             else:
                 break
 
