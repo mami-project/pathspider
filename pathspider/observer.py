@@ -25,12 +25,12 @@ def _flow6_ids(ip6):
     # FIXME link ICMP by looking at payload
     if ip6.proto == 6 or ip6.proto == 17 or ip6.proto == 132:
         # key includes ports
-        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[7:8] + ip6.payload[0:4]
-        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[7:8] + ip6.payload[2:4] + ip6.payload[0:2]
+        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7] + ip6.payload[0:4]
+        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[6:7] + ip6.payload[2:4] + ip6.payload[0:2]
     else:
         # no ports, just 3-tuple
-        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[7:8]
-        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[7:8]
+        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7]
+        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[6:7]
     return (base64.b64encode(fid), base64.b64encode(rid))
 
 PacketClockTimer = collections.namedtuple("PacketClockTimer", ("time", "fn"))
