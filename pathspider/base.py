@@ -490,9 +490,9 @@ class Spider:
             # Shut down the observer
             self.observer_shutdown_queue.put(True)
 
-            # Wait for flow queue to empty
-            self.flowqueue.join_thread()
-            logger.debug("flow queue empty")
+            # Wait for the observer to stop
+            self.observer_process.join()
+            logger.debug("observer shutdown")
 
             # Shut down threads
             self.running = False
