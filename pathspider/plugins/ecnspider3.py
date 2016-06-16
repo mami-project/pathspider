@@ -142,6 +142,6 @@ class ECNSpider(Spider):
         flow['connstate'] = res.connstate
         flow['ecnstate'] = res.ecnstate
         logger.info("Result: " + str(flow))
-        self.merged_results.append(flow)
+        self.outqueue.put(flow)
 
 ecnspider = ECNSpider()

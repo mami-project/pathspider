@@ -154,7 +154,7 @@ class Spider:
         self.restab = {}
         self.flowtab = {}
 
-        self.merged_results = queue.Queue(QUEUE_SIZE)
+        self.outqueue = queue.Queue(QUEUE_SIZE)
 
         self.observer = None
 
@@ -455,11 +455,11 @@ class Spider:
             logger.debug("merger shutdown")
 
             # Wait for merged results to be written
-            self.merged_results.join()
+            self.outqueue.join()
             logger.debug("all results retrieved")
 
             # Propagate shutdown sentinel and tell threads to stop
-            self.merged_results.put(SHUTDOWN_SENTINEL)
+            self.outqueue.put(SHUTDOWN_SENTINEL)
             self.running = False
 
             # Join remaining threads
@@ -529,7 +529,7 @@ class Spider:
         self.observer_process.join()
         logger.debug("observer joined")
 
-        self.merged_results.put(SHUTDOWN_SENTINEL)
+        self.outqueue.put(SHUTDOWN_SENTINEL)
         logger.info("termination complete")
            
     def add_job(self, job):

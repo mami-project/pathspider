@@ -197,6 +197,6 @@ class TFOSpider(Spider):
         flow['host'] = res.host
         flow['tfostate'] = res.tfostate
         logger.info("Result: " + str(flow))
-        self.merged_results.append(flow)
+        self.outqueue.put(flow)
 
 tfospider = TFOSpider()
