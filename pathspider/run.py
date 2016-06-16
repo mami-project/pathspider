@@ -7,7 +7,7 @@ import threading
 
 from twisted.plugin import getPlugins
 
-from pathspider.base import ISpider
+from pathspider.base import ISpider, SHUTDOWN_SENTINEL
 import pathspider.plugins
 
 import sys
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         with open(args.outputfile, 'w') as outputfile:
             while True:
                 result = spider.outqueue.get()
-                if result == spider.SHUTDOWN_SENTINEL:
+                if result == SHUTDOWN_SENTINEL:
                     break
                 outputfile.write(str(result) + "\n")
                 spider.outqueue.task_done()
