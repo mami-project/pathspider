@@ -139,8 +139,18 @@ class ECNSpider(Spider):
 
     def merge(self, flow, res):
         logger = logging.getLogger('ecnspider3')
-        flow['connstate'] = res.connstate
-        flow['ecnstate'] = res.ecnstate
+        if flow == NO_FLOW:
+            flow = {"dip": res.ip,
+                    "sp": res.port,
+                    "dp": res.rport,
+                    "connstate": res.connstate,
+                    "ecnstate": res.ecnstate,
+                    "observed": False }
+        else:
+            flow['connstate'] = res.connstate
+            flow['ecnstate'] = res.ecnstate
+            flow['observed'] = True
+
         logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
 

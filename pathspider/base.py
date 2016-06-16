@@ -344,9 +344,9 @@ class Spider:
         # Call merge on all remaining entries in the results table 
         # with null flows.
         # Commented out for now; see https://github.com/mami-project/pathspider/issues/29 
-        # for res_item in self.restab.items():
-        #   res = res_item[1]
-        #   self.merge(NO_FLOW, res)
+        for res_item in self.restab.items():
+            res = res_item[1]
+            self.merge(NO_FLOW, res)
 
     def merge(self, flow, res):
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
