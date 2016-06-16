@@ -83,11 +83,11 @@ if __name__ == "__main__":
         
         with open(args.outputfile, 'w') as outputfile:
             while True:
-                result = spider.merged_results.get()
+                result = spider.outqueue.get()
                 if result == spider.SHUTDOWN_SENTINEL:
                     break
                 outputfile.write(str(result) + "\n")
-                spider.merged_results.task_done()
+                spider.outqueue.task_done()
 
     except KeyboardInterrupt:
         print("kthxbye")
