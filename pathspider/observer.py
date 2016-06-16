@@ -230,11 +230,7 @@ class Observer:
     def _next_flow(self):
         while len(self._emitted) == 0:
             if not self._next_packet():
-                if len(self._expiring) or len(self._active):
-                    self.flush()
-                    continue
-                else:
-                    return None
+                return None
 
         return self._emitted.popleft()
 
@@ -279,12 +275,16 @@ class Observer:
             self._irq = irqueue
             self._irq_fired = None
 
-        while True:
-            f = self._next_flow()
-            if f:
-                flowqueue.put(f)
-            else:
-                break
+        # Run main loop until last packet seen
+        # then flush active flows and run again
+        for i in range(2):
+            while True:
+                f = self._next_flow()
+                if f:
+                    flowqueue.put(f)
+                else:
+                    self.flush()
+                    break
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 
