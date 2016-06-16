@@ -141,7 +141,7 @@ class ECNSpider(Spider):
         logger = logging.getLogger('ecnspider3')
         flow['connstate'] = res.connstate
         flow['ecnstate'] = res.ecnstate
-        logger.info("Result: " + str(flow))
+        logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
 
 ecnspider = ECNSpider()
