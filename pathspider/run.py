@@ -76,7 +76,7 @@ if __name__ == "__main__":
         print("activating spider...")
         
         spider.activate(worker_count, "int:" + interface)
-        spider.run()
+        spider.start()
 
         print("starting to add jobs")
         threading.Thread(target=job_feeder, args=(args.inputfile, spider)).start()
