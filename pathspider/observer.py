@@ -7,6 +7,7 @@ import queue
 import multiprocessing as mp
 import plt as libtrace
 
+SHUTDOWN_SENTINEL = None
 
 def _flow4_ids(ip):
     # FIXME keep map of fragment IDs to keys
@@ -281,6 +282,8 @@ class Observer:
                 flowqueue.put(f)
             else:
                 break
+
+        flowqueue.put(SHUTDOWN_SENTINEL)
 
 def extract_ports(ip):
     if ip.udp:

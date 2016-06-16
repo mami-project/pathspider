@@ -12,6 +12,8 @@ from zope.interface import implementer
 
 from pathspider.base import Spider
 from pathspider.base import ISpider
+from pathspider.base import NO_FLOW
+
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count

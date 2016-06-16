@@ -25,7 +25,7 @@ def job_feeder(inputfile, spider):
             spider.add_job(row)
         
         print("job_feeder: all jobs added, waiting for spider to finish")
-        spider.stop()
+        spider.shutdown()
         print("job_feeder: stopped")
 
 if __name__ == "__main__":
@@ -82,13 +82,12 @@ if __name__ == "__main__":
         threading.Thread(target=job_feeder, args=(args.inputfile, spider)).start()
         
         with open(args.outputfile, 'w') as outputfile:
-            while spider.running:
-                try:
-                    result = spider.merged_results.popleft()
-                except IndexError:
-                    time.sleep(1)
-                else:
-                    outputfile.write(str(result) + "\n")
+            while True:
+                result = spider.merged_results.get()
+                if result == spider.SHUTDOWN_SENTINEL:
+                    break
+                outputfile.write(str(result) + "\n")
+                spider.merged_results.task_done()
 
     except KeyboardInterrupt:
         print("kthxbye")

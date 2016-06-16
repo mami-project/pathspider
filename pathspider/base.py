@@ -93,8 +93,8 @@ class SemaphoreN(threading.BoundedSemaphore):
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
-QOF_INITIAL_SLEEP = 3
-QOF_FINAL_SLEEP = 3
+SHUTDOWN_SENTINEL = None
+NO_FLOW = None
 
 class Spider:
     """
@@ -118,7 +118,7 @@ class Spider:
 
         self.activated = False
 
-    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
+    def activate(self, worker_count, libtrace_uri):
         """
         The activate function performs initialisation of a pathspider plugin.
 
@@ -134,7 +134,7 @@ class Spider:
 
         self.worker_count = worker_count
         self.libtrace_uri = libtrace_uri
-        self.check_interrupt = check_interrupt
+#        self.check_interrupt = check_interrupt
 
         self.sem_config_zero = SemaphoreN(worker_count)
         self.sem_config_zero.empty()
@@ -154,13 +154,13 @@ class Spider:
         self.restab = {}
         self.flowtab = {}
 
-        self.merged_results = collections.deque()
+        self.merged_results = queue.Queue(QUEUE_SIZE)
 
         self.observer = None
 
         self.worker_threads = []
         self.configurator_thread = None
-        self.interrupter_thread = None
+#        self.interrupter_thread = None
         self.merger_thread = None
 
         self.observer_process = None
@@ -209,21 +209,21 @@ class Spider:
 
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
-    def interrupter(self):
-        if self.check_interrupt is None:
-            return
+    # def interrupter(self):
+    #     if self.check_interrupt is None:
+    #         return
 
-        logger = logging.getLogger('pathspider')
-        while self.running:
-            if self.check_interrupt():
-                logger.warning("spider interrupted")
-                logger.warning("trying to abort %d jobs", self.jobqueue.qsize())
-                while not self.jobqueue.empty():
-                    self.jobqueue.get()
-                    self.jobqueue.task_done()
-                self.stop()
-                break
-            time.sleep(5)
+    #     logger = logging.getLogger('pathspider')
+    #     while self.running:
+    #         if self.check_interrupt():
+    #             logger.warning("spider interrupted")
+    #             logger.warning("trying to abort %d jobs", self.jobqueue.qsize())
+    #             while not self.jobqueue.empty():
+    #                 self.jobqueue.get()
+    #                 self.jobqueue.task_done()
+    #             self.stop()
+    #             break
+    #         time.sleep(5)
 
     def worker(self):
         logger = logging.getLogger('pathspider')
@@ -242,6 +242,7 @@ class Spider:
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
             else:
+
                 # Hook for preconnection
                 pcs = self.pre_connect(job)
 
@@ -282,13 +283,20 @@ class Spider:
 
     def merger(self):
         logger = logging.getLogger('pathspider')
-        while self.running:
-            if self.flowqueue.qsize() >= self.resqueue.qsize():
+        merging_flows = True
+        merging_results = True
+
+        while self.running and (merging_flows or merging_results):
+            if self.flowqueue.qsize() >= self.resqueue.qsize()
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
                 else:
+                    if flow == SHUTDOWN_SENTINEL:
+                        merging_flows = False
+                        continue
+
                     flowkey = (flow['dip'], flow['sp'])
                     logger.debug("got a flow (" + str(flow['sip']) + ", " +
                                  str(flow['sp']) + ")")
@@ -300,10 +308,12 @@ class Spider:
                     elif flowkey in self.flowtab:
                         logger.debug("won't merge duplicate flow")
                     else:
+                        # FIXME: How to keep flowtab from 
+                        # exploding with unrelated flows?
+                        # We need a timer queue for flow expiry. 
+                        # See Issue #30
                         self.flowtab[flowkey] = flow
 
-                    # no task_done in flowqueue
-                    # self.flowqueue.task_done()
             else:
                 try:
                     res = self.resqueue.get_nowait()
@@ -311,6 +321,10 @@ class Spider:
                     time.sleep(QUEUE_SLEEP)
                     logger.debug("result queue is empty")
                 else:
+                    if res == SHUTDOWN_SENTINEL:
+                        merging_results = False
+                        continue
+
                     reskey = (res.ip, res.port)
                     logger.debug("got a result (" + str(res.ip) + ", " +
                                  str(res.port) + ")")
@@ -326,6 +340,14 @@ class Spider:
 
                     self.resqueue.task_done()
 
+        # Both shutdown markers received. 
+        # Call merge on all remaining entries in the results table 
+        # with null flows.
+        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29 
+        # for res_item in self.restab.items():
+        #   res = res_item[1]
+        #   self.merge(NO_FLOW, res)
+
     def merge(self, flow, res):
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
@@ -335,14 +357,13 @@ class Spider:
         except:
             #FIXME: What exceptions do we expect?
             logger = logging.getLogger('pathspider')
-            logger.exception("exception occurred. initiating termination and" +
-                             "notify ecnspider component.")
+            logger.exception("exception occurred. terminating.")
             if self.exception is None:
                 self.exception = sys.exc_info()[1]
 
             self.terminate()
 
-    def run(self):
+    def start(self):
         logger = logging.getLogger('pathspider')
         if self.activated == False:
             logger.exception("tried to run plugin without activating first")
@@ -364,6 +385,7 @@ class Spider:
                 name='observer',
                 daemon=True)
             self.observer_process.start()
+            logger.debug("observer forked")
 
             # now start up ecnspider, backwards
             self.merger_thread = threading.Thread(
@@ -391,32 +413,86 @@ class Spider:
                     daemon=True)
                 self.worker_threads.append(worker_thread)
                 worker_thread.start()
-
             logger.debug("workers up")
 
-            if self.check_interrupt is not None:
-                self.interrupter_thread = threading.Thread(
-                    args=(self.interrupter,),
-                    target=self.exception_wrapper,
-                    name="interrupter",
-                    daemon=True)
-                self.interrupter_thread.start()
-                logger.debug("interrupter up")
+            # if self.check_interrupt is not None:
+            #     self.interrupter_thread = threading.Thread(
+            #         args=(self.interrupter,),
+            #         target=self.exception_wrapper,
+            #         name="interrupter",
+            #         daemon=True)
+            #     self.interrupter_thread.start()
+            #     logger.debug("interrupter up")
+
+    def shutdown(self):
+        """
+        Shut down PathSpider in an orderly fashion, 
+        ensuring that all queued jobs complete, 
+        and all available results are merged.
+
+        """
+        logger = logging.getLogger('pathspider')
+
+        logger.info("shutting down pathspider")
+        
+        with self.lock:
+            # Set stopping flag
+            self.stopping = True
+
+            # Wait for job and result queues to empty
+            self.jobqueue.join()
+            self.resqueue.join()
+            logger.debug("job and result queues empty")
+
+            # Tell observer to shut down
+            self.observer_shutdown_queue.put(True)
+            self.observer_process.join()
+            logger.debug("observer shutdown")
+
+            # Tell merger to shut down
+            self.resqueue.put(SHUTDOWN_SENTINEL)
+            self.merger_thread.join()
+            logger.debug("merger shutdown")
+
+            # Wait for merged results to be written
+            self.merged_results.join()
+            logger.debug("all results retrieved")
+
+            # Propagate shutdown sentinel and tell threads to stop
+            self.merged_results.put(SHUTDOWN_SENTINEL)
+            self.running = False
+
+            # Join remaining threads
+            for worker in self.worker_threads:
+                if threading.current_thread() != worker:
+                    logger.debug("joining worker: " + repr(worker))
+                    worker.join()
+            logger.debug("all workers joined")           
+
+            if threading.current_thread() != self.configurator_thread:
+                self.configurator_thread.join()
+        
+            self.stopping = False
+
+        logger.info("shutdown complete")
 
     def terminate(self):
-        if self.terminating:
-            return
+        """
+        Shut down PathSpider as quickly as possible,
+        without any regard to completeness of results.
 
-        self.terminating = True
-
+        """
         logger = logging.getLogger('pathspider')
-        logger.error("terminating pathspider.")
+        logger.info("terminating pathspider")
 
+        # tell threads to stop
+        self.stopping = True
         self.running = False
 
-        self.join_threads()
+        # terminate observer
+        self.observer_shutdown_queue.put(True)
 
-        # empty all queues, so that stop() does not hang up.
+        # drain queues
         try:
             while True:
                 self.jobqueue.task_done()
@@ -429,106 +505,61 @@ class Spider:
         except ValueError:
             pass
 
-        # FIXME task_done doesn't exist in mp.Queue()
-        # Use close() on the sender side.
-        # try:
-        #     while True:
-        #         self.flowqueue.task_done()
-        # except ValueError:
-        #     pass
+        try:
+            while True:
+                self.flowqueue.get_nowait()
+        except queue.Empty:
+            pass
 
-        logger.error("termination complete. joined all threads, emptied all queues.")
-
-    def join_threads(self):
-        logger = logging.getLogger('pathspider')
-        logger.debug("joining threads")
+        # Join remaining threads
         for worker in self.worker_threads:
             if threading.current_thread() != worker:
                 logger.debug("joining worker: " + repr(worker))
                 worker.join()
-        logger.debug("all workers joined")
-        
-        # FIXME okay to leave the observer process unjoined?
-        # if threading.current_thread() != self.observer_thread:
-        #     self.observer.interrupt()
-        #     self.observer_thread.join()
-        
-        # logger.debug("observer joined")
+        logger.debug("all workers joined")           
 
         if threading.current_thread() != self.configurator_thread:
             self.configurator_thread.join()
+        logger.debug("configurator joined")           
         
-        logger.debug("configurator joined")
-
-        if (self.interrupter_thread is not None and
-                threading.current_thread() != self.interrupter_thread):
-            self.interrupter_thread.join()
-        
-        logger.debug("interrupter joined")
-
         if threading.current_thread() != self.merger_thread:
-            self.merger_thread.join()
-        
-        logger.debug("merger joined")
-        
-        logger.debug("joining threads complete")
+            self.merger_thread.join() 
+        logger.debug("merger joined")           
 
-    def stop(self):
-        logger = logging.getLogger('pathspider')
+        self.observer_process.join()
+        logger.debug("observer joined")
 
-        logger.info("stopping pathspider")
-
-        with self.lock:
-            # Set stopping flag
-            self.stopping = True
-
-            # Wait for job and result queues to empty
-            self.jobqueue.join()
-            self.resqueue.join()
-            logger.debug("job and result queues empty")
-
-            # Shut down the observer
-            self.observer_shutdown_queue.put(True)
-
-            # Wait for the observer to stop
-            self.observer_process.join()
-            logger.debug("observer shutdown")
-
-            # Shut down threads
-            self.running = False
-            self.stopping = False
-
-            # join threads
-            self.join_threads()
-
+        self.merged_results.put(SHUTDOWN_SENTINEL)
+        logger.info("termination complete")
+           
     def add_job(self, job):
-        if self.stopping or self.terminating:
+        if self.stopping:
             return
 
         self.jobqueue.put(job)
 
-def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
-    if ipv == 4:
-        addrfamily = socket.AF_INET
-    elif ipv == 6:
-        addrfamily = socket.AF_INET6
-    else:
-        assert False
+# def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
+#     if ipv == 4:
+#         addrfamily = socket.AF_INET
+#     elif ipv == 6:
+#         addrfamily = socket.AF_INET6
+#     else:
+#         assert False
 
-    try:
-        sock = socket.socket(addrfamily, socket.SOCK_DGRAM)
-        sock.connect((target, port))
-        return ip_address(sock.getsockname()[0])
-    except:
-        #FIXME: What exceptions do we expect?
-        return None
+#     try:
+#         sock = socket.socket(addrfamily, socket.SOCK_DGRAM)
+#         sock.connect((target, port))
+#         return ip_address(sock.getsockname()[0])
+#     except:
+#         #FIXME: What exceptions do we expect?
+#         return None
 
 class ISpider(Interface):
     """
     The ISpider class defines the expected interface for pathspider plugins.
     """
 
-    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
+    def activate(self, worker_count, libtrace_uri):
         """
         This method should initialise the spider class. It should always begin
         with a call to the superclass' activate() method if this is overloaded:
@@ -545,6 +576,7 @@ class ISpider(Interface):
         in order to be loaded and this will cause unnecessary delays in the
         starting of pathspider.
         """
+        pass
 
     def config_zero(self):
         pass
