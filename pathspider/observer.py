@@ -228,10 +228,13 @@ class Observer:
         self._emitted.append(rec)
 
     def _next_flow(self):
-        # FIXME needs to flush on interrupt
         while len(self._emitted) == 0:
             if not self._next_packet():
-                return None
+                if len(self._expiring) or len(self._active)
+                    self.flush()
+                    continue
+                else:
+                    return None
 
         return self._emitted.popleft()
 
