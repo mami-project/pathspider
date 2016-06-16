@@ -230,7 +230,7 @@ class Observer:
     def _next_flow(self):
         while len(self._emitted) == 0:
             if not self._next_packet():
-                if len(self._expiring) or len(self._active)
+                if len(self._expiring) or len(self._active):
                     self.flush()
                     continue
                 else:
