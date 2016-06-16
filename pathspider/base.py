@@ -287,7 +287,7 @@ class Spider:
         merging_results = True
 
         while self.running and (merging_flows or merging_results):
-            if self.flowqueue.qsize() >= self.resqueue.qsize()
+            if self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:

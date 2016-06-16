@@ -74,10 +74,9 @@ def ecncode(rec, ip, rev):
 @implementer(ISpider, IPlugin)
 class ECNSpider(Spider):
 
-    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
+    def activate(self, worker_count, libtrace_uri):
         super().activate(worker_count=worker_count,
-                         libtrace_uri=libtrace_uri,
-                         check_interrupt=check_interrupt)
+                         libtrace_uri=libtrace_uri)
         self.tos = None # set by configurator
         self.conn_timeout = 10
 
