@@ -234,6 +234,8 @@ class Spider:
 
                 # Break on shutdown sentinel
                 if job == SHUTDOWN_SENTINEL:
+                    self.jobqueue.task_done()
+                    self.resqueue.put()
                     break
 
                 logger.debug("got a job: "+repr(job))
@@ -447,7 +449,7 @@ class Spider:
             # Place one shutdown sentinel per worker
             # in the job queue
             for i in range(self.worker_count):
-                self.jobqueue.add(SHUTDOWN_SENTINEL) 
+                self.jobqueue.put(SHUTDOWN_SENTINEL) 
 
             # Wait for worker threads to shut down
             for worker in self.worker_threads:
