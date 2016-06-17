@@ -235,7 +235,7 @@ class Spider:
                 # Break on shutdown sentinel
                 if job == SHUTDOWN_SENTINEL:
                     self.jobqueue.task_done()
-                    self.resqueue.put()
+                    self.resqueue.put(SHUTDOWN_SENTINEL)
                     break
 
                 logger.debug("got a job: "+repr(job))
@@ -249,7 +249,6 @@ class Spider:
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
             else:
-
                 # Hook for preconnection
                 pcs = self.pre_connect(job)
 
