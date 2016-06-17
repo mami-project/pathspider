@@ -84,13 +84,13 @@ class ECNSpider(Spider):
         logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.info("Configurator disabled ECN")
+        logger.debug("Configurator disabled ECN")
 
     def config_one(self):
         logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.info("Configurator enabled ECN")
+        logger.debug("Configurator enabled ECN")
 
     def connect(self, job, pcs, config):
         sock = socket.socket()
