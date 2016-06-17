@@ -82,8 +82,11 @@ class Observer:
         self._emitted = collections.deque()
 
         # Statistics
+        self._ct_pkt = 0
         self._ct_nonip = 0
         self._ct_shortkey = 0
+        self._ct_ignored = 0
+        self._ct_flow = 0
 
     def _interrupted(self):
         try:
@@ -103,6 +106,9 @@ class Observer:
         # see if someone told us to stop
         if self._interrupted():
             return False
+
+        # count the packet
+        self._ct_pkt += 1
 
         # advance the packet clock
         self._tick(self._pkt.seconds)
@@ -196,12 +202,14 @@ class Observer:
                 if not fn(rec, ip):
                     logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
+                    self._ct_ignored += 1
                     return (None, None, False)
 
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
             logger.debug("new flow for "+str(ffid))
+            self._ct_flow += 1
 
 
         # update time and return record
@@ -285,6 +293,16 @@ class Observer:
                 else:
                     self.flush()
                     break
+
+        # log observer info on shutdown
+        logging.getLogger("observer").info(
+                ("observer processed %u packets "+
+                "(%u dropped, %u short, %u non-ip)"+
+                "into %u flows (%u ignored)") % ( 
+                    self._ct_pkt, self._trace.pkt_drops(),
+                    self._ct_shortkey, self._ct_nonip,
+                    self._ct_flow, self._ct_ignored
+                )
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 
