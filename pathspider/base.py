@@ -473,12 +473,12 @@ class Spider:
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
 
-            # Tell threads to stop
+            # Tell threads we've stopped
             self.running = False
 
             # Join configurator
-            if threading.current_thread() != self.configurator_thread:
-                self.configurator_thread.join()
+            # if threading.current_thread() != self.configurator_thread:
+            #     self.configurator_thread.join()
         
             self.stopping = False
 
