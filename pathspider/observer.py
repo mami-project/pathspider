@@ -296,13 +296,12 @@ class Observer:
 
         # log observer info on shutdown
         logging.getLogger("observer").info(
-                ("observer processed %u packets "+
-                "(%u dropped, %u short, %u non-ip)"+
+                ("processed %u packets "+
+                "(%u dropped, %u short, %u non-ip) "+
                 "into %u flows (%u ignored)") % ( 
                     self._ct_pkt, self._trace.pkt_drops(),
                     self._ct_shortkey, self._ct_nonip,
-                    self._ct_flow, self._ct_ignored
-                )
+                    self._ct_flow, self._ct_ignored))
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 

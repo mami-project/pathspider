@@ -231,6 +231,11 @@ class Spider:
         while self.running:
             try:
                 job = self.jobqueue.get_nowait()
+
+                # Break on shutdown sentinel
+                if job == SHUTDOWN_SENTINEL:
+                    break
+
                 logger.debug("got a job: "+repr(job))
             except queue.Empty:
                 #logger.debug("no job available, sleeping")
@@ -286,7 +291,7 @@ class Spider:
         merging_flows = True
         merging_results = True
 
-        while self.running and (merging_flows or merging_results):
+        while self.running and merging_results:
             if self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
                     flow = self.flowqueue.get_nowait()
@@ -439,18 +444,24 @@ class Spider:
             # Set stopping flag
             self.stopping = True
 
-            # Wait for job and result queues to empty
-            self.jobqueue.join()
-            self.resqueue.join()
-            logger.debug("job and result queues empty")
+            # Place one shutdown sentinel per worker
+            # in the job queue
+            for i in range(self.worker_count):
+                self.jobqueue.add(SHUTDOWN_SENTINEL) 
+
+            # Wait for worker threads to shut down
+            for worker in self.worker_threads:
+                if threading.current_thread() != worker:
+                    logger.debug("joining worker: " + repr(worker))
+                    worker.join()
+            logger.debug("all workers joined")            
 
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
             self.observer_process.join()
             logger.debug("observer shutdown")
 
-            # Tell merger to shut down
-            self.resqueue.put(SHUTDOWN_SENTINEL)
+            # Wait for merger to shut down
             self.merger_thread.join()
             logger.debug("merger shutdown")
 
@@ -460,15 +471,11 @@ class Spider:
 
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
+
+            # Tell threads to stop
             self.running = False
 
-            # Join remaining threads
-            for worker in self.worker_threads:
-                if threading.current_thread() != worker:
-                    logger.debug("joining worker: " + repr(worker))
-                    worker.join()
-            logger.debug("all workers joined")           
-
+            # Join configurator
             if threading.current_thread() != self.configurator_thread:
                 self.configurator_thread.join()
         
