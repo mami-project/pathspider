@@ -185,22 +185,22 @@ class Observer:
             return (None, None, False)
         elif ffid in self._active:
             (fid, rec) = (ffid, self._active[ffid])
-            logger.debug("found forward flow for "+str(ffid))
+            #logger.debug("found forward flow for "+str(ffid))
         elif ffid in self._expiring:
             (fid, rec) = (ffid, self._expiring[ffid])
-            logger.debug("found expiring forward flow for "+str(ffid))
+            #logger.debug("found expiring forward flow for "+str(ffid))
         elif rfid in self._active:
             (fid, rec) = (rfid, self._active[rfid])
-            logger.debug("found reverse flow for "+str(rfid))
+            #logger.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
             (fid, rec) =  (rfid, self._expiring[rfid])
-            logger.debug("found expiring reverse flow for "+str(rfid))
+            #logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
             rec = {'first': ip.seconds}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
-                    logger.debug("ignoring "+str(ffid))
+                    #logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
                     self._ct_ignored += 1
                     return (None, None, False)
@@ -208,7 +208,7 @@ class Observer:
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
-            logger.debug("new flow for "+str(ffid))
+            #logger.debug("new flow for "+str(ffid))
             self._ct_flow += 1
 
 
@@ -222,11 +222,12 @@ class Observer:
         """
         logger = logging.getLogger("observer")
         # move flow to expiring table
-        logging.debug("Moving flow " + str(fid) + " to expiring queue")
+        # logging.debug("Moving flow " + str(fid) + " to expiring queue")
         try:
             self._expiring[fid] = self._active[fid]
         except KeyError:
-            logger.debug("Tried to expire an already expired flow")
+            #logger.debug("Tried to expire an already expired flow")
+            pass
         else:
             del self._active[fid]
             # set up a timer to fire to emit the flow after timeout
