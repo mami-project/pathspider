@@ -239,7 +239,7 @@ class Spider:
                     self.jobqueue.task_done()
                     #self.resqueue.put(SHUTDOWN_SENTINEL) # don't do this, have to wait for all workers to finish
                     logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                    self._worker_state = "sentinel_shutdown"
+                    self._worker_state[worker_number] = "sentinel_shutdown"
                     break
 
                 logger.debug("got a job: "+repr(job))
