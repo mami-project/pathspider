@@ -235,7 +235,8 @@ class Spider:
                 # Break on shutdown sentinel
                 if job == SHUTDOWN_SENTINEL:
                     self.jobqueue.task_done()
-                    self.resqueue.put(SHUTDOWN_SENTINEL)
+                    #self.resqueue.put(SHUTDOWN_SENTINEL) # don't do this, have to wait for all workers to finish
+                    logger.debug("shutting down "+repr(threading.current_thread())+" on sentinel")
                     break
 
                 logger.debug("got a job: "+repr(job))
@@ -300,6 +301,7 @@ class Spider:
                     time.sleep(QUEUE_SLEEP)
                 else:
                     if flow == SHUTDOWN_SENTINEL:
+                        logger.debug("stopping flow merging on sentinel")
                         merging_flows = False
                         continue
 
@@ -329,6 +331,7 @@ class Spider:
                 else:
                     if res == SHUTDOWN_SENTINEL:
                         merging_results = False
+                        logger.debug("stopping result merging on sentinel")
                         continue
 
                     reskey = (res.ip, res.port)
@@ -462,7 +465,8 @@ class Spider:
             self.observer_process.join()
             logger.debug("observer shutdown")
 
-            # Wait for merger to shut down
+            # Tell merger to shut down
+            self.resqueue.put(SHUTDOWN_SENTINEL)
             self.merger_thread.join()
             logger.debug("merger shutdown")
 
