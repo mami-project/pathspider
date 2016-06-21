@@ -289,11 +289,11 @@ class Spider:
                 logger.debug("job complete: "+repr(job))
                 self.jobqueue.task_done()
 
-    def worker_status(self):
+    def worker_status_reporter(self):
         logger = logging.getLogger('pathspider')
 
         while self.running:
-            for i in range(self.worker_count)
+            for i in range(self.worker_count):
                 logger.debug("worker "+str(i)+" in state "+self._worker_state[i])
 
             time.sleep(5)
@@ -437,7 +437,7 @@ class Spider:
 
             threading.Thread(
                 target = self.worker_status_reporter,
-                name = "status_reporter"
+                name = "status_reporter",
                 daemon = True).start()
             logger.debug("status reporter up")
 
