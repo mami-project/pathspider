@@ -458,11 +458,11 @@ class Spider:
             self.configurator_thread.start()
             logger.debug("configurator up")
 
-            threading.Thread(
-                target = self.worker_status_reporter,
-                name = "status_reporter",
-                daemon = True).start()
-            logger.debug("status reporter up")
+            # threading.Thread(
+            #     target = self.worker_status_reporter,
+            #     name = "status_reporter",
+            #     daemon = True).start()
+            # logger.debug("status reporter up")
 
             self.worker_threads = []
             with self.active_worker_lock:
