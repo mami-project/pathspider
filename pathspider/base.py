@@ -247,6 +247,7 @@ class Spider:
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
+                            logger.debug(str(self.active_worker_count)+" workers still active")
                         continue
 
                     logger.debug("got a job: "+repr(job))
@@ -299,15 +300,16 @@ class Spider:
                 self.sem_config_zero.acquire()
                 self._worker_state[worker_number] = "shutdown_0"
                 time.sleep(QUEUE_SLEEP)
+                with self.active_worker_lock:
+                    if self.active_worker_count <= 0:
+                        self._worker_state[worker_number] = "shutdown_complete"
+                        break
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
                 self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
-                with self.active_worker_lock:
-                    if self.active_worker_count <= 0:
-                        self._worker_state[worker_number] = "shutdown_complete"
-                        break
+
 
 
     def worker_status_reporter(self):
