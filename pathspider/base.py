@@ -168,7 +168,7 @@ class Spider:
 
         self.observer_process = None
 
-        self._worker_state = [ "not_started" ] * self.worker_count
+#        self._worker_state = [ "not_started" ] * self.worker_count
 
         self.lock = threading.Lock()
         self.exception = None
@@ -243,7 +243,7 @@ class Spider:
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
                         logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        self._worker_state[worker_number] = "shutdown_sentinel"
+                        #self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
@@ -255,71 +255,71 @@ class Spider:
                     #logger.debug("no job available, sleeping")
                     # spin the semaphores
                     self.sem_config_zero.acquire()
-                    self._worker_state[worker_number] = "sleep_0"
+                    #self._worker_state[worker_number] = "sleep_0"
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
-                    self._worker_state[worker_number] = "sleep_1"
+                    #self._worker_state[worker_number] = "sleep_1"
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_zero_rdy.release()
                 else:
                     # Hook for preconnection
-                    self._worker_state[worker_number] = "preconn"
+                    #self._worker_state[worker_number] = "preconn"
                     pcs = self.pre_connect(job)
 
                     # Wait for configuration zero
-                    self._worker_state[worker_number] = "wait_0"
+                    #self._worker_state[worker_number] = "wait_0"
                     self.sem_config_zero.acquire()
 
                     # Connect in configuration zero
-                    self._worker_state[worker_number] = "conn_0"
+                    #self._worker_state[worker_number] = "conn_0"
                     conn0 = self.connect(job, pcs, 0)
 
                     # Wait for configuration one
-                    self._worker_state[worker_number] = "wait_1"
+                    #self._worker_state[worker_number] = "wait_1"
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
 
                     # Connect in configuration one
-                    self._worker_state[worker_number] = "conn_1"
+                    #self._worker_state[worker_number] = "conn_1"
                     conn1 = self.connect(job, pcs, 1)
 
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
 
                     # Pass results on for merge
-                    self._worker_state[worker_number] = "postconn_0"
+                    #self._worker_state[worker_number] = "postconn_0"
                     self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
-                    self._worker_state[worker_number] = "postconn_1"
+                    #self._worker_state[worker_number] = "postconn_1"
                     self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
 
-                    self._worker_state[worker_number] = "done"
+                    #self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: # not worker_active, spin the semaphores
                 self.sem_config_zero.acquire()
-                self._worker_state[worker_number] = "shutdown_0"
+                #self._worker_state[worker_number] = "shutdown_0"
                 time.sleep(QUEUE_SLEEP)
                 with self.active_worker_lock:
                     if self.active_worker_count <= 0:
-                        self._worker_state[worker_number] = "shutdown_complete"
+                        #self._worker_state[worker_number] = "shutdown_complete"
                         break
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
-                self._worker_state[worker_number] = "shutdown_1"
+                #self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
 
 
 
-    def worker_status_reporter(self):
-        logger = logging.getLogger('pathspider')
+    # def worker_status_reporter(self):
+    #     logger = logging.getLogger('pathspider')
 
-        while self.running:
-            for i in range(self.worker_count):
-                logger.debug("worker "+str(i)+" in state "+self._worker_state[i])
+    #     while self.running:
+    #         for i in range(self.worker_count):
+    #             logger.debug("worker "+str(i)+" in state "+self._worker_state[i])
 
-            time.sleep(5)
+    #         time.sleep(5)
 
     def pre_connect(self, job):
         pass

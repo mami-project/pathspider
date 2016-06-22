@@ -7,6 +7,11 @@ import queue
 import multiprocessing as mp
 import plt as libtrace
 
+# these three for debugging
+import sys
+import pdb
+import traceback
+
 SHUTDOWN_SENTINEL = None
 
 def _flow4_ids(ip):
@@ -249,7 +254,12 @@ class Observer:
 
         # fire all timers whose time has come
         while len(self._tq) > 0 and pt > min(self._tq, key=lambda x: x.time).time:
-            heapq.heappop(self._tq).fn()
+            try:
+                heapq.heappop(self._tq).fn()
+            except:
+                type, value, tb = sys.exc_info()
+                traceback.print_exc()
+                pdb.post_mortem(tb)
 
     def _finish_expiry_tfn(self, fid):
         """
