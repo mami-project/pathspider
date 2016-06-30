@@ -2,6 +2,7 @@
 import sys
 import logging
 import subprocess
+import traceback
 
 import socket
 import collections
@@ -11,6 +12,8 @@ from zope.interface import implementer
 
 from pathspider.base import Spider
 from pathspider.base import ISpider
+from pathspider.base import NO_FLOW
+
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -18,7 +21,7 @@ from pathspider.observer import basic_count
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "tfostate",
-                                                       "connstate"])
+                                                       "connstate", "rank"])
 
 CONN_OK = 0
 CONN_FAILED = 1
@@ -32,14 +35,10 @@ def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
     return not tcp.fin_flag
 
 def tfosetup(rec, ip):
-    if ip.proto == 6:
-        rec['tfo_seq'] = -1000
-        rec['tfo_len'] = -1000
-        rec['tfoworking'] = False
-        return True
-    else:
-        rec['tfoworking'] = False
-        return False
+    rec['tfo_seq'] = -1000
+    rec['tfo_len'] = -1000
+    rec['tfoworking'] = 0
+    return True
 
 def tfocookie(tcp):
     options = tcp.data[20:tcp.doff*4]
@@ -53,9 +52,24 @@ def tfocookie(tcp):
             continue
         if options[0] == 34:
             if options[1] == 2:
-                return False
+                options = options[options[1]:]
+                continue
             else:
                 return True
+        if options[0] == 253:
+            if (options[2], options[3]) == (249, 137):
+                if options[1] <= 4:
+                    options = options[options[1]:]
+                    continue
+                else:
+                    return True
+        if options[0] == 254:
+            if (options[2], options[3]) == (249, 137):
+                if options[1] <= 4:
+                    options = options[options[1]:]
+                    continue
+                else:
+                    return True
         else:
             if options[1] == len(options):
                 return False
@@ -68,7 +82,6 @@ def tfocookie(tcp):
 def tfoworking(rec, tcp, rev):
     
     outgoing = (rec['sp'] == tcp.src_port)
-    incomming = not outgoing
     data_len = (len(tcp.data) - tcp.doff*4)
     has_cookie = tfocookie(tcp)
     has_data = (data_len > 0)
@@ -79,25 +92,27 @@ def tfoworking(rec, tcp, rev):
     if (has_cookie & has_data & outgoing):#TFO data sent
         rec['tfo_seq'] = tcp.seq_nbr
         rec['tfo_len'] = data_len
+        rec['tfoworking'] = 1
         return True
        
-    if (incomming & (rec['tfo_seq'] > 0) & (tcp.ack_nbr == rec['tfo_seq'] + rec['tfo_len'] + 1)):#TFO acknowledged
-        rec['tfoworking'] = True
+    if ((not outgoing) & (rec['tfo_seq'] > 0) & (tcp.ack_nbr == rec['tfo_seq'] + rec['tfo_len'] + 1)):#TFO acknowledged
+        rec['tfoworking'] = 2
         return False
     
     if (outgoing & has_data & (tcp.seq_nbr == rec['tfo_seq'] + 1)):#TCP fall back, retransmission
         rec['tfo_seq'] = -500
         rec['tfo_len'] = -500
+        return True
     
     return True
-    
+
 ## TFOSpider main class
 
 @implementer(ISpider, IPlugin)
 class TFOSpider(Spider):
 
 
-    def activate(self, worker_count, libtrace_uri):
+    def activate(self, worker_count, libtrace_uri, check_interrupt=None):
         super().activate(worker_count=worker_count,
                          libtrace_uri=libtrace_uri)
         self.tos = None # set by configurator
@@ -125,7 +140,7 @@ class TFOSpider(Spider):
                 sock.settimeout(self.conn_timeout)
                 sock.connect((job[0], job[1]))
 
-                return Connection(sock, sock.getsockname()[1], CONN_OK)
+                return Connection(sock, sock.getsockname()[1], CONN_OK)             
             except TimeoutError:
                 return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
             except OSError:
@@ -143,7 +158,6 @@ class TFOSpider(Spider):
             try:
                 sock = socket.socket(addr, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
-                sock.shutdown(socket.SHUT_RDWR)
                 sock.close()
             except:
                 pass
@@ -161,9 +175,9 @@ class TFOSpider(Spider):
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == CONN_OK:
-            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
+            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True, job[3])
         else:
-            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
+            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, False, job[3])
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
@@ -188,15 +202,21 @@ class TFOSpider(Spider):
                             tcp_chain=[tfoworking, tcpcompleted])
         except:
             logger.error("Observer not cooperating, abandon ship")
-            sys.exit()
+            traceback.print_exc()
+            sys.exit(-1)
 
     def merge(self, flow, res):
         logger = logging.getLogger('tfospider')
-        if res.tfostate == 1: flow['connstate'] = flow['tfoworking']
-        else: flow['connstate'] = res.connstate
-        flow['host'] = res.host
-        flow['tfostate'] = res.tfostate
-        logger.info("Result: " + str(flow))
+        if flow == NO_FLOW:
+            flow = {"dip": res.ip, "sp": res.port, "dp": res.rport, "connstate": res.connstate, "tfostate": res.tfostate, "observed": False }
+        else:
+            flow['connstate'] = res.connstate
+            flow['host'] = res.host
+            flow['rank'] = res.rank
+            flow['tfostate'] = res.tfostate
+            flow['observed'] = True
+        
+        logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
 
 tfospider = TFOSpider()
