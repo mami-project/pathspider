@@ -1,23 +1,32 @@
-Abstract Spider
-===============
+Writing a plugin
+================
 
 PATHspider is written to be extensible and the plugins that included in the
 PATHspider distribution are only examples of the measurements that PATHspider
 can perform.
 
-In order to write your own plugins for PATHspider, you will need to be familiar
-with the abstract Spider in :class:`pathspider.base.Spider` and each of the
-functions that it performs. The exact specification of plugins is defined in
-the :class:`pathspider.base.ISpider` class.
+The exact specification of plugins is defined in
+:class:`pathspider.base.ISpider`, though much of the functionality
+required is implemented by the abstract :class:`pathspider.base.Spider` class
+which plugins should inherit.
 
-Spider Functionality
---------------------
+Required Functions
+------------------
 
-.. autoclass:: pathspider.base.Spider
-   :members:
+Configurator
+~~~~~~~~~~~~
 
-Spider Interface
-----------------
+(Pre-,Post-)Connection
+~~~~~~~~~~~~~~~~~~~~~~
+
+Merging
+~~~~~~~
+
+.. warning:: Null flows
+
+
+ISpider Interface
+-----------------
 
 PATHspider will expect the following functions and attributes to be available
 in any plugin:
