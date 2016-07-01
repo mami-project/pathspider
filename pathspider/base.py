@@ -131,7 +131,19 @@ class Spider:
 
         It is expected that this function will be overloaded by plugins, though
         the plugin should always make a call to the activate() function of the
-        abstract Spider class as this initialises all of the base functionality.
+        abstract Spider class as this initialises all of the base functionality:
+
+        .. code-block:: python
+
+         super().activate(worker_count=worker_count,
+                          libtrace_uri=libtrace_uri,
+                          check_interrupt=check_interrupt)
+
+        This can be used to initialise any variables which may be required in
+        the object. Do not initialise any variables in the __init__ method, or
+        perform any other operations there as all plugins must be instantiated
+        in order to be loaded and this will cause unnecessary delays in the
+        starting of pathspider.
         """
 
         self.activated = True
@@ -772,32 +784,22 @@ class Spider:
 
 class ISpider(Interface):
     """
-    The ISpider interface defines the expected interface for pathspider plugins.
+    The ISpider interface defines the expected interface for PATHspider plugins.
     """
 
     def activate(self, worker_count, libtrace_uri):
-        """
-        This method should initialise the spider class. It should always begin
-        with a call to the superclass' activate() method if this is overloaded:
+        pass
 
-        .. code-block:: python
-
-         super().activate(worker_count=worker_count,
-                          libtrace_uri=libtrace_uri,
-                          check_interrupt=check_interrupt)
-
-        This can be used to initialise any variables which may be required in
-        the object. Do not initialise any variables in the __init__ method, or
-        perform any other operations there as all plugins must be instantiated
-        in order to be loaded and this will cause unnecessary delays in the
-        starting of pathspider.
-        """
+    def configurator(self):
         pass
 
     def config_zero(self):
         pass
 
     def config_one(self):
+        pass
+
+    def worker(self, worker_number):
         pass
 
     def pre_connect(self, job):
@@ -821,16 +823,13 @@ class ISpider(Interface):
     def exception_wrapper(self, target, *args, **kwargs):
         pass
 
-    def run(self):
+    def start(self):
+        pass
+
+    def shutdown(self):
         pass
 
     def terminate(self):
-        pass
-
-    def join_threads(self):
-        pass
-
-    def stop(self):
         pass
 
     def add_job(self, job):
