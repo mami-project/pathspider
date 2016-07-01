@@ -55,6 +55,23 @@ class Observer:
                  tcp_chain=[],
                  udp_chain=[],
                  l4_chain=[]):
+        """
+        Create an Observer.
+
+        :param new_flow_chain: Array of functions to initialise new flows.
+        :type new_flow_chain: array(function)
+        :param ip4_chain: Array of functions to pass IPv4 headers to.
+        :type ip4_chain: array(function)
+        :param ip6_chain: Array of functions to pass IPv6 headers to.
+        :type ip6_chain: array(function)
+        :param tcp_chain: Array of functions to pass TCP headers to.
+        :type tcp_chain: array(function)
+        :param udp_chain: Array of functions to pass UDP headers to.
+        :type udp_chain: array(function)
+        :param l4_chain: Array of functions to pass other layer 4 headers to.
+        :type l4_chain: array(function)
+        :see also: :ref:`Observer Documentation <observer>`
+        """
 
         # Only import this when needed
         import plt as libtrace
