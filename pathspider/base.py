@@ -365,9 +365,9 @@ class Spider:
         :returns: dict -- Result of the pre-connection operation(s).
 
         The pre_connect function can be used to perform any operations that
-        must be performed before each connection. It will be run for both the
-        A and the B configuration, and is not synchronised with the
-        configurator.
+        must be performed before each connection. It will be run only once
+        per job, with the same result passed to both the A and B connect
+        calls. This function is not synchronised with the configurator.
 
         Plugins to PATHspider can optionally implement this function. If this
         function is not overloaded, it will be a noop.
