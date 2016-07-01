@@ -782,7 +782,7 @@ class Spider:
 #         #FIXME: What exceptions do we expect?
 #         return None
 
-class ISpider(Interface):
+class ISpider(Interface): # pylint: disable=E0239
     """
     The ISpider interface defines the expected interface for PATHspider plugins.
     """
