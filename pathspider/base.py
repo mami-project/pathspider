@@ -122,6 +122,13 @@ class Spider:
         """
         The activate function performs initialisation of a pathspider plugin.
 
+        :param worker_count: The number of workers to use.
+        :type worker_count: int
+        :param libtrace_uri: The URI to pass to the Observer to describe the
+                             interface on which packets should be captured.
+        :type libtrace_uri: str
+        :see also: :func:`pathspider.base.ISpider.activate() <ISpider.activate>`
+
         It is expected that this function will be overloaded by plugins, though
         the plugin should always make a call to the activate() function of the
         abstract Spider class as this initialises all of the base functionality.
@@ -311,26 +318,96 @@ class Spider:
                 self.sem_config_zero_rdy.release()
 
 
-
-    # def worker_status_reporter(self):
-    #     logger = logging.getLogger('pathspider')
-
-    #     while self.running:
-    #         for i in range(self.worker_count):
-    #             logger.debug("worker "+str(i)+" in state "+self._worker_state[i])
-
-    #         time.sleep(5)
-
     def pre_connect(self, job):
+        """
+        Performs pre-connection operations.
+
+        :param job: The job record.
+        :type job: dict
+        :returns: dict -- Result of the pre-connection operation(s).
+
+        The pre_connect function can be used to perform any operations that
+        must be performed before each connection. It will be run for both the
+        A and the B configuration, and is not synchronised with the
+        configurator.
+
+        Plugins to PATHspider can optionally implement this function. If this
+        function is not overloaded, it will be a noop.
+        """
+
         pass
 
     def connect(self, job, pcs, config):
+        """
+        Performs the connection.
+
+        :param job: The job record.
+        :type job: dict
+        :param pcs: The result of the pre-connection operations(s).
+        :type pcs: dict
+        :param config: The current state of the configurator (0 or 1).
+        :type config: int
+        :returns: object -- Any result of the connect operation to be passed
+                            to :func:`pathspider.base.Spider.post_connect`.
+
+        The connect function is used to perform the connection operation and
+        is run for both the A and B test. This method is not implemented in
+        the abstract :class:`pathspider.base.Spider` class and must be
+        implemented by any plugin.
+
+        Sockets created during this operation can be returned by the function
+        for use in the post-connection phase, to minimise the time that the
+        configurator is blocked from moving to the next configuration.
+        """
+
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def post_connect(self, job, conn, pcs, config):
+        """
+        Performs post-connection operations.
+
+        :param job: The job record.
+        :type job: dict
+        :param conn: The result of the connection operation(s).
+        :type conn: object
+        :param pcs: The result of the pre-connection operations(s).
+        :type pcs: dict
+        :param config: The state of the configurator during
+                       :func:`pathspider.base.Spider.connect`.
+        :type config: int
+        :returns: dict -- Result of the pre-connection operation(s).
+
+        The post_connect function can be used to perform any operations that
+        must be performed after each connection. It will be run for both the
+        A and the B configuration, and is not synchronised with the
+        configurator.
+
+        Plugins to PATHspider can optionally implement this function. If this
+        function is not overloaded, it will be a noop.
+
+        Any sockets or other file handles that were opened during
+        :func:`pathspider.base.Spider.connect` should be closed in this
+        function if they have not been already.
+        """
+
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def create_observer(self):
+        """
+        Create a flow observer.
+
+        This function is called by the base Spider logic to get an instance
+        of :class:`pathspider.observer.Observer` configured with the function
+        chains that are requried by the plugin.
+        
+        This method is not implemented in the abstract
+        :class:`pathspider.base.Spider` class and must be implemented by any
+        plugin.
+
+        For more information on how to use the flow observer, see
+        :ref:`Observer <observer>`.
+        """
+
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def merger(self):
@@ -403,6 +480,25 @@ class Spider:
             self.merge(NO_FLOW, res)
 
     def merge(self, flow, res):
+        """
+        Merge a job record with a flow record.
+
+        :param flow: The flow record.
+        :type flow: dict
+        :param res: The job record.
+        :type res: dict
+        :return: tuple -- Final record for job.
+
+        In order to create a final record for reporting on a job, the final job
+        record must be merged with the flow record. This function should
+        be implemented by any plugin to provide the logic for this merge as
+        the keys used in these records cannot be known by PATHspider in advance.
+
+        This method is not implemented in the abstract
+        :class:`pathspider.base.Spider` class and must be implemented by any
+        plugin.
+        """
+
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def exception_wrapper(self, target, *args, **kwargs):
