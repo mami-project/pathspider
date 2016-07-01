@@ -13,9 +13,10 @@ from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
-Connection = collections.namedtuple("Connection", ["client", "port", "state"])
+Connection = collections.namedtuple("Connection", ["host", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                      "host", "config", "connstate"])
+                                                       "host", "config",
+                                                       "connstate"])
 
 @implementer(ISpider, IPlugin)
 class TemplateSpider(Spider):
@@ -24,37 +25,27 @@ class TemplateSpider(Spider):
     """
 
     def config_zero(self):
-        # TODO: Write code for config zero
-
-        pass
+        print("Configuration zero")
 
     def config_one(self):
-        # TODO: Write code for config one
-
-        pass
+        print("Configuration one")
 
     def connect(self, job, pcs, config):
-        # TODO: Write code for connection
-
-        return Connection(sock, sock.getsockname()[1], CONN_x)
+        sock = "Hello"
+        return Connection(sock, 1)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.state == CONN_OK:
-            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
-        else:
-            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
-
+        rec = SpiderRecord(job[0], job[1], job[2], config, True)
         return rec
 
     def create_observer(self):
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, ecnsetup],
+                            new_flow_chain=[basic_flow],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count])
         except:
-            logger.error("Observer not cooperating, abandon ship")
-            traceback.print_exc()
+            print("Observer would not start")
             sys.exit(-1)
 
     def merge(self, flow, res):
@@ -62,10 +53,8 @@ class TemplateSpider(Spider):
             flow = {"dip": res.ip,
                     "sp": res.port,
                     "dp": res.rport,
-                    "connstate": res.connstate,
-                    "observed": False }
+                    "observed": False}
         else:
-            flow['connstate'] = res.connstate
             flow['observed'] = True
 
         self.outqueue.put(flow)
