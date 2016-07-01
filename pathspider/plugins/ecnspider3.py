@@ -105,7 +105,10 @@ class ECNSpider(Spider):
         Performs a TCP connection.
         """
 
-        sock = socket.socket()
+        if ":" in job[0]:
+            sock = socket.socket(socket.AF_INET6)
+        else:
+            sock = socket.socket(socket.AF_INET)
 
         try:
             sock.settimeout(self.conn_timeout)
