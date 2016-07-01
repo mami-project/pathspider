@@ -207,7 +207,7 @@ class Spider:
 
     def config_zero(self):
         """
-        Function to handle the global state or system configuration for the
+        Changes the global state or system configuration for the
         baseline measurements.
         """
 
@@ -215,7 +215,7 @@ class Spider:
 
     def config_one(self):
         """
-        Function to handle the global state or system configuration for the
+        Changes the global state or system configuration for the
         experimental measurements.
         """
 
@@ -238,6 +238,32 @@ class Spider:
     #         time.sleep(5)
 
     def worker(self, worker_number):
+        """
+        This function provides the logic for the worker threads.
+
+        :param worker_number: The unique number of the worker.
+        :type worker_number: int
+
+        The workers operate as continuous loops:
+
+         * Fetch next job from the job queue
+         * Perform pre-connection operations
+         * Acquire a lock for "config_zero"
+         * Perform the "config_zero" connection
+         * Release "config_zero"
+         * Acquire a lock for "config_one"
+         * Perform the "config_one" connection
+         * Release "config_one"
+         * Perform post-connection operations for config_zero and pass the
+           result to the merger
+         * Perform post-connection operations for config_one and pass the
+           result to the merger
+         * Do it all again
+        
+        If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
+        terminate as this indicates that all the jobs have now been processed.
+        """
+
         logger = logging.getLogger('pathspider')
         worker_active = True
 
@@ -411,6 +437,10 @@ class Spider:
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def merger(self):
+        """
+        Thread to merge results from the workers and the observer.
+        """
+
         logger = logging.getLogger('pathspider')
         merging_flows = True
         merging_results = True
@@ -514,6 +544,24 @@ class Spider:
             self.terminate()
 
     def start(self):
+        """
+        This function starts a PATHspider plugin.
+
+        In order to run, the plugin must have first been activated by calling
+        its :func:`activate` method. This function causes the following to
+        happen:
+
+         * Set the running flag
+         * Create an :class:`pathspider.observer.Observer` and start its
+           process
+         * Start the merger thread
+         * Start the configurator thread
+         * Start the worker threads
+
+        The number of worker threads to start was given when activating the
+        plugin.
+        """
+
         logger = logging.getLogger('pathspider')
         if self.activated == False:
             logger.exception("tried to run plugin without activating first")
@@ -694,6 +742,13 @@ class Spider:
         logger.info("termination complete")
            
     def add_job(self, job):
+        """
+        Adds a job to the job queue.
+
+        If PATHspider is currently stopping, the job will not be added to the
+        queue.
+        """
+
         if self.stopping:
             return
 
@@ -717,7 +772,7 @@ class Spider:
 
 class ISpider(Interface):
     """
-    The ISpider class defines the expected interface for pathspider plugins.
+    The ISpider interface defines the expected interface for pathspider plugins.
     """
 
     def activate(self, worker_count, libtrace_uri):
