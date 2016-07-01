@@ -81,18 +81,30 @@ class ECNSpider(Spider):
         self.conn_timeout = 10
 
     def config_zero(self):
+        """
+        Disables ECN negotiation via sysctl.
+        """
+
         logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator disabled ECN")
 
     def config_one(self):
+        """
+        Enables ECN negotiation via sysctl.
+        """
+
         logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
 
     def connect(self, job, pcs, config):
+        """
+        Performs a TCP connection.
+        """
+
         sock = socket.socket()
 
         try:
@@ -106,6 +118,10 @@ class ECNSpider(Spider):
             return Connection(sock, sock.getsockname()[1], CONN_FAILED)
 
     def post_connect(self, job, conn, pcs, config):
+        """
+        Close the socket gracefully.
+        """
+
         if conn.state == CONN_OK:
             rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
         else:
@@ -124,6 +140,10 @@ class ECNSpider(Spider):
         return rec
 
     def create_observer(self):
+        """
+        Creates an observer with ECN-related chain functions.
+        """
+
         logger = logging.getLogger('ecnspider3')
         logger.info("Creating observer")
         try:
@@ -138,6 +158,13 @@ class ECNSpider(Spider):
             sys.exit(-1)
 
     def merge(self, flow, res):
+        """
+        Merge flow records.
+        
+        Includes the configuration and connection success or failure of the
+        socket connection with the flow record.
+        """
+
         logger = logging.getLogger('ecnspider3')
         if flow == NO_FLOW:
             flow = {"dip": res.ip,
