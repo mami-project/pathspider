@@ -5,7 +5,6 @@ import heapq
 import queue
 
 import multiprocessing as mp
-import plt as libtrace
 
 # these three for debugging
 import sys
@@ -56,6 +55,9 @@ class Observer:
                  tcp_chain=[],
                  udp_chain=[],
                  l4_chain=[]):
+
+        # Only import this when needed
+        import plt as libtrace
 
         # Control
         self._irq = None
