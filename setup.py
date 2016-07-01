@@ -55,10 +55,11 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 
     # What does your project relate to?
-    keywords='internet measurement ecn torrent bittorrent web www analysis router congestion path transparency mplane',
+    keywords='internet measurement ecn torrent bittorrent web www analysis router congestion path transparency',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -68,7 +69,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['ipfix', 'bencodepy', 'numpy', 'pandas', 'dnspython3'],
+    install_requires=['twisted', 'zope.interface'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -89,7 +90,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'pathspider=pathspider:main',
+            'pathspider=pathspider.run:run_pathspider',
         ],
     },
 )

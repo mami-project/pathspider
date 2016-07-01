@@ -28,7 +28,7 @@ def job_feeder(inputfile, spider):
         spider.shutdown()
         print("job_feeder: stopped")
 
-if __name__ == "__main__":
+def run_pathspider():
     parser = argparse.ArgumentParser(description='''Pathspider will spider the
             paths.''')
     parser.add_argument('-s', '--standalone', action='store_true', help='''run in
@@ -92,3 +92,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("kthxbye")
 
+if __name__ == "__main__":
+    run_pathspider()
