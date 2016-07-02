@@ -4,6 +4,7 @@ import csv
 import logging
 import time
 import threading
+import json
 
 from twisted.plugin import getPlugins
 
@@ -86,7 +87,7 @@ def run_pathspider():
                 result = spider.outqueue.get()
                 if result == SHUTDOWN_SENTINEL:
                     break
-                outputfile.write(str(result) + "\n")
+                outputfile.write(json.dumps(result) + "\n")
                 spider.outqueue.task_done()
 
     except KeyboardInterrupt:
