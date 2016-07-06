@@ -1,6 +1,6 @@
 # PATHspider
 
-[![Documentation Status](https://readthedocs.org/projects/pathspider/badge/?version=latest)](http://pathspider.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/pathspider/badge/?version=0.9.0)](http://pathspider.readthedocs.io/en/0.9.0/?badge=0.9.0)
 
 ![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png)
 
