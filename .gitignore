@@ -58,3 +58,6 @@ target/
 
 # Python Charm
 .idea
+
+# Vagrant
+.vagrant
