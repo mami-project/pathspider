@@ -6,14 +6,16 @@ import time
 import threading
 import json
 
-from twisted.plugin import getPlugins
+from straight.plugin import load
 
-from pathspider.base import ISpider, SHUTDOWN_SENTINEL
-import pathspider.plugins
+from pathspider.base import Spider
+from pathspider.base import SHUTDOWN_SENTINEL
 
 import sys
 
-plugins = list(getPlugins(ISpider, package=pathspider.plugins))
+plugins = load("pathspider.plugins", subclasses=Spider)
+
+print(repr(list(plugins)))
 
 def job_feeder(inputfile, spider):
     with open(inputfile) as fp:
@@ -40,11 +42,11 @@ def run_pathspider():
     parser.add_argument('-p', '--plugin', help='''use named plugin''')
     parser.add_argument('-i', '--interface', help='''the interface to use for the observer''')
     parser.add_argument('-w', '--worker-count', type=int, help='''number of workers to use''')
-    parser.add_argument('inputfile', metavar='INPUTFILE', help='''a file
+    parser.add_argument('-I', '--input-file', metavar='INPUTFILE', help='''a file
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
             as a comma-seperated values file.''')
-    parser.add_argument('outputfile', metavar='OUTPUTFILE', help='''the file to output results data to''')
+    parser.add_argument('-o', '--output-file', metavar='OUTPUTFILE', help='''the file to output results data to''')
 
     args = parser.parse_args()
 
@@ -55,7 +57,7 @@ def run_pathspider():
     if args.list_plugins:
         print("The following plugins are available:\n")
         for plugin in plugins:
-            print(" * " + plugin.__class__.__name__)
+            print(" * " + plugin.__name__)
         print("\nSpider safely!")
         sys.exit(0)
 
@@ -67,8 +69,8 @@ def run_pathspider():
 
         spider = None
         for plugin in plugins:
-            if plugin.__class__.__name__ == selected:
-                spider = plugin
+            if plugin.__name__ == selected:
+                spider = plugin(worker_count, "int:" + interface)
         if spider == None:
             logger.error("Plugin not found! Cannot continue.")
             logger.error("Use -l to list all plugins.")
@@ -76,7 +78,6 @@ def run_pathspider():
         
         print("activating spider...")
         
-        spider.activate(worker_count, "int:" + interface)
         spider.start()
 
         print("starting to add jobs")

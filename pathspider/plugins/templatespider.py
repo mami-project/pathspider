@@ -2,11 +2,7 @@
 import sys
 import collections
 
-from twisted.plugin import IPlugin
-from zope.interface import implementer
-
 from pathspider.base import Spider
-from pathspider.base import ISpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -18,7 +14,6 @@ SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "config",
                                                        "connstate"])
 
-@implementer(ISpider, IPlugin)
 class TemplateSpider(Spider):
     """
     A template PATHspider plugin.
@@ -59,4 +54,3 @@ class TemplateSpider(Spider):
 
         self.outqueue.put(flow)
 
-templatespider = TemplateSpider()

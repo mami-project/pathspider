@@ -35,7 +35,6 @@ import multiprocessing as mp
 import queue
 
 from ipaddress import ip_address
-from zope.interface import Interface
 
 ###
 ### Utility Classes
@@ -781,57 +780,4 @@ class Spider:
 #     except:
 #         #FIXME: What exceptions do we expect?
 #         return None
-
-class ISpider(Interface): # pylint: disable=E0239
-    """
-    The ISpider interface defines the expected interface for PATHspider plugins.
-    """
-
-    def activate(self, worker_count, libtrace_uri):
-        pass
-
-    def configurator(self):
-        pass
-
-    def config_zero(self):
-        pass
-
-    def config_one(self):
-        pass
-
-    def worker(self, worker_number):
-        pass
-
-    def pre_connect(self, job):
-        pass
-
-    def connect(self, job, pcs, config):
-        pass
-
-    def post_connect(self, job, conn, pcs, config):
-        pass
-
-    def create_observer(self):
-        pass
-
-    def merger(self):
-        pass
-
-    def merge(self, flow, res):
-        pass
-
-    def exception_wrapper(self, target, *args, **kwargs):
-        pass
-
-    def start(self):
-        pass
-
-    def shutdown(self):
-        pass
-
-    def terminate(self):
-        pass
-
-    def add_job(self, job):
-        pass
 

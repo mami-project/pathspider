@@ -7,11 +7,7 @@ import traceback
 import socket
 import collections
 
-from twisted.plugin import IPlugin
-from zope.interface import implementer
-
 from pathspider.base import Spider
-from pathspider.base import ISpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -71,11 +67,10 @@ def ecncode(rec, ip, rev):
 
 ## ECNSpider main class
 
-@implementer(ISpider, IPlugin)
 class ECNSpider(Spider):
 
-    def activate(self, worker_count, libtrace_uri):
-        super().activate(worker_count=worker_count,
+    def __init__(self, worker_count, libtrace_uri):
+        super().__init__(worker_count=worker_count,
                          libtrace_uri=libtrace_uri)
         self.tos = None # set by configurator
         self.conn_timeout = 10
@@ -184,4 +179,3 @@ class ECNSpider(Spider):
         logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
 
-ecnspider = ECNSpider()

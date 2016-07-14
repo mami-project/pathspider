@@ -16,14 +16,14 @@ then you will need to install some dependencies. On Debian GNU/Linux:
 
 .. code-block:: shell
 
- # sudo apt install python3-libtrace python3-twisted python3-zope.interface
+ # sudo apt install python3-libtrace python3-straight.plugin
 
 In order to build the documentation from source, you will also need the
 following dependencies:
 
 .. code-block:: shell 
  
- # sudo apt install python3-sphinx python3-repoze.sphinx.autointerface
+ # sudo apt install python3-sphinx
 
 Usage
 ~~~~~
