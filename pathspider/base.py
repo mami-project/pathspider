@@ -105,44 +105,28 @@ class Spider:
 
     """
 
-    def __init__(self):
+    def __init__(self, worker_count, libtrace_uri):
         """
-        Bare minimum initalisation for a pathspider plugin.
-
-        .. warning::
-         This function should not be overloaded by any plugin. Its purpose here
-         is only to set the "activated" flag to false, to prevent the plugin
-         functions being used before it has been activated.
-        """
-
-        self.activated = False
-
-    def activate(self, worker_count, libtrace_uri):
-        """
-        The activate function performs initialisation of a pathspider plugin.
+        The initialisation of a pathspider plugin.
 
         :param worker_count: The number of workers to use.
         :type worker_count: int
         :param libtrace_uri: The URI to pass to the Observer to describe the
                              interface on which packets should be captured.
         :type libtrace_uri: str
-        :see also: :func:`pathspider.base.ISpider.activate() <ISpider.activate>`
 
         It is expected that this function will be overloaded by plugins, though
-        the plugin should always make a call to the activate() function of the
+        the plugin should always make a call to the __init__() function of the
         abstract Spider class as this initialises all of the base functionality:
 
         .. code-block:: python
 
-         super().activate(worker_count=worker_count,
+         super().__init__(worker_count=worker_count,
                           libtrace_uri=libtrace_uri,
                           check_interrupt=check_interrupt)
 
         This can be used to initialise any variables which may be required in
-        the object. Do not initialise any variables in the __init__ method, or
-        perform any other operations there as all plugins must be instantiated
-        in order to be loaded and this will cause unnecessary delays in the
-        starting of pathspider.
+        the object.
         """
 
         self.activated = True
