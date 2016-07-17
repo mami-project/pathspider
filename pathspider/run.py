@@ -81,9 +81,9 @@ def run_pathspider():
         spider.start()
 
         print("starting to add jobs")
-        threading.Thread(target=job_feeder, args=(args.inputfile, spider)).start()
+        threading.Thread(target=job_feeder, args=(args.input_file, spider)).start()
         
-        with open(args.outputfile, 'w') as outputfile:
+        with open(args.output_file, 'w') as outputfile:
             while True:
                 result = spider.outqueue.get()
                 if result == SHUTDOWN_SENTINEL:
