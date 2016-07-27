@@ -85,26 +85,23 @@ class ECNSpider(Spider):
         self.tos = None # set by configurator
         self.conn_timeout = 10
         self.comparetab = {}
+        self.logger = logging.getLogger('ecnspider3')
 
     def config_zero(self):
         """
         Disables ECN negotiation via sysctl.
         """
-
-        logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.debug("Configurator disabled ECN")
+        self.logger.debug("Configurator disabled ECN")
 
     def config_one(self):
         """
         Enables ECN negotiation via sysctl.
         """
-
-        logger = logging.getLogger('ecnspider3')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.debug("Configurator enabled ECN")
+        self.logger.debug("Configurator enabled ECN")
 
     def connect(self, job, pcs, config):
         """
@@ -161,8 +158,7 @@ class ECNSpider(Spider):
         Creates an observer with ECN-related chain functions.
         """
 
-        logger = logging.getLogger('ecnspider3')
-        logger.info("Creating observer")
+        self.logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
                             new_flow_chain=[basic_flow, ecnsetup],
@@ -170,7 +166,7 @@ class ECNSpider(Spider):
                             ip6_chain=[basic_count, ecncode],
                             tcp_chain=[ecnflags, tcpcompleted])
         except:
-            logger.error("Observer not cooperating, abandon ship")
+            self.logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
             sys.exit(-1)
 
@@ -181,6 +177,8 @@ class ECNSpider(Spider):
 
             # first has always ecn off, while the second has ecn on
             flows = (flow, other_flow) if other_flow['ecnstate'] else (other_flow, flow)
+
+            conditions = []
 
             tstart = min(flow['tstart'], other_flow['tstart'])
             tstop = max(flow['tstop'], other_flow['tstop'])
@@ -193,15 +191,28 @@ class ECNSpider(Spider):
             else:
                 cond_conn = 'ecn.connectivity.offline'
 
-            if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
-                cond_nego = 'ecn.negotiated'
-            else:
-                cond_nego = 'ecn.not_negotiated'
-            self.outqueue.put({
+            conditions.append(cond_conn)
+
+            if 'rev_syn_flags' in flows[1]:
+                if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
+                    cond_nego = 'ecn.negotiated'
+                else:
+                    cond_nego = 'ecn.not_negotiated'
+
+                conditions.append(cond_nego)
+
+            # render datetime to strings
+            flows[0]['tstart'] = flows[0]['tstart'].isoformat()
+            flows[0]['tstop'] = flows[0]['tstop'].isoformat()
+
+            flows[1]['tstart'] = flows[1]['tstart'].isoformat()
+            flows[1]['tstop'] = flows[1]['tstop'].isoformat()
+
+            result = {
                 'sip': flow['sip'],
                 'dip': dip,
                 'dp': flow['dp'],
-                'conditions': [cond_conn, cond_nego],
+                'conditions': conditions,
                 'hostname': flow['host'],
                 'rank': flow['rank'],
                 'flow_results': flows,
@@ -209,7 +220,10 @@ class ECNSpider(Spider):
                     'from': tstart.isoformat(),
                     'to': tstop.isoformat()
                 }
-            })
+            }
+
+            self.logger.debug("Combined result: " + str(result))
+            self.outqueue.put(result)
         else:
             self.comparetab[dip] = flow
 
@@ -220,8 +234,6 @@ class ECNSpider(Spider):
         Includes the configuration and connection success or failure of the
         socket connection with the flow record.
         """
-
-        logger = logging.getLogger('ecnspider3')
         if flow == NO_FLOW:
             flow = {"dip": res.ip,
                     "sp": res.port,
@@ -237,7 +249,7 @@ class ECNSpider(Spider):
         flow['tstart'] = res.tstart
         flow['tstop'] = res.tstop
 
-        logger.debug("Result: " + str(flow))
+        self.logger.debug("Flow result: " + str(flow))
         self.combine_flows(flow)
 
 ecnspider = ECNSpider()
