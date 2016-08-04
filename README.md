@@ -2,7 +2,9 @@
 
 [![Documentation Status](https://readthedocs.org/projects/pathspider/badge/?version=latest)](http://pathspider.readthedocs.io/en/latest/?badge=latest)
 
-![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png) pathspider.mami-project.eu(pathspider.mami-project.eu)
+![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png) 
+
+[pathspider.mami-project.eu](pathspider.mami-project.eu)
 
 ## Documentation
 
