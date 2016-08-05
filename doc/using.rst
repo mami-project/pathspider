@@ -85,4 +85,17 @@ to measure path transparency to ECN for a small selection of web servers:
  The location of the example input file may be different if you've installed
  pathspider from a package manager. On Debian systems it is installed as
  `/usr/share/doc/pathspider/examples/webinput.csv`.
- 
+
+Using Vagrant
+-------------
+
+On systems other than Linux systems, you may use Vagrant to run PATHspider.
+This may also be useful during development. A Vagrantfile is provided that
+will create a Debian-based virtual machine with all the PATHspider dependencies
+installed.
+
+In the virtual machine, the PATHspider code will be mounted at
+/home/vagrant/pathspider and changes made inside or outside the VM will appear
+in both places. PATHspider is installed in development mode, meaning that
+this is also the location of the PATHspider code that will be run when
+running the /usr/bin/pathspider binary.
