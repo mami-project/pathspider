@@ -44,9 +44,11 @@ def dscp_extract(rec, ip, rev):
     dscp = tos >> 2
 
     if rev:
-        rec['rev_dscp'] = dscp
+        if rec['rev_dscp'] is None:
+            rec['rev_dscp'] = dscp
     else:
-        rec['fwd_dscp'] = dscp
+        if rec['fwd_dscp'] is None:
+            rec['fwd_dscp'] = dscp
 
     return True
 
