@@ -105,7 +105,11 @@ class DSCPSpider(Spider):
 
         conn = self._connect(sock, job)
 
-        sock.close()
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+            sock.close()
+        except:
+            pass
 
         return conn
 
