@@ -14,6 +14,9 @@ from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
+from pathspider.observer.tcp import tcp_setup
+from pathspider.observer.tcp import tcp_complete
+
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "dscp",
@@ -24,15 +27,6 @@ CONN_FAILED = 1
 CONN_TIMEOUT = 2
 
 ## Chain functions
-
-def tcp_setup(rec, ip):
-    rec['fin_count'] = 0
-    return True
-
-def tcp_complete(rec, tcp, rev): # pylint: disable=W0612,W0613
-    if tcp.fin_flag:
-        rec['fin_count'] += 1
-    return rec['fin_count'] < 2
 
 def dscp_setup(rec, ip):
     rec['fwd_dscp'] = None

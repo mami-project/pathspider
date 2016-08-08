@@ -14,6 +14,9 @@ from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
+from pathspider.observer.tcp import tcp_setup
+from pathspider.observer.tcp import tcp_complete
+
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "ecnstate",
@@ -26,9 +29,6 @@ CONN_TIMEOUT = 2
 USER_AGENT = "pathspider"
 
 ## Chain functions
-
-def tcpcompleted(rec, tcp, rev): # pylint: disable=W0612,W0613
-    return not tcp.fin_flag
 
 def ecnsetup(rec, ip):
     rec['ecn_zero'] = False
@@ -146,10 +146,10 @@ class ECNSpider(Spider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, ecnsetup],
+                            new_flow_chain=[basic_flow, tcp_setup, ecnsetup],
                             ip4_chain=[basic_count, ecncode],
                             ip6_chain=[basic_count, ecncode],
-                            tcp_chain=[ecnflags, tcpcompleted])
+                            tcp_chain=[ecnflags, tcp_complete])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
