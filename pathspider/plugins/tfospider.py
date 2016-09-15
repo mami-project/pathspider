@@ -36,50 +36,58 @@ def tfosetup(rec, ip):
     rec['tfoworking'] = 0
     return True
 
-def tfocookie(tcp):
+def _tfocookie(tcp):
+    """
+    Determine whether a TCP header (from python-libtrace) contains a TFO cookie or not.
+    """
+
     options = tcp.data[20:tcp.doff*4]
+    cp = 0
+
     while True:
         if not options:
-            return False
-        if (options[0] == 0):
-            return False
-        if options[0] == 1:
-            options = options[1:]
+            return None
+        if (options[cp] == 0):
+            return None
+        if options[cp] == 1:
+            cp += 1
             continue
-        if options[0] == 34:
-            if options[1] == 2:
-                options = options[options[1]:]
+        if options[cp] == 34:
+            # IANA-allocated option
+            if options[cp+1] == 2:
+                cp += 2
                 continue
             else:
-                return True
-        if options[0] == 253:
-            if (options[2], options[3]) == (249, 137):
-                if options[1] <= 4:
-                    options = options[options[1]:]
+                return (0,34)
+        if options[cp] == 253:
+            # Experimental option 253
+            if (options[cp+2], options[cp+3]) == (249, 137):
+                if options[cp+1] <= 4:
+                    cp += options[cp+1]
                     continue
                 else:
-                    return True
+                    return (0,253)
         if options[0] == 254:
-            if (options[2], options[3]) == (249, 137):
-                if options[1] <= 4:
-                    options = options[options[1]:]
+            # Experimental option 254
+            if (options[cp+2], options[cp+3]) == (249, 137):
+                if options[cp+1] <= 4:
+                    options = options[cp+1]
                     continue
                 else:
-                    return True
+                    return (0,254)
         else:
-            if options[1] == len(options):
+            if options[cp+1] <= len(options):
                 return False
             else:
-                options = options[options[1]:]
+                cp += options[cp+1]
                 continue
     return False
-
 
 def tfoworking(rec, tcp, rev):
     
     outgoing = (rec['sp'] == tcp.src_port)
     data_len = (len(tcp.data) - tcp.doff*4)
-    has_cookie = tfocookie(tcp)
+    has_cookie = bool(_tfocookie(tcp))
     has_data = (data_len > 0)
     
     if ((rec['tfo_seq'] < 0) & (not has_cookie)):#no TFO data sent or received
@@ -102,6 +110,35 @@ def tfoworking(rec, tcp, rev):
     
     return True
 
+def test_tfocookie(fn=_tfocookie):
+    """
+    Test the _tfocookie() options parser on a static packet dump test file.
+    This is used mainly for performance evaluation of the parser for now,
+    and does not check for correctness.
+
+    """
+    import plt as libtrace
+
+    lturi = "pcapfile:testdata/tfocookie.pcap"
+    trace = libtrace.trace(lturi)
+    trace.start()
+    pkt = libtrace.packet()
+    cookies = 0
+    nocookies = 0
+
+    while trace.read_packet(pkt):
+        if not pkt.tcp:
+            continue
+
+        # just do the parse
+        if fn(pkt.tcp):
+            cookies += 1
+        else:
+            nocookies += 1
+
+    print("cookies: %u, nocookies: %u" % (cookies, nocookies))
+
+
 ## TFOSpider main class
 
 class TFOSpider(Spider):
@@ -119,17 +156,16 @@ class TFOSpider(Spider):
         pass
         
     def connect(self, job, pcs, config):
-        #determine ip version
-        if job[0].count(':') >= 1: ipv = 6
-        else: ipv = 4
+        # determine ip version
+        if job[0].count(':') >= 1: 
+            af = socket.AF_INET6
+        else: 
+            af = socket.AF_INET
         
-        #regular TCP
+        # regular TCP
         if config == 0:
-            if ipv == 4:
-                sock = socket.socket()
-            else:
-                sock = socket.socket(socket.AF_INET6)
-        
+            sock = socket.socket(af, socket.SOCK_STREAM)
+
             try:
                 sock.settimeout(self.conn_timeout)
                 sock.connect((job[0], job[1]))
@@ -140,23 +176,19 @@ class TFOSpider(Spider):
             except OSError:
                 return Connection(sock, sock.getsockname()[1], CONN_FAILED)    
         
-        #with TFO
+        # with TFO
         if config == 1:
             message = bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
-            if ipv == 4:
-                addr = socket.AF_INET
-            else:
-                addr = socket.AF_INET6
             
-            #request cookie
+            # step one: request cookie
             try:
-                sock = socket.socket(addr, socket.SOCK_STREAM)
+                sock = socket.socket(af, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
                 sock.close()
             except:
                 pass
             
-            #use cookie
+            # step two: use cookie
             try:
                 sock = socket.socket(addr, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
