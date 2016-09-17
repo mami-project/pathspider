@@ -107,7 +107,7 @@ class ECNSpider(Spider):
 
         job_ip, job_port, job_host, job_rank = job
 
-        tstart = datetime.utcnow()
+        tstart = str(datetime.utcnow())
 
         if ":" in job_ip:
             sock = socket.socket(socket.AF_INET6)
@@ -131,7 +131,7 @@ class ECNSpider(Spider):
 
         job_ip, job_port, job_host, job_rank = job
 
-        tstop = datetime.utcnow()
+        tstop = str(datetime.utcnow())
 
         if conn.state == CONN_OK:
             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host, config, True, conn.tstart, tstop)
@@ -176,6 +176,11 @@ class ECNSpider(Spider):
             # first has always ecn off, while the second has ecn on
             flows = (flow, other_flow) if other_flow['ecnstate'] else (other_flow, flow)
 
+            # discard non-observed flows and flows with no syn observed
+            for f in flows:
+                if not (f['observed'] and "rev_syn_flags" in f.keys()):
+                    return
+
             tstart = min(flow['tstart'], other_flow['tstart'])
             tstop = max(flow['tstop'], other_flow['tstop'])
 
@@ -188,6 +193,7 @@ class ECNSpider(Spider):
             else:
                 cond_conn = 'ecn.connectivity.offline'
 
+            # FIXME: I need to be convinced this is a complete test
             if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
                 cond_nego = 'ecn.negotiated'
             else:
@@ -202,8 +208,8 @@ class ECNSpider(Spider):
                 'rank': flow['rank'],
                 'flow_results': flows,
                 'time': {
-                    'from': tstart.isoformat(),
-                    'to': tstop.isoformat()
+                    'from': tstart,
+                    'to': tstop
                 }
             })
         else:
