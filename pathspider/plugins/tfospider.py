@@ -190,7 +190,7 @@ class TFOSpider(Spider):
             
             # step two: use cookie
             try:
-                sock = socket.socket(addr, socket.SOCK_STREAM)
+                sock = socket.socket(af, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
                 
                 return Connection(sock, sock.getsockname()[1], CONN_OK)
