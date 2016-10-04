@@ -93,6 +93,13 @@ def _tfocookie(tcp):
     else:
         return (None, None)
 
+def _tfosetup(rec, ip):
+        rec['tfo_kind'] = 0
+        rec['tfo_cklen'] = 0
+        rec['tfo_seq'] = 0
+        rec['tfo_len'] = 0
+        rec['tfo_ack'] = 0
+
 def _tfopacket(rec, tcp, rev):
     # Shortcut non-SYN
     if not tcp.syn_flag:
@@ -109,7 +116,7 @@ def _tfopacket(rec, tcp, rev):
             rec['tfo_ack'] = 0
     
     # Look for ACK of TFO data
-    elif tcp.syn_flag and tcp.ack_flag and 'tfo_ack' in rec:
+    elif tcp.syn_flag and tcp.ack_flag and rec['tfo_kind']:
         rec['tfo_ack'] = tcp.ack_nbr
 
     # tell observer to keep going
@@ -227,10 +234,10 @@ class TFOSpider(Spider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tcp_setup],
+                            new_flow_chain=[basic_flow, tcp_setup, _tfosetup],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
-                            tcp_chain=[_tfopacket, tcp_complete])
+                            tcp_chain=[tcp_complete, _tfopacket])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
