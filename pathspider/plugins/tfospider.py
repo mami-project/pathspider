@@ -217,7 +217,7 @@ class TFOSpider(Spider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tfosetup],
+                            new_flow_chain=[basic_flow],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
                             tcp_chain=[_tfopacket])
