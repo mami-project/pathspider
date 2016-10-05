@@ -17,7 +17,7 @@ plugins = load("pathspider.plugins", subclasses=Spider)
 
 def job_feeder(inputfile, spider):
     with open(inputfile) as fp:
-        print("job_feeder: started")
+        logger.debug("job_feeder: started")
         reader = csv.reader(fp, delimiter=',', quotechar='"')
         for row in reader:
             # port numbers should be integers
@@ -25,9 +25,9 @@ def job_feeder(inputfile, spider):
 
             spider.add_job(row)
         
-        print("job_feeder: all jobs added, waiting for spider to finish")
+        logger.info("job_feeder: all jobs added, waiting for spider to finish")
         spider.shutdown()
-        print("job_feeder: stopped")
+        logger.debug("job_feeder: stopped")
 
 def run_pathspider():
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -73,11 +73,11 @@ def run_pathspider():
             logger.error("Use --help to list all plugins.")
             sys.exit(1)
         
-        print("activating spider...")
+        logger.info("activating spider...")
         
         spider.start()
 
-        print("starting to add jobs")
+        logger.info("starting to add jobs")
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
         
         with open(args.output, 'w') as outputfile:
@@ -89,7 +89,7 @@ def run_pathspider():
                 spider.outqueue.task_done()
 
     except KeyboardInterrupt:
-        print("kthxbye")
+        logger.error("Received keyboard interrupt, dying now.")
 
 if __name__ == "__main__":
     run_pathspider()

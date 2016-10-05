@@ -20,10 +20,12 @@ class Template(Spider):
     """
 
     def config_zero(self):
-        print("Configuration zero")
+        logger = logging.getLogger("template")
+        logger.debug("Configuration zero")
 
     def config_one(self):
-        print("Configuration one")
+        logger = logging.getLogger("template")
+        logger.debug("Configuration one")
 
     def connect(self, job, pcs, config):
         sock = "Hello"
@@ -34,13 +36,14 @@ class Template(Spider):
         return rec
 
     def create_observer(self):
+        logger = logging.getLogger("template")
         try:
             return Observer(self.libtrace_uri,
                             new_flow_chain=[basic_flow],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count])
         except:
-            print("Observer would not start")
+            logger.error("Observer would not start")
             sys.exit(-1)
 
     def merge(self, flow, res):
