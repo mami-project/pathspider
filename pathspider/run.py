@@ -35,7 +35,8 @@ def run_pathspider():
         def _format_action(self, action):
             parts = super()._format_action(action)
             if action.nargs == argparse.PARSER:
-                parts = "\n".join(parts.split("\n")[1:])
+                parts = "\n".join([line for line in parts.split("\n")[1:]
+                                   if 'template' not in line])
                 parts += "\n\nSpider safely!"
             return parts
 
