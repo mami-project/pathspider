@@ -1,0 +1,8 @@
+language: python
+install:
+  - "pip install pylint"
+python:
+  - "3.5"
+before_script:
+  "pylint setup.py pathspider"
+script: nosetests
