@@ -57,6 +57,10 @@ def run_pathspider():
     for plugin in plugins:
         plugin.register_args(subparsers)
 
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     args = parser.parse_args()
 
     logging.basicConfig()
