@@ -2,8 +2,12 @@ language: python
 install:
   - "pip install pylint"
   - "pip install straight.plugin"
+  - "pip install coveralls"
 python:
   - "3.5"
 before_script:
-  "pylint -E setup.py pathspider"
-script: nosetests
+  - "pylint -E setup.py pathspider"
+script:
+  - nosetests
+after_success:
+  - coveralls
