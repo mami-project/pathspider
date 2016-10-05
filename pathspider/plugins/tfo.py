@@ -155,9 +155,10 @@ def _tfopacket(rec, tcp, rev):
 
 class TFO(Spider):
 
-    def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
+    def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count=worker_count,
-                         libtrace_uri=libtrace_uri)
+                         libtrace_uri=libtrace_uri,
+                         args=args)
         self.tos = None # set by configurator
         self.conn_timeout = 10
 

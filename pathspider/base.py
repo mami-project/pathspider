@@ -105,7 +105,7 @@ class Spider:
 
     """
 
-    def __init__(self, worker_count, libtrace_uri):
+    def __init__(self, worker_count, libtrace_uri, args):
         """
         The initialisation of a pathspider plugin.
 
@@ -123,11 +123,13 @@ class Spider:
 
          super().__init__(worker_count=worker_count,
                           libtrace_uri=libtrace_uri,
-                          check_interrupt=check_interrupt)
+                          args=args)
 
         This can be used to initialise any variables which may be required in
         the object.
         """
+
+        self.args = args
 
         self.activated = True
         self.running = False
@@ -139,7 +141,6 @@ class Spider:
         self.active_worker_lock = threading.Lock()
 
         self.libtrace_uri = libtrace_uri
-#        self.check_interrupt = check_interrupt
 
         self.sem_config_zero = SemaphoreN(worker_count)
         self.sem_config_zero.empty()
@@ -165,7 +166,6 @@ class Spider:
 
         self.worker_threads = []
         self.configurator_thread = None
-#        self.interrupter_thread = None
         self.merger_thread = None
 
         self.observer_process = None

@@ -73,9 +73,10 @@ def ecncode(rec, ip, rev):
 
 class ECN(Spider):
 
-    def __init__(self, worker_count, libtrace_uri):
+    def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count=worker_count,
-                         libtrace_uri=libtrace_uri)
+                         libtrace_uri=libtrace_uri,
+                         args=args)
         self.tos = None # set by configurator
         self.conn_timeout = 10
         self.comparetab = {}
