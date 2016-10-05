@@ -205,7 +205,7 @@ class TFO(Spider):
             # step two: use cookie
             try:
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1])) # pylint: disable=no-member
 
                 return Connection(sock, sock.getsockname()[1], CONN_OK)
             except TimeoutError:
