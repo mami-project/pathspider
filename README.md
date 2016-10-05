@@ -1,5 +1,6 @@
 # PATHspider
 
+[![Build Status](https://travis-ci.org/mami-project/pathspider.svg?branch=develop)](https://travis-ci.org/mami-project/pathspider)
 [![Documentation Status](https://readthedocs.org/projects/pathspider/badge/?version=latest)](http://pathspider.readthedocs.io/en/latest/?badge=latest)
 
 ![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png)
