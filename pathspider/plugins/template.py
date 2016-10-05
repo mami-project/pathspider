@@ -1,6 +1,7 @@
 
 import sys
 import collections
+import logging
 
 from pathspider.base import Spider
 from pathspider.base import NO_FLOW

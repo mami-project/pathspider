@@ -16,6 +16,7 @@ import sys
 plugins = load("pathspider.plugins", subclasses=Spider)
 
 def job_feeder(inputfile, spider):
+    logger = logging.getLogger("feeder")
     with open(inputfile) as fp:
         logger.debug("job_feeder: started")
         reader = csv.reader(fp, delimiter=',', quotechar='"')
@@ -32,7 +33,7 @@ def job_feeder(inputfile, spider):
 def run_pathspider():
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
         def _format_action(self, action):
-            parts = super(argparse.RawDescriptionHelpFormatter, self)._format_action(action)
+            parts = super()._format_action(action)
             if action.nargs == argparse.PARSER:
                 parts = "\n".join(parts.split("\n")[1:])
                 parts += "\n\nSpider safely!"

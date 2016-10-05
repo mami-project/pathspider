@@ -1,6 +1,7 @@
 language: python
 install:
   - "pip install pylint"
+  - "pip install straight.plugin"
 python:
   - "3.5"
 before_script:

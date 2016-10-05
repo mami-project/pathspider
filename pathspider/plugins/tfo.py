@@ -195,6 +195,7 @@ class TFO(Spider):
 
             # step one: request cookie
             try:
+                # pylint: disable=no-member
                 sock = socket.socket(af, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
                 sock.close()

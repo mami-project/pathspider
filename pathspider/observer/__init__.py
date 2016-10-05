@@ -81,9 +81,9 @@ class Observer:
         self._irq_fired = False
 
         # Libtrace initialization
-        self._trace = libtrace.trace(lturi)
+        self._trace = libtrace.trace(lturi) # pylint: disable=no-member
         self._trace.start()
-        self._pkt = libtrace.packet()
+        self._pkt = libtrace.packet() # pylint: disable=no-member
 
         # Chains of functions to evaluate
         self._new_flow_chain = new_flow_chain
