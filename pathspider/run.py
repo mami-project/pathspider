@@ -45,11 +45,11 @@ def run_pathspider():
         mode). in the future, mplane will be supported as a mode of operation.''')
     parser.add_argument('-i', '--interface', help='''the interface to use for the observer''')
     parser.add_argument('-w', '--worker-count', type=int, help='''number of workers to use''')
-    parser.add_argument('inputfile', metavar='INPUTFILE', help='''a file
+    parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE', help='''a file
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
             as a comma-seperated values file.''')
-    parser.add_argument('outputfile', metavar='OUTPUTFILE', help='''the file to output results data to''')
+    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE', help='''the file to output results data to''')
     subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
 
     for plugin in plugins:
@@ -61,20 +61,13 @@ def run_pathspider():
     logging.getLogger().setLevel(logging.INFO)
     logger = logging.getLogger("pathspider")
 
-    if args.list_plugins:
-        print("The following plugins are available:\n")
-        for plugin in plugins:
-            print(" * " + plugin.__name__)
-        print("\nSpider safely!")
-        sys.exit(0)
-
     try:
         # set some defaults
         worker_count = args.worker_count or 100
         interface = args.interface or "eth0"
 
         if hasattr(args, "spider"):
-            spider = args.spider(worker_count, "int:" + interface)
+            spider = args.spider(worker_count, "int:" + interface, args)
         else:
             logger.error("Plugin not found! Cannot continue.")
             logger.error("Use --help to list all plugins.")
@@ -85,9 +78,9 @@ def run_pathspider():
         spider.start()
 
         print("starting to add jobs")
-        threading.Thread(target=job_feeder, args=(args.input_file, spider)).start()
+        threading.Thread(target=job_feeder, args=(args.inputfile, spider)).start()
         
-        with open(args.output_file, 'w') as outputfile:
+        with open(args.outputfile, 'w') as outputfile:
             while True:
                 result = spider.outqueue.get()
                 if result == SHUTDOWN_SENTINEL:

@@ -53,7 +53,7 @@ class DSCP(Spider):
     def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count=worker_count,
                          libtrace_uri=libtrace_uri,
-                         args)
+                         args=args)
         self.dscp = None # set by configurator
         self.conn_timeout = 10
 
