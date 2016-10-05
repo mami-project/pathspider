@@ -151,9 +151,9 @@ def _tfopacket(rec, tcp, rev):
 #     print("cookies: %u, nocookies: %u" % (cookies, nocookies))
 
 
-## TFOSpider main class
+## TFO main class
 
-class TFOSpider(Spider):
+class TFO(Spider):
 
     def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
         super().__init__(worker_count=worker_count,
@@ -230,7 +230,7 @@ class TFOSpider(Spider):
         return rec
 
     def create_observer(self):
-        logger = logging.getLogger('tfospider')
+        logger = logging.getLogger('tfo')
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
@@ -244,7 +244,7 @@ class TFOSpider(Spider):
             sys.exit(-1)
 
     def merge(self, flow, res):
-        logger = logging.getLogger('tfospider')
+        logger = logging.getLogger('tfo')
         if flow == NO_FLOW:
             flow = {"dip": res.ip, "sp": res.port, "dp": res.rport, "connstate": res.connstate, "tfostate": res.tfostate, "observed": False }
         else:
@@ -257,3 +257,8 @@ class TFOSpider(Spider):
         logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
 
+    @staticmethod
+    def register_args(subparsers):
+        parser = subparsers.add_parser('tfo', help="TCP Fast Open")
+        parser.set_defaults(spider=TFO)
+        

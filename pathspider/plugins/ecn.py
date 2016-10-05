@@ -69,9 +69,9 @@ def ecncode(rec, ip, rev):
 
     return True
 
-## ECNSpider main class
+## ECN main class
 
-class ECNSpider(Spider):
+class ECN(Spider):
 
     def __init__(self, worker_count, libtrace_uri):
         super().__init__(worker_count=worker_count,
@@ -85,7 +85,7 @@ class ECNSpider(Spider):
         Disables ECN negotiation via sysctl.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator disabled ECN")
@@ -95,7 +95,7 @@ class ECNSpider(Spider):
         Enables ECN negotiation via sysctl.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
@@ -155,7 +155,7 @@ class ECNSpider(Spider):
         Creates an observer with ECN-related chain functions.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
@@ -223,7 +223,7 @@ class ECNSpider(Spider):
         socket connection with the flow record.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         if flow == NO_FLOW:
             flow = {"dip": res.ip,
                     "sp": res.port,
@@ -242,3 +242,7 @@ class ECNSpider(Spider):
         logger.debug("Result: " + str(flow))
         self.combine_flows(flow)
 
+    @staticmethod
+    def register_args(subparsers):
+        parser = subparsers.add_parser('ecn', help="Explicit Congestion Notification")
+        parser.set_defaults(spider=ECN)

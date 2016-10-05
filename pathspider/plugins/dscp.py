@@ -46,9 +46,9 @@ def dscp_extract(rec, ip, rev):
 
     return True
 
-## DSCPSpider main class
+## DSCP main class
 
-class DSCPSpider(Spider):
+class DSCP(Spider):
 
     def __init__(self, worker_count, libtrace_uri):
         super().__init__(worker_count=worker_count,
@@ -61,7 +61,7 @@ class DSCPSpider(Spider):
         Disables DSCP marking via iptables.
         """
 
-        logger = logging.getLogger('dscpsider')
+        logger = logging.getLogger('dscp')
         for iptables in ['iptables', 'ip6tables']:
             subprocess.check_call([iptables, '-t', 'mangle', '-F'])
         logger.debug("Configurator disabled DSCP marking")
@@ -71,7 +71,7 @@ class DSCPSpider(Spider):
         Enables DSCP marking via iptables.
         """
 
-        logger = logging.getLogger('dscpsider')
+        logger = logging.getLogger('dscp')
         for iptables in ['iptables', 'ip6tables']:
             subprocess.check_call([iptables, '-t', 'mangle', '-A', 'OUTPUT',
                 '-p', 'tcp', '-m', 'tcp', '--dport', '80', '-j', 'DSCP',
@@ -127,7 +127,7 @@ class DSCPSpider(Spider):
         Creates an observer with DSCP-related chain functions.
         """
 
-        logger = logging.getLogger('dscpsider')
+        logger = logging.getLogger('dscp')
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
@@ -148,7 +148,7 @@ class DSCPSpider(Spider):
         socket connection with the flow record.
         """
 
-        logger = logging.getLogger('dscpsider')
+        logger = logging.getLogger('dscp')
         if flow == NO_FLOW:
             flow = {"dip": res.ip,
                     "sp": res.port,
@@ -163,4 +163,9 @@ class DSCPSpider(Spider):
 
         logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
+
+    @staticmethod
+    def register_args(subparsers):
+        parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
+        parser.set_defaults(spider=DSCP)
 

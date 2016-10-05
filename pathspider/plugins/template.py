@@ -14,7 +14,7 @@ SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "config",
                                                        "connstate"])
 
-class TemplateSpider(Spider):
+class Template(Spider):
     """
     A template PATHspider plugin.
     """
@@ -53,4 +53,9 @@ class TemplateSpider(Spider):
             flow['observed'] = True
 
         self.outqueue.put(flow)
+
+    @staticmethod
+    def register_args(subparsers):
+        parser = subparsers.add_parser('template', help="Template for development")
+        parser.set_defaults(spider=Template)
 
