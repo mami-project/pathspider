@@ -219,7 +219,7 @@ class ECN(Spider):
     def merge(self, flow, res):
         """
         Merge flow records.
-        
+
         Includes the configuration and connection success or failure of the
         socket connection with the flow record.
         """

@@ -21,8 +21,8 @@ then you will need to install some dependencies. On Debian GNU/Linux:
 In order to build the documentation from source, you will also need the
 following dependencies:
 
-.. code-block:: shell 
- 
+.. code-block:: shell
+
  # sudo apt install python3-sphinx
 
 Usage
@@ -38,8 +38,8 @@ will have been setuid or will have filesystem permissions set.
  If you're running from the source distribution, you will need to execute
  pathspider as:
 
- .. code-block:: shell 
- 
+ .. code-block:: shell
+
   # sudo /usr/bin/env PYTHONPATH=. python3 pathspider/run.py [...]
 
 .. code-block:: shell
@@ -47,16 +47,16 @@ will have been setuid or will have filesystem permissions set.
  # pathspider -h
  usage: run.py [-h] [-s] [-l] [-p PLUGIN] [-i INTERFACE] [-w WORKER_COUNT]
                INPUTFILE OUTPUTFILE
- 
+
  Pathspider will spider the paths.
- 
+
  positional arguments:
    INPUTFILE             a file containing a list of remote hosts to test, with
                          any accompanying metadata expected by the pathspider
                          test. this file should be formatted as a comma-
                          seperated values file.
    OUTPUTFILE            the file to output results data to
- 
+
  optional arguments:
    -h, --help            show this help message and exit
    -s, --standalone      run in standalone mode. this is the default mode (and

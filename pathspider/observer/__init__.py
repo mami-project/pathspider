@@ -328,7 +328,7 @@ class Observer:
         logging.getLogger("observer").info(
                 ("processed %u packets "+
                 "(%u dropped, %u short, %u non-ip) "+
-                "into %u flows (%u ignored)") % ( 
+                "into %u flows (%u ignored)") % (
                     self._ct_pkt, self._trace.pkt_drops(),
                     self._ct_shortkey, self._ct_nonip,
                     self._ct_flow, self._ct_ignored))

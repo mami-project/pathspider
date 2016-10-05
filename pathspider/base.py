@@ -254,7 +254,7 @@ class Spider:
          * Perform post-connection operations for config_one and pass the
            result to the merger
          * Do it all again
-        
+
         If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
         terminate as this indicates that all the jobs have now been processed.
         """
@@ -420,7 +420,7 @@ class Spider:
         This function is called by the base Spider logic to get an instance
         of :class:`pathspider.observer.Observer` configured with the function
         chains that are requried by the plugin.
-        
+
         This method is not implemented in the abstract
         :class:`pathspider.base.Spider` class and must be implemented by any
         plugin.
@@ -463,9 +463,9 @@ class Spider:
                     elif flowkey in self.flowtab:
                         logger.debug("won't merge duplicate flow")
                     else:
-                        # FIXME: How to keep flowtab from 
+                        # FIXME: How to keep flowtab from
                         # exploding with unrelated flows?
-                        # We need a timer queue for flow expiry. 
+                        # We need a timer queue for flow expiry.
                         # See Issue #30
                         self.flowtab[flowkey] = flow
 
@@ -496,10 +496,10 @@ class Spider:
 
                     self.resqueue.task_done()
 
-        # Both shutdown markers received. 
-        # Call merge on all remaining entries in the results table 
+        # Both shutdown markers received.
+        # Call merge on all remaining entries in the results table
         # with null flows.
-        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29 
+        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29
         for res_item in self.restab.items():
             res = res_item[1]
             self.merge(NO_FLOW, res)
@@ -572,7 +572,7 @@ class Spider:
             self.observer = self.create_observer()
             self.observer_process = mp.Process(
                 args=(self.observer.run_flow_enqueuer,
-                      self.flowqueue, 
+                      self.flowqueue,
                       self.observer_shutdown_queue),
                 target=self.exception_wrapper,
                 name='observer',
@@ -627,15 +627,15 @@ class Spider:
 
     def shutdown(self):
         """
-        Shut down PathSpider in an orderly fashion, 
-        ensuring that all queued jobs complete, 
+        Shut down PathSpider in an orderly fashion,
+        ensuring that all queued jobs complete,
         and all available results are merged.
 
         """
         logger = logging.getLogger('pathspider')
 
         logger.info("shutting down pathspider")
-        
+
         with self.lock:
             # Set stopping flag
             self.stopping = True
@@ -643,14 +643,14 @@ class Spider:
             # Place two shutdown sentinels per worker
             # in the job queue FIXME HACK
             for i in range(self.worker_count):
-                self.jobqueue.put(SHUTDOWN_SENTINEL) 
+                self.jobqueue.put(SHUTDOWN_SENTINEL)
 
             # Wait for worker threads to shut down
             for worker in self.worker_threads:
                 if threading.current_thread() != worker:
                     logger.debug("joining worker: " + repr(worker))
                     worker.join()
-            logger.debug("all workers joined")            
+            logger.debug("all workers joined")
 
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
@@ -675,7 +675,7 @@ class Spider:
             # Join configurator
             # if threading.current_thread() != self.configurator_thread:
             #     self.configurator_thread.join()
-        
+
             self.stopping = False
 
         logger.info("shutdown complete")
@@ -720,22 +720,22 @@ class Spider:
             if threading.current_thread() != worker:
                 logger.debug("joining worker: " + repr(worker))
                 worker.join()
-        logger.debug("all workers joined")           
+        logger.debug("all workers joined")
 
         if threading.current_thread() != self.configurator_thread:
             self.configurator_thread.join()
-        logger.debug("configurator joined")           
-        
+        logger.debug("configurator joined")
+
         if threading.current_thread() != self.merger_thread:
-            self.merger_thread.join() 
-        logger.debug("merger joined")           
+            self.merger_thread.join()
+        logger.debug("merger joined")
 
         self.observer_process.join()
         logger.debug("observer joined")
 
         self.outqueue.put(SHUTDOWN_SENTINEL)
         logger.info("termination complete")
-           
+
     def add_job(self, job):
         """
         Adds a job to the job queue.

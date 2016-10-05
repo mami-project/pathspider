@@ -47,19 +47,19 @@ def _tcpoptions(tcp):
     """
     Given a TCP header, make TCP options available
     according to the interface we've designed for python-libtrace
-    
+
     """
     optbytes = tcp.data[20:tcp.doff*4]
     opthash = {}
-    
+
     # shortcut empty options
     if len(optbytes) == 0:
         return opthash
-    
+
     # parse options in place
     cp = 0
     ncp = 0
-    
+
     while cp < len(optbytes):
         # skip NOP
         if optbytes[cp] == TO_NOP:
@@ -67,23 +67,23 @@ def _tcpoptions(tcp):
             continue
         # die on EOL
         if optbytes[cp] == TO_EOL:
-            break 
-        
+            break
+
         # parse options length
         ncp = cp + optbytes[cp+1]
-        
+
         # copy options data into hash
         # FIXME doesn't handle multiples
         opthash[optbytes[cp]] = optbytes[cp+2:ncp]
-        
+
         # advance
         cp = ncp
-    
+
     return opthash
 
 def _tfocookie(tcp):
     opts = _tcpoptions(tcp)
-    
+
     if TO_FASTOPEN in opts:
         return (TO_FASTOPEN, bytes(opts[TO_FASTOPEN]))
     elif TO_EXPA in opts and opts[TO_EXPA][0:2] == bytearray(TO_EXP_FASTOPEN):
@@ -114,13 +114,13 @@ def _tfopacket(rec, tcp, rev):
             rec['tfo_seq'] = tcp.seq_nbr
             rec['tfo_len'] = len(tcp.data) - tcp.doff*4
             rec['tfo_ack'] = 0
-    
+
     # Look for ACK of TFO data
     elif tcp.syn_flag and tcp.ack_flag and rec['tfo_kind']:
         rec['tfo_ack'] = tcp.ack_nbr
 
     # tell observer to keep going
-    return True  
+    return True
 
 # def test_tfocookie(fn=_tfocookie):
 #     """
@@ -167,14 +167,14 @@ class TFO(Spider):
 
     def config_one(self):
         pass
-        
+
     def connect(self, job, pcs, config):
         # determine ip version
-        if job[0].count(':') >= 1: 
+        if job[0].count(':') >= 1:
             af = socket.AF_INET6
-        else: 
+        else:
             af = socket.AF_INET
-        
+
         # regular TCP
         if config == 0:
             sock = socket.socket(af, socket.SOCK_STREAM)
@@ -183,16 +183,16 @@ class TFO(Spider):
                 sock.settimeout(self.conn_timeout)
                 sock.connect((job[0], job[1]))
 
-                return Connection(sock, sock.getsockname()[1], CONN_OK)             
+                return Connection(sock, sock.getsockname()[1], CONN_OK)
             except TimeoutError:
                 return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
             except OSError:
-                return Connection(sock, sock.getsockname()[1], CONN_FAILED)    
-        
+                return Connection(sock, sock.getsockname()[1], CONN_FAILED)
+
         # with TFO
         if config == 1:
             message = bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
-            
+
             # step one: request cookie
             try:
                 sock = socket.socket(af, socket.SOCK_STREAM)
@@ -200,17 +200,17 @@ class TFO(Spider):
                 sock.close()
             except:
                 pass
-            
+
             # step two: use cookie
             try:
                 sock = socket.socket(af, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
-                
+
                 return Connection(sock, sock.getsockname()[1], CONN_OK)
             except TimeoutError:
                 return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
             except OSError:
-                return Connection(sock, sock.getsockname()[1], CONN_FAILED)  
+                return Connection(sock, sock.getsockname()[1], CONN_FAILED)
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == CONN_OK:
@@ -254,7 +254,7 @@ class TFO(Spider):
             flow['rank'] = res.rank
             flow['tfostate'] = res.tfostate
             flow['observed'] = True
-        
+
         logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
 
@@ -262,4 +262,4 @@ class TFO(Spider):
     def register_args(subparsers):
         parser = subparsers.add_parser('tfo', help="TCP Fast Open")
         parser.set_defaults(spider=TFO)
-        
+

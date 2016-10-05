@@ -24,7 +24,7 @@ def job_feeder(inputfile, spider):
             row[1] = int(row[1])
 
             spider.add_job(row)
-        
+
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
         spider.shutdown()
         logger.debug("job_feeder: stopped")
@@ -72,14 +72,14 @@ def run_pathspider():
             logger.error("Plugin not found! Cannot continue.")
             logger.error("Use --help to list all plugins.")
             sys.exit(1)
-        
+
         logger.info("activating spider...")
-        
+
         spider.start()
 
         logger.info("starting to add jobs")
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
-        
+
         with open(args.output, 'w') as outputfile:
             while True:
                 result = spider.outqueue.get()
