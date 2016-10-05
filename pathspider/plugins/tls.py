@@ -12,27 +12,34 @@ from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "host", "config",
-                                                       "connstate", "alpn"])
+                                                       "host", "rank",
+                                                       "config",
+                                                       "connstate", "nego"])
 
-test_ssl = ('timeout {timeout} openssl s_client '
-            '-servername {hostname} -connect {ip}:{port} 2>&1 | '
+test_ssl = ('openssl s_client '
+            '-servername {hostname} -connect {ip}:{port} 2>&1 </dev/null | '
             'awk \'{{ if($1 == "Server" && $2 == "public") '
             '{{ print "GOT-TLS"; }} '
             'if($2=="Connection" && $3 == "refused") print "NO-TLS"; '
             'if($1=="gethostbyname" || $0=="connect: No route to host") '
             'print "DNS-FAILURE"}}\'')
 
-test_alpn = ('timeout {timeout} openssl s_client '
-             '-alpn \'h2,http/1.1\' -servername {hostname} -connect {ip}:{port} 2>&1 | '
+test_alpn = ('openssl s_client '
+             '-alpn \'h2,http/1.1\' -servername {hostname} -connect {ip}:{port} 2>&1 </dev/null | '
              'awk \'{{if($1 == "ALPN") {{split($0, arr, ":"); '
              'print "ALPN:"arr[2];}} if($2 == "ALPN") print "NO-ALPN"; '
              'if($2=="Connection" && $3 == "refused") print "NO-TLS"; '
              'if($1=="gethostbyname" || $0=="connect: No route to host") '
              'print "DNS-FAILURE"}}\'')
 
-test_npn = ('timeout {timeout} openssl s_client '
-            '-nextprotoneg \'\' -servername {hostname} -connect {ip}:{port} 2>&1')
+test_npn = ('openssl s_client '
+            '-nextprotoneg \'\' -servername {hostname} -connect {ip}:{port} 2>&1 </dev/null')
+
+def execute_test(cmd, job_args):
+    return subprocess.run(cmd.format(**job_args),
+                          shell=True,
+                          timeout=job_args['timeout'],
+                          stdout=subprocess.PIPE).stdout.decode('ascii')
 
 class TLS(Spider):
     """
@@ -53,20 +60,38 @@ class TLS(Spider):
                    }
 
         connstate = False
-        alpn = None
+        nego = None
 
         if config == 0:
-            ssl_status = subprocess.check_output(test_ssl.format(**job_args), shell=True).decode('ascii').strip()
+            try:
+                ssl_status = execute_test(test_ssl, job_args).strip()
+            except subprocess.TimeoutExpired:
+                ssl_status = ""
             if ssl_status == 'GOT_TLS':
                 connstate = True
         if config == 1:
-            alpn_status = subprocess.check_output(test_alpn.format(**job_args), shell=True).decode('ascii').strip()
-            if "ALPN" in alpn_status:
-                connstate = True
-                if ":" in alpn_status:
-                    alpn = alpn_status[6:]
+            if self.args.test == 'alpn':
+                try:
+                    alpn_status = execute_test(test_alpn, job_args).strip()
+                except subprocess.TimeoutExpired:
+                    alpn_status = ""
+                if "ALPN" in alpn_status:
+                    connstate = True
+                    if ":" in alpn_status:
+                        nego = alpn_status[6:]
+            if self.args.test == 'npn':
+                try:
+                    npn_status = execute_test(test_npn, job_args).split('\n')
+                except subprocess.TimeoutExpired:
+                    npn_status = ""
+                if len(npn_status) > 0:
+                    connstate = True
+                    for line in npn_status:
+                        if 'advertised' in line:
+                            nego = line.split(":")[1].strip()
+                            break
 
-        rec = SpiderRecord(job[0], job[1], config, job[2], config, connstate, alpn)
+        rec = SpiderRecord(job[0], job[1], config, job[2], job[3], config, connstate, nego)
         return rec
 
     def post_connect(self, job, conn, pcs, config):
@@ -84,16 +109,15 @@ class TLS(Spider):
             sys.exit(-1)
 
     def merge(self, flow, res):
-        if flow == NO_FLOW:
-            flow = {"dip": res.ip,
-                    "sp": res.port,
-                    "dp": res.rport,
-                    "observed": False,
-                    "connstate": res.connstate,
-                    "config": res.config,
-                    "alpn": res.alpn}
-        else:
-            flow['observed'] = True
+        flow = {"dip": res.ip,
+                "dp": res.rport,
+                "observed": False,
+                "connstate": res.connstate,
+                "config": res.config,
+                "nego": res.nego,
+                "host": res.host,
+                "rank": res.rank,
+               }
         self.outqueue.put(flow)
 
     @staticmethod
