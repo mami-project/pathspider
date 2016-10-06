@@ -7,9 +7,7 @@ import subprocess
 from pathspider.base import Spider
 from pathspider.base import NO_FLOW
 
-from pathspider.observer import Observer
-from pathspider.observer import basic_flow
-from pathspider.observer import basic_count
+from pathspider.observer.dummy import Observer
 
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "rank",
@@ -98,15 +96,7 @@ class TLS(Spider):
         return conn
 
     def create_observer(self):
-        try:
-            # this is useless
-            return Observer("int:lo",
-                            new_flow_chain=[basic_flow],
-                            ip4_chain=[basic_count],
-                            ip6_chain=[basic_count])
-        except:
-            print("Observer would not start")
-            sys.exit(-1)
+        return Observer()
 
     def merge(self, flow, res):
         flow = {"dip": res.ip,
