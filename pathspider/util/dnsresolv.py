@@ -18,6 +18,7 @@ import threading
 import datetime
 import argparse
 from time import sleep
+import logging
 
 TIMEOUT = None  #: The timeout for DNS resolution.
 SLEEP = None  #: Time to sleep before each resolution, for crude rate-limiting.
@@ -69,6 +70,7 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
     :param \*\*kwargs: Keyword arguments passed to :meth:`csv.reader`.
     :returns: One field from each record on each call to :meth:`next()`.
     '''
+    logger = logging.getLogger('dnsresolv')
     reader = csv.reader(*args, **kwargs)
 
     # Discard the first entries
@@ -80,18 +82,19 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
         yield row
         c += 1
         if c % 1000 == 0:
-            print('Parsed {} records so far.'.format(c))
+            logger.info('Parsed {} records so far.'.format(c))
         if count != 0 and c >= count:
             break
 
 
 def resolution_worker(iq, oq):
+    logger = logging.getLogger('dnsresolv')
     while True:
         entry = iq.get()
 
         # Shutdown and cascade
         if entry is None:
-            print("Input cascading shutdown signal")
+            logger.info("Input cascading shutdown signal")
             oq.put(None)
             iq.task_done()
             break
@@ -149,7 +152,7 @@ def resolution_worker(iq, oq):
                     # Resolution failed, falling back.
                     (a, a4) = resolve_both(domain)
             else:
-                print("Internal error: illegal WWW value")
+                logger.error("Internal error: illegal WWW value")
                 sys.exit(1)
 
             # Keep only the first address of each IP version
@@ -164,16 +167,18 @@ def resolution_worker(iq, oq):
             if a4 is not '':
                 oq.put((a4, domain, rank))
         except Exception as e:
-            print("Discarding resolution for "+domain+": "+repr(e))
+            logger.warning("Discarding resolution for "+domain+": "+repr(e))
         finally:
             iq.task_done()
 
 def output_worker(oq, writer):
-    print("output thread started")
+    logger = logging.getLogger('dnsresolv')
+
+    logger.info("output thread started")
     while True:
         entry = oq.get()
         if entry is None:
-            print("Output handling shutdown signal")
+            logger.info("Output handling shutdown signal")
             oq.task_done()
             break
         writer.writerow(entry)
@@ -183,6 +188,7 @@ def main(args):
     '''
     Run the resolver.
     '''
+    logger = logging.getLogger('dnsresolv')
 
     # Some validation
     if args.workers <= 0:
@@ -206,9 +212,9 @@ def main(args):
     SLEEP = args.sleep
 
     with open(args.input) as inf, open(args.output, 'w', newline='') as ouf:
-        print('Opening input file.')
+        logger.debug('Opening input file.')
         reader = csv_gen(args.debug_skip, args.debug_count, inf)
-        print('Opening output file.')
+        logger.debug('Opening output file.')
         writer = csv.writer(ouf)
 
         t0 = datetime.datetime.now()  # Start time of resolution
@@ -218,17 +224,17 @@ def main(args):
         oq = queue.Queue(Q_SIZE)
         ts = {}
 
-        print('Starting worker threads...')
+        logger.info('Starting worker threads...')
         for i in range(args.workers):
             t = threading.Thread(target=resolution_worker, name='worker_{}'.format(i), args=(iq, oq), daemon=True)
             t.start()
             ts[t.name] = t
 
-        print('Starting output thread...')
+        logger.info('Starting output thread...')
         ot = threading.Thread(target=output_worker, name='output_worker', args=(oq, writer), daemon=True)
         ot.start()
 
-        print('Enqueueing domains...')
+        logger.info('Enqueueing domains...')
 
         for dc, d in enumerate(reader):
             iq.put(d)
@@ -237,7 +243,7 @@ def main(args):
                 current_rate = float(1000) / (tt - tl).total_seconds()
                 average_rate = float(dc+1) / (tt - t0).total_seconds()
                 tl = tt
-                print('Enqueued {num_dom:>6} domains. Rate: {cur:9.2f} Hz. Average rate: {avg:9.2f} Hz.'.format(num_dom=dc+1, cur=current_rate, avg=average_rate))
+                logger.info('Enqueued {num_dom:>6} domains. Rate: {cur:9.2f} Hz. Average rate: {avg:9.2f} Hz.'.format(num_dom=dc+1, cur=current_rate, avg=average_rate))
 
         # now enqueue a quit signal
         iq.put(None)
@@ -249,8 +255,8 @@ def main(args):
     t1 = datetime.datetime.now()
     time = t1 - t0
     average_rate = float(dc+1) / time.total_seconds()
-    print('Resolution completed.')
-    print('Resolved {num_dom} domains. Total time: {time}. Average rate: {avg:.2f} domains per second.'.format(num_dom=dc+1, time=time, avg=average_rate))
+    logger.info('Resolution completed.')
+    logger.info('Resolved {num_dom} domains. Total time: {time}. Average rate: {avg:.2f} domains per second.'.format(num_dom=dc+1, time=time, avg=average_rate))
 
 def register_args(subparsers):
     parser = subparsers.add_parser('dnsresolv', help='DNS resolution for hostnames to IPv4 and v6 addresses')
