@@ -51,8 +51,9 @@ class TLS(Spider):
         pass
 
     def connect(self, job, pcs, config):
+        ip = job[0] if not ':' in job[0] else '[' + job[0] + ']'
         job_args = {'hostname': job[2],
-                    'ip': job[0],
+                    'ip': ip,
                     'port': job[1],
                     'timeout': self.args.timeout,
                    }
