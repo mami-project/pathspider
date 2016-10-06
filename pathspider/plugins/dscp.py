@@ -76,7 +76,7 @@ class DSCP(Spider):
         for iptables in ['iptables', 'ip6tables']:
             subprocess.check_call([iptables, '-t', 'mangle', '-A', 'OUTPUT',
                 '-p', 'tcp', '-m', 'tcp', '--dport', '80', '-j', 'DSCP',
-                '--set-dscp-class', 'ef'])
+                '--set-dscp', str(self.args.codepoint)])
         logger.debug("Configurator enabled DSCP marking")
 
     def _connect(self, sock, job):
@@ -169,4 +169,4 @@ class DSCP(Spider):
     def register_args(subparsers):
         parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
         parser.set_defaults(spider=DSCP)
-
+        parser.add_argument("--codepoint", type=int, choices=range(1,64), default='1', metavar="[0-63]", help="DSCP codepoint to send (Default: 0)")
