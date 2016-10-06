@@ -1,0 +1,2 @@
+coveralls
+pylint
