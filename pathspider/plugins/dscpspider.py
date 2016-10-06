@@ -48,7 +48,7 @@ def dscp_extract(rec, ip, rev):
 
 ## DSCPSpider main class
 
-class DSCPSpider(Spider):
+class DSCPSpider(SynchronizedSpider):
 
     def __init__(self, worker_count, libtrace_uri):
         super().__init__(worker_count=worker_count,

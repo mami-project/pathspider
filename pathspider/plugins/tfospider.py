@@ -153,19 +153,13 @@ def _tfopacket(rec, tcp, rev):
 
 ## TFOSpider main class
 
-class TFOSpider(Spider):
+class TFOSpider(DesynchronizedSpider):
 
     def __init__(self, worker_count, libtrace_uri, check_interrupt=None):
         super().__init__(worker_count=worker_count,
                          libtrace_uri=libtrace_uri)
         self.tos = None # set by configurator
         self.conn_timeout = 10
-
-    def config_zero(self):
-        pass
-
-    def config_one(self):
-        pass
         
     def connect(self, job, pcs, config):
         # determine ip version

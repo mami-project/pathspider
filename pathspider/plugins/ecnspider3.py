@@ -71,7 +71,7 @@ def ecncode(rec, ip, rev):
 
 ## ECNSpider main class
 
-class ECNSpider(Spider):
+class ECNSpider(SynchronizedSpider):
 
     def __init__(self, worker_count, libtrace_uri):
         super().__init__(worker_count=worker_count,
