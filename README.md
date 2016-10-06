@@ -1,6 +1,7 @@
 # PATHspider
 
 [![Build Status](https://travis-ci.org/mami-project/pathspider.svg?branch=develop)](https://travis-ci.org/mami-project/pathspider)
+[![Coverage Status](https://coveralls.io/repos/github/mami-project/pathspider/badge.svg?branch=develop)](https://coveralls.io/github/mami-project/pathspider?branch=develop)
 [![Documentation Status](https://readthedocs.org/projects/pathspider/badge/?version=latest)](http://pathspider.readthedocs.io/en/latest/?badge=latest)
 
 ![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png)
