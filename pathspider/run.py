@@ -6,10 +6,13 @@ import time
 import threading
 import json
 
+
 from straight.plugin import load
 
 from pathspider.base import Spider
 from pathspider.base import SHUTDOWN_SENTINEL
+
+import pathspider.util.dnsresolv
 
 import sys
 
@@ -45,17 +48,20 @@ def run_pathspider():
     parser.add_argument('-s', '--standalone', action='store_true', help='''run in
         standalone mode. this is the default mode (and currently the only supported
         mode). in the future, mplane will be supported as a mode of operation.''')
-    parser.add_argument('-i', '--interface', help='''the interface to use for the observer''')
-    parser.add_argument('-w', '--worker-count', type=int, help='''number of workers to use''')
+    parser.add_argument('-i', '--interface', help='''the interface to use for the observer''', default="eth0")
+    parser.add_argument('-w', '--workers', type=int, help='''number of workers to use''', default=100)
     parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE', help='''a file
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
             as a comma-seperated values file.''')
     parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE', help='''the file to output results data to''')
-    subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
 
+    # Add plugins
+    subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
     for plugin in plugins:
         plugin.register_args(subparsers)
+
+    pathspider.util.dnsresolv.register_args(subparsers)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -67,13 +73,13 @@ def run_pathspider():
     logging.getLogger().setLevel(logging.INFO)
     logger = logging.getLogger("pathspider")
 
-    try:
-        # set some defaults
-        worker_count = args.worker_count or 100
-        interface = args.interface or "eth0"
+    if hasattr(args, "func"):
+        # Run a utility function
+        sys.exit(args.func(args))
 
+    try:
         if hasattr(args, "spider"):
-            spider = args.spider(worker_count, "int:" + interface, args)
+            spider = args.spider(args.workers, "int:" + args.interface, args)
         else:
             logger.error("Plugin not found! Cannot continue.")
             logger.error("Use --help to list all plugins.")
