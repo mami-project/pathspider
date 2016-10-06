@@ -33,15 +33,16 @@ TCP_ECE = 0x40
 TCP_ACK = 0x10
 TCP_SYN = 0x02
 
+TCP_SEC = ( TCP_SYN | TCP_ECE | TCP_CWR )
 TCP_SAEW = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
 ## Chain functions
 
 def ecnsetup(rec, ip):
-    rec['ecn_zero'] = False
-    rec['ecn_one'] = False
-    rec['ce'] = False
+    fields = ['fwd_ez', 'fwd_eo', 'fwd_ce', 'rev_ez', 'rev_eo', 'rev_ce']
+    for field in fields:
+        rec[field] = False
     return True
 
 def ecnflags(rec, tcp, rev):
@@ -61,11 +62,20 @@ def ecncode(rec, ip, rev):
     CE = 0x03
 
     if (ip.traffic_class & EZ == EZ):
-        rec['ecn_zero'] = True
+        if rev:
+            rec['rev_ez'] = True
+        else:
+            rec['fwd_ez'] = True
     if (ip.traffic_class & EO == EO):
-        rec['ecn_one'] = True
+        if rev:
+            rec['rev_eo'] = True
+        else:
+            rec['fwd_eo'] = True
     if (ip.traffic_class & CE == CE):
-        rec['ce'] = True
+        if rev:
+            rec['rev_ce'] = True
+        else:
+            rec['fwd_ce'] = True
 
     return True
 
@@ -176,6 +186,7 @@ class ECN(Spider):
 
             # first has always ecn off, while the second has ecn on
             flows = (flow, other_flow) if other_flow['ecnstate'] else (other_flow, flow)
+            conditions = []
 
             # discard non-observed flows and flows with no syn observed
             for f in flows:
@@ -194,17 +205,25 @@ class ECN(Spider):
             else:
                 cond_conn = 'ecn.connectivity.offline'
 
-            # FIXME: I need to be convinced this is a complete test
             if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
-                cond_nego = 'ecn.negotiated'
+                negotiated = False
+                conditions.append('ecn.negotiated')
             else:
-                cond_nego = 'ecn.not_negotiated'
+                negotiated = True
+                conditions.append('ecn.not_negotiated')
+
+            if flows[1]['rev_ez']:
+                conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
+            if flows[1]['rev_eo']:
+                conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
+            if flows[1]['rev_ez']:
+                conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
 
             self.outqueue.put({
                 'sip': flow['sip'],
                 'dip': dip,
                 'dp': flow['dp'],
-                'conditions': [cond_conn, cond_nego],
+                'conditions': conditions,
                 'hostname': flow['host'],
                 'rank': flow['rank'],
                 'flow_results': flows,
