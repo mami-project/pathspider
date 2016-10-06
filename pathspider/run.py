@@ -24,10 +24,10 @@ def job_feeder(inputfile, spider):
         logger.debug("job_feeder: started")
         reader = csv.reader(fp, delimiter=',', quotechar='"')
         for row in reader:
-            # port numbers should be integers
-            row[1] = int(row[1])
-
-            spider.add_job(row)
+            if len(row) > 0:
+                # port numbers should be integers
+                row[1] = int(row[1])
+                spider.add_job(row)
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
         spider.shutdown()
