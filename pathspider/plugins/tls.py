@@ -15,7 +15,7 @@ SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "connstate", "nego"])
 
 test_ssl = ('openssl s_client '
-            '-servername {hostname} -connect {ip}:{port} 2>&1 </dev/null | '
+            '-servername {hostname} -connect \'{ip}:{port}\' 2>&1 </dev/null | '
             'awk \'{{ if($1 == "Server" && $2 == "public") '
             '{{ print "GOT-TLS"; }} '
             'if($2=="Connection" && $3 == "refused") print "NO-TLS"; '
@@ -23,7 +23,7 @@ test_ssl = ('openssl s_client '
             'print "DNS-FAILURE"}}\'')
 
 test_alpn = ('openssl s_client '
-             '-alpn \'h2,http/1.1\' -servername {hostname} -connect {ip}:{port} 2>&1 </dev/null | '
+             '-alpn \'h2,http/1.1\' -servername {hostname} -connect \'{ip}:{port}\' 2>&1 </dev/null | '
              'awk \'{{if($1 == "ALPN") {{split($0, arr, ":"); '
              'print "ALPN:"arr[2];}} if($2 == "ALPN") print "NO-ALPN"; '
              'if($2=="Connection" && $3 == "refused") print "NO-TLS"; '
@@ -31,7 +31,7 @@ test_alpn = ('openssl s_client '
              'print "DNS-FAILURE"}}\'')
 
 test_npn = ('openssl s_client '
-            '-nextprotoneg \'\' -servername {hostname} -connect {ip}:{port} 2>&1 </dev/null')
+            '-nextprotoneg \'\' -servername {hostname} -connect \'{ip}:{port}\' 2>&1 </dev/null')
 
 def execute_test(cmd, job_args):
     return subprocess.run(cmd.format(**job_args),
