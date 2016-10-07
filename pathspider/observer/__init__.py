@@ -224,7 +224,7 @@ class Observer:
             rec = {'first': ip.seconds}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
-                    #logger.debug("ignoring "+str(ffid))
+                    logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
                     self._ct_ignored += 1
                     return (None, None, False)
@@ -232,7 +232,7 @@ class Observer:
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
-            #logger.debug("new flow for "+str(ffid))
+            logger.debug("new flow for "+str(ffid))
             self._ct_flow += 1
 
 
@@ -244,9 +244,9 @@ class Observer:
         """
         Mark a given flow ID as complete
         """
-        logger = logging.getLogger("observer")
+        # logger = logging.getLogger("observer")
         # move flow to expiring table
-        # logging.debug("Moving flow " + str(fid) + " to expiring queue")
+        # logger.debug("Moving flow " + str(fid) + " to expiring queue")
         try:
             self._expiring[fid] = self._active[fid]
         except KeyError:
