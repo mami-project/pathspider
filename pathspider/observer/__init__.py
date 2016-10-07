@@ -81,9 +81,9 @@ class Observer:
         self._irq_fired = False
 
         # Libtrace initialization
-        self._trace = libtrace.trace(lturi)
+        self._trace = libtrace.trace(lturi) # pylint: disable=no-member
         self._trace.start()
-        self._pkt = libtrace.packet()
+        self._pkt = libtrace.packet() # pylint: disable=no-member
 
         # Chains of functions to evaluate
         self._new_flow_chain = new_flow_chain
@@ -328,7 +328,7 @@ class Observer:
         logging.getLogger("observer").info(
                 ("processed %u packets "+
                 "(%u dropped, %u short, %u non-ip) "+
-                "into %u flows (%u ignored)") % ( 
+                "into %u flows (%u ignored)") % (
                     self._ct_pkt, self._trace.pkt_drops(),
                     self._ct_shortkey, self._ct_nonip,
                     self._ct_flow, self._ct_ignored))

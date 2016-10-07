@@ -105,7 +105,7 @@ class Spider:
 
     """
 
-    def __init__(self, worker_count, libtrace_uri):
+    def __init__(self, worker_count, libtrace_uri, args):
         """
         The initialisation of a pathspider plugin.
 
@@ -123,11 +123,13 @@ class Spider:
 
          super().__init__(worker_count=worker_count,
                           libtrace_uri=libtrace_uri,
-                          check_interrupt=check_interrupt)
+                          args=args)
 
         This can be used to initialise any variables which may be required in
         the object.
         """
+
+        self.args = args
 
         self.activated = True
         self.running = False
@@ -139,16 +141,6 @@ class Spider:
         self.active_worker_lock = threading.Lock()
 
         self.libtrace_uri = libtrace_uri
-#        self.check_interrupt = check_interrupt
-
-        # self.sem_config_zero = SemaphoreN(worker_count)
-        # self.sem_config_zero.empty()
-        # self.sem_config_zero_rdy = SemaphoreN(worker_count)
-        # self.sem_config_zero_rdy.empty()
-        # self.sem_config_one = SemaphoreN(worker_count)
-        # self.sem_config_one.empty()
-        # self.sem_config_one_rdy = SemaphoreN(worker_count)
-        # self.sem_config_one_rdy.empty()
 
         self.jobqueue = queue.Queue(QUEUE_SIZE)
         self.resqueue = queue.Queue(QUEUE_SIZE)
@@ -165,7 +157,6 @@ class Spider:
 
         self.worker_threads = []
         self.configurator_thread = None
-#        self.interrupter_thread = None
         self.merger_thread = None
 
         self.observer_process = None
@@ -174,31 +165,6 @@ class Spider:
 
         self.lock = threading.Lock()
         self.exception = None
-
-    # def configurator(self):
-    #     """
-    #     Thread which synchronizes on a set of semaphores and alternates
-    #     between two system states.
-    #     """
-    #     logger = logging.getLogger('pathspider')
-
-    #     while self.running:
-    #         logger.debug("setting config zero")
-    #         self.config_zero()
-    #         logger.debug("config zero active")
-    #         self.sem_config_zero.release_n(self.worker_count)
-    #         self.sem_config_one_rdy.acquire_n(self.worker_count)
-    #         logger.debug("setting config one")
-    #         self.config_one()
-    #         logger.debug("config one active")
-    #         self.sem_config_one.release_n(self.worker_count)
-    #         self.sem_config_zero_rdy.acquire_n(self.worker_count)
-
-        # # In case the master exits the run loop before all workers have,
-        # # these tokens will allow all workers to run through again,
-        # # until the next check at the start of the loop
-        # self.sem_config_zero.release_n(self.worker_count)
-        # self.sem_config_one.release_n(self.worker_count)
 
     def config_zero(self):
         """
@@ -215,129 +181,6 @@ class Spider:
         """
 
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
-
-    # def interrupter(self):
-    #     if self.check_interrupt is None:
-    #         return
-
-    #     logger = logging.getLogger('pathspider')
-    #     while self.running:
-    #         if self.check_interrupt():
-    #             logger.warning("spider interrupted")
-    #             logger.warning("trying to abort %d jobs", self.jobqueue.qsize())
-    #             while not self.jobqueue.empty():
-    #                 self.jobqueue.get()
-    #                 self.jobqueue.task_done()
-    #             self.stop()
-    #             break
-    #         time.sleep(5)
-
-    # def worker(self, worker_number):
-    #     """
-    #     This function provides the logic for the worker threads.
-
-    #     :param worker_number: The unique number of the worker.
-    #     :type worker_number: int
-
-    #     The workers operate as continuous loops:
-
-    #      * Fetch next job from the job queue
-    #      * Perform pre-connection operations
-    #      * Acquire a lock for "config_zero"
-    #      * Perform the "config_zero" connection
-    #      * Release "config_zero"
-    #      * Acquire a lock for "config_one"
-    #      * Perform the "config_one" connection
-    #      * Release "config_one"
-    #      * Perform post-connection operations for config_zero and pass the
-    #        result to the merger
-    #      * Perform post-connection operations for config_one and pass the
-    #        result to the merger
-    #      * Do it all again
-        
-    #     If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
-    #     terminate as this indicates that all the jobs have now been processed.
-    #     """
-
-    #     logger = logging.getLogger('pathspider')
-    #     worker_active = True
-
-    #     while self.running:
-    #         if worker_active:
-    #             try:
-    #                 job = self.jobqueue.get_nowait()
-
-    #                 # Break on shutdown sentinel
-    #                 if job == SHUTDOWN_SENTINEL:
-    #                     self.jobqueue.task_done()
-    #                     logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-    #                     #self._worker_state[worker_number] = "shutdown_sentinel"
-    #                     worker_active = False
-    #                     with self.active_worker_lock:
-    #                         self.active_worker_count -= 1
-    #                         logger.debug(str(self.active_worker_count)+" workers still active")
-    #                     continue
-
-    #                 logger.debug("got a job: "+repr(job))
-    #             except queue.Empty:
-    #                 #logger.debug("no job available, sleeping")
-    #                 # spin the semaphores
-    #                 self.sem_config_zero.acquire()
-    #                 #self._worker_state[worker_number] = "sleep_0"
-    #                 time.sleep(QUEUE_SLEEP)
-    #                 self.sem_config_one_rdy.release()
-    #                 self.sem_config_one.acquire()
-    #                 #self._worker_state[worker_number] = "sleep_1"
-    #                 time.sleep(QUEUE_SLEEP)
-    #                 self.sem_config_zero_rdy.release()
-    #             else:
-    #                 # Hook for preconnection
-    #                 #self._worker_state[worker_number] = "preconn"
-    #                 pcs = self.pre_connect(job)
-
-    #                 # Wait for configuration zero
-    #                 #self._worker_state[worker_number] = "wait_0"
-    #                 self.sem_config_zero.acquire()
-
-    #                 # Connect in configuration zero
-    #                 #self._worker_state[worker_number] = "conn_0"
-    #                 conn0 = self.connect(job, pcs, 0)
-
-    #                 # Wait for configuration one
-    #                 #self._worker_state[worker_number] = "wait_1"
-    #                 self.sem_config_one_rdy.release()
-    #                 self.sem_config_one.acquire()
-
-    #                 # Connect in configuration one
-    #                 #self._worker_state[worker_number] = "conn_1"
-    #                 conn1 = self.connect(job, pcs, 1)
-
-    #                 # Signal okay to go to configuration zero
-    #                 self.sem_config_zero_rdy.release()
-
-    #                 # Pass results on for merge
-    #                 #self._worker_state[worker_number] = "postconn_0"
-    #                 self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
-    #                 #self._worker_state[worker_number] = "postconn_1"
-    #                 self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
-
-    #                 #self._worker_state[worker_number] = "done"
-    #                 logger.debug("job complete: "+repr(job))
-    #                 self.jobqueue.task_done()
-    #         else: # not worker_active, spin the semaphores
-    #             self.sem_config_zero.acquire()
-    #             #self._worker_state[worker_number] = "shutdown_0"
-    #             time.sleep(QUEUE_SLEEP)
-    #             with self.active_worker_lock:
-    #                 if self.active_worker_count <= 0:
-    #                     #self._worker_state[worker_number] = "shutdown_complete"
-    #                     break
-    #             self.sem_config_one_rdy.release()
-    #             self.sem_config_one.acquire()
-    #             #self._worker_state[worker_number] = "shutdown_1"
-    #             time.sleep(QUEUE_SLEEP)
-    #             self.sem_config_zero_rdy.release()
-
 
     def pre_connect(self, job):
         """
@@ -420,7 +263,7 @@ class Spider:
         This function is called by the base Spider logic to get an instance
         of :class:`pathspider.observer.Observer` configured with the function
         chains that are requried by the plugin.
-        
+
         This method is not implemented in the abstract
         :class:`pathspider.base.Spider` class and must be implemented by any
         plugin.
@@ -463,9 +306,9 @@ class Spider:
                     elif flowkey in self.flowtab:
                         logger.debug("won't merge duplicate flow")
                     else:
-                        # FIXME: How to keep flowtab from 
+                        # FIXME: How to keep flowtab from
                         # exploding with unrelated flows?
-                        # We need a timer queue for flow expiry. 
+                        # We need a timer queue for flow expiry.
                         # See Issue #30
                         self.flowtab[flowkey] = flow
 
@@ -496,10 +339,10 @@ class Spider:
 
                     self.resqueue.task_done()
 
-        # Both shutdown markers received. 
-        # Call merge on all remaining entries in the results table 
+        # Both shutdown markers received.
+        # Call merge on all remaining entries in the results table
         # with null flows.
-        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29 
+        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29
         for res_item in self.restab.items():
             res = res_item[1]
             self.merge(NO_FLOW, res)
@@ -572,7 +415,7 @@ class Spider:
             self.observer = self.create_observer()
             self.observer_process = mp.Process(
                 args=(self.observer.run_flow_enqueuer,
-                      self.flowqueue, 
+                      self.flowqueue,
                       self.observer_shutdown_queue),
                 target=self.exception_wrapper,
                 name='observer',
@@ -616,26 +459,17 @@ class Spider:
                 worker_thread.start()
             logger.debug("workers up")
 
-            # if self.check_interrupt is not None:
-            #     self.interrupter_thread = threading.Thread(
-            #         args=(self.interrupter,),
-            #         target=self.exception_wrapper,
-            #         name="interrupter",
-            #         daemon=True)
-            #     self.interrupter_thread.start()
-            #     logger.debug("interrupter up")
-
     def shutdown(self):
         """
-        Shut down PathSpider in an orderly fashion, 
-        ensuring that all queued jobs complete, 
+        Shut down PathSpider in an orderly fashion,
+        ensuring that all queued jobs complete,
         and all available results are merged.
 
         """
         logger = logging.getLogger('pathspider')
 
         logger.info("shutting down pathspider")
-        
+
         with self.lock:
             # Set stopping flag
             self.stopping = True
@@ -643,14 +477,14 @@ class Spider:
             # Place two shutdown sentinels per worker
             # in the job queue FIXME HACK
             for i in range(self.worker_count):
-                self.jobqueue.put(SHUTDOWN_SENTINEL) 
+                self.jobqueue.put(SHUTDOWN_SENTINEL)
 
             # Wait for worker threads to shut down
             for worker in self.worker_threads:
                 if threading.current_thread() != worker:
                     logger.debug("joining worker: " + repr(worker))
                     worker.join()
-            logger.debug("all workers joined")            
+            logger.debug("all workers joined")
 
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
@@ -675,7 +509,7 @@ class Spider:
             # Join configurator
             # if threading.current_thread() != self.configurator_thread:
             #     self.configurator_thread.join()
-        
+
             self.stopping = False
 
         logger.info("shutdown complete")
@@ -720,22 +554,22 @@ class Spider:
             if threading.current_thread() != worker:
                 logger.debug("joining worker: " + repr(worker))
                 worker.join()
-        logger.debug("all workers joined")           
+        logger.debug("all workers joined")
 
         if threading.current_thread() != self.configurator_thread:
             self.configurator_thread.join()
-        logger.debug("configurator joined")           
-        
+        logger.debug("configurator joined")
+
         if threading.current_thread() != self.merger_thread:
-            self.merger_thread.join() 
-        logger.debug("merger joined")           
+            self.merger_thread.join()
+        logger.debug("merger joined")
 
         self.observer_process.join()
         logger.debug("observer joined")
 
         self.outqueue.put(SHUTDOWN_SENTINEL)
         logger.info("termination complete")
-           
+
     def add_job(self, job):
         """
         Adds a job to the job queue.

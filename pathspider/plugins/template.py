@@ -1,6 +1,7 @@
 
 import sys
 import collections
+import logging
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import NO_FLOW
@@ -15,15 +16,18 @@ SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "connstate"])
 
 class TemplateSpider(SynchronizedSpider):
+
     """
     A template PATHspider plugin.
     """
 
     def config_zero(self):
-        print("Configuration zero")
+        logger = logging.getLogger("template")
+        logger.debug("Configuration zero")
 
     def config_one(self):
-        print("Configuration one")
+        logger = logging.getLogger("template")
+        logger.debug("Configuration one")
 
     def connect(self, job, pcs, config):
         sock = "Hello"
@@ -34,13 +38,14 @@ class TemplateSpider(SynchronizedSpider):
         return rec
 
     def create_observer(self):
+        logger = logging.getLogger("template")
         try:
             return Observer(self.libtrace_uri,
                             new_flow_chain=[basic_flow],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count])
         except:
-            print("Observer would not start")
+            logger.error("Observer would not start")
             sys.exit(-1)
 
     def merge(self, flow, res):
@@ -53,4 +58,9 @@ class TemplateSpider(SynchronizedSpider):
             flow['observed'] = True
 
         self.outqueue.put(flow)
+
+    @staticmethod
+    def register_args(subparsers):
+        parser = subparsers.add_parser('template', help="Template for development")
+        parser.set_defaults(spider=Template)
 

@@ -33,15 +33,16 @@ TCP_ECE = 0x40
 TCP_ACK = 0x10
 TCP_SYN = 0x02
 
+TCP_SEC = ( TCP_SYN | TCP_ECE | TCP_CWR )
 TCP_SAEW = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
 ## Chain functions
 
 def ecnsetup(rec, ip):
-    rec['ecn_zero'] = False
-    rec['ecn_one'] = False
-    rec['ce'] = False
+    fields = ['fwd_ez', 'fwd_eo', 'fwd_ce', 'rev_ez', 'rev_eo', 'rev_ce']
+    for field in fields:
+        rec[field] = False
     return True
 
 def ecnflags(rec, tcp, rev):
@@ -61,21 +62,31 @@ def ecncode(rec, ip, rev):
     CE = 0x03
 
     if (ip.traffic_class & EZ == EZ):
-        rec['ecn_zero'] = True
+        if rev:
+            rec['rev_ez'] = True
+        else:
+            rec['fwd_ez'] = True
     if (ip.traffic_class & EO == EO):
-        rec['ecn_one'] = True
+        if rev:
+            rec['rev_eo'] = True
+        else:
+            rec['fwd_eo'] = True
     if (ip.traffic_class & CE == CE):
-        rec['ce'] = True
+        if rev:
+            rec['rev_ce'] = True
+        else:
+            rec['fwd_ce'] = True
 
     return True
 
-## ECNSpider main class
+## ECN main class
 
 class ECNSpider(SynchronizedSpider):
 
-    def __init__(self, worker_count, libtrace_uri):
+    def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count=worker_count,
-                         libtrace_uri=libtrace_uri)
+                         libtrace_uri=libtrace_uri,
+                         args=args)
         self.tos = None # set by configurator
         self.conn_timeout = 10
         self.comparetab = {}
@@ -85,7 +96,7 @@ class ECNSpider(SynchronizedSpider):
         Disables ECN negotiation via sysctl.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator disabled ECN")
@@ -95,7 +106,7 @@ class ECNSpider(SynchronizedSpider):
         Enables ECN negotiation via sysctl.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
@@ -155,7 +166,7 @@ class ECNSpider(SynchronizedSpider):
         Creates an observer with ECN-related chain functions.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
@@ -175,6 +186,7 @@ class ECNSpider(SynchronizedSpider):
 
             # first has always ecn off, while the second has ecn on
             flows = (flow, other_flow) if other_flow['ecnstate'] else (other_flow, flow)
+            conditions = []
 
             # discard non-observed flows and flows with no syn observed
             for f in flows:
@@ -193,17 +205,25 @@ class ECNSpider(SynchronizedSpider):
             else:
                 cond_conn = 'ecn.connectivity.offline'
 
-            # FIXME: I need to be convinced this is a complete test
             if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
-                cond_nego = 'ecn.negotiated'
+                negotiated = False
+                conditions.append('ecn.negotiated')
             else:
-                cond_nego = 'ecn.not_negotiated'
+                negotiated = True
+                conditions.append('ecn.not_negotiated')
+
+            if flows[1]['rev_ez']:
+                conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
+            if flows[1]['rev_eo']:
+                conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
+            if flows[1]['rev_ez']:
+                conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
 
             self.outqueue.put({
                 'sip': flow['sip'],
                 'dip': dip,
                 'dp': flow['dp'],
-                'conditions': [cond_conn, cond_nego],
+                'conditions': conditions,
                 'hostname': flow['host'],
                 'rank': flow['rank'],
                 'flow_results': flows,
@@ -218,12 +238,12 @@ class ECNSpider(SynchronizedSpider):
     def merge(self, flow, res):
         """
         Merge flow records.
-        
+
         Includes the configuration and connection success or failure of the
         socket connection with the flow record.
         """
 
-        logger = logging.getLogger('ecnspider3')
+        logger = logging.getLogger('ecn')
         if flow == NO_FLOW:
             flow = {"dip": res.ip,
                     "sp": res.port,
@@ -242,3 +262,7 @@ class ECNSpider(SynchronizedSpider):
         logger.debug("Result: " + str(flow))
         self.combine_flows(flow)
 
+    @staticmethod
+    def register_args(subparsers):
+        parser = subparsers.add_parser('ecn', help="Explicit Congestion Notification")
+        parser.set_defaults(spider=ECN)
