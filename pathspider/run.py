@@ -53,8 +53,10 @@ def run_pathspider():
     parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE', help='''a file
             containing a list of remote hosts to test, with any accompanying
             metadata expected by the pathspider test. this file should be formatted
-            as a comma-seperated values file.''')
-    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE', help='''the file to output results data to''')
+            as a comma-seperated values file. Defaults to standard input.''')
+    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE', 
+            help='''the file to output results data to. Defaults to standard output.''')
+    parser.add_argument('-v', '--verbose', action='store_true', help='''log debug-level output.''')
 
     # Add plugins
     subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
@@ -74,7 +76,11 @@ def run_pathspider():
     args = parser.parse_args()
 
     logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
     logger = logging.getLogger("pathspider")
 
     if hasattr(args, "func"):
