@@ -20,7 +20,7 @@ from pathspider.observer.tcp import tcp_complete
 from timeit import default_timer as timer
 
 TFOConnection = collections.namedtuple("TFOConnection", 
-                                       ["client", "port", "state", 
+                                       ["sock", "port", "state", 
                                         "c0t", "c1t"])
 TFOSpiderRecord = collections.namedtuple("TFOSpiderRecord", 
                                          ["ip", "rport", "port",
@@ -224,22 +224,20 @@ class TFO(DesynchronizedSpider):
                 return TFOConnection(sock, sock.getsockname()[1], CONN_FAILED, c0t, c1t)
 
     def post_connect(self, job, conn, pcs, config):
-        if conn.state == CONN_OK:
-            rec = TFOSpiderRecord(job[0], job[1], conn.port, job[2], config, True, job[3], conn.c0t, conn.c1t)
-        else:
-            rec = TFOSpiderRecord(job[0], job[1], conn.port, job[2], config, False, job[3], conn.c0t, conn.c1t)
+        # try not shutting down
+        # try:
+        #     conn.sock.shutdown(socket.SHUT_RDWR)
+        # except:
+        #     pass
 
         try:
-            conn.client.shutdown(socket.SHUT_RDWR)
+            conn.sock.close()
         except:
             pass
 
-        try:
-            conn.client.close()
-        except:
-            pass
+        return TFOSpiderRecord(job[0], job[1], conn.port, job[2], config,
+                               conn.c0t, conn.c1t, connstate == CONN_OK, job[3])
 
-        return rec
 
     def create_observer(self):
         logger = logging.getLogger('tfo')
