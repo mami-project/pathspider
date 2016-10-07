@@ -562,13 +562,14 @@ class Spider:
                 worker.join()
         logger.debug("all workers joined")
 
-        if threading.current_thread() != self.configurator_thread:
+        if self.configurator_thread and \
+                (threading.current_thread() != self.configurator_thread):
             self.configurator_thread.join()
-        logger.debug("configurator joined")
+            logger.debug("configurator joined")
 
         if threading.current_thread() != self.merger_thread:
             self.merger_thread.join()
-        logger.debug("merger joined")
+            logger.debug("merger joined")
 
         self.observer_process.join()
         logger.debug("observer joined")
