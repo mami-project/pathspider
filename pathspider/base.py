@@ -601,8 +601,8 @@ class Spider:
 
 class SynchronizedSpider(Spider):
 
-    def __init__(self, worker_count, libtrace_uri):
-        super().__init__(worker_count, libtrace_uri)
+    def __init__(self, worker_count, libtrace_uri, args):
+        super().__init__(worker_count, libtrace_uri, args)
 
         # create semaphores for synchronizing configurations
         self.sem_config_zero = SemaphoreN(worker_count)
@@ -749,8 +749,8 @@ class SynchronizedSpider(Spider):
 
 class DesynchronizedSpider(Spider):
 
-    def __init__(self, worker_count, libtrace_uri):
-        super().__init__(worker_count, libtrace_uri)
+    def __init__(self, worker_count, libtrace_uri, args):
+        super().__init__(worker_count, libtrace_uri, args)
 
     def config_zero(self):
         pass
