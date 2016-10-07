@@ -2,7 +2,12 @@
 import sys
 import collections
 import logging
-import subprocess
+import signal
+import os
+
+from subprocess import Popen
+from subprocess import PIPE
+from subprocess import TimeoutExpired
 
 from pathspider.base import Spider
 from pathspider.base import NO_FLOW
@@ -34,10 +39,19 @@ test_npn = ('openssl s_client '
             '-nextprotoneg \'\' -servername {hostname} -connect \'{ip}:{port}\' 2>&1 </dev/null')
 
 def execute_test(cmd, job_args):
-    return subprocess.run(cmd.format(**job_args),
-                          shell=True,
-                          timeout=job_args['timeout'],
-                          stdout=subprocess.PIPE).stdout.decode('ascii')
+    logger = logging.getLogger('tls')
+    with Popen(cmd.format(**job_args), shell=True, stdout=PIPE, preexec_fn=os.setsid) as process:
+        try:
+            output = process.communicate(timeout=job_args['timeout'])[0]
+        except TimeoutExpired:
+            try:
+                logger.info("Timeout for {}".format(repr(job_args)))
+                os.killpg(os.getpgid(process.pid), signal.SIGINT) # kill whole process group
+            except ProcessLookupError:
+                logger.warning("Tried to kill process that had already completed.")
+            output = process.communicate()[0]
+        print(repr(process))
+        return output.decode('ascii')
 
 class TLS(Spider):
     """
@@ -62,27 +76,18 @@ class TLS(Spider):
         nego = None
 
         if config == 0:
-            try:
-                ssl_status = execute_test(test_ssl, job_args).strip()
-            except subprocess.TimeoutExpired:
-                ssl_status = ""
+            ssl_status = execute_test(test_ssl, job_args).strip()
             if ssl_status == 'GOT_TLS':
                 connstate = True
         if config == 1:
             if self.args.test == 'alpn':
-                try:
-                    alpn_status = execute_test(test_alpn, job_args).strip()
-                except subprocess.TimeoutExpired:
-                    alpn_status = ""
+                alpn_status = execute_test(test_alpn, job_args).strip()
                 if "ALPN" in alpn_status:
                     connstate = True
                     if ":" in alpn_status:
                         nego = alpn_status[6:]
             if self.args.test == 'npn':
-                try:
-                    npn_status = execute_test(test_npn, job_args).split('\n')
-                except subprocess.TimeoutExpired:
-                    npn_status = ""
+                npn_status = execute_test(test_npn, job_args).split('\n')
                 if len(npn_status) > 0:
                     connstate = True
                     for line in npn_status:
