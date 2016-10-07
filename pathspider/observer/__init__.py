@@ -105,7 +105,8 @@ class Observer:
         # Emitter queue
         self._emitted = collections.deque()
 
-        # Statistics
+        # Statistics and logging
+        self._logger = logging.getLogger("observer")
         self._ct_pkt = 0
         self._ct_nonip = 0
         self._ct_shortkey = 0
@@ -184,7 +185,6 @@ class Observer:
         Get a flow record for the given packet.
         Create a new basic flow record
         """
-        logger = logging.getLogger("observer")
         # get possible a flow IDs for the packet
         try:
             if self._pkt.ip:
@@ -209,22 +209,22 @@ class Observer:
             return (None, None, False)
         elif ffid in self._active:
             (fid, rec) = (ffid, self._active[ffid])
-            #logger.debug("found forward flow for "+str(ffid))
+            #self._logger.debug("found forward flow for "+str(ffid))
         elif ffid in self._expiring:
             (fid, rec) = (ffid, self._expiring[ffid])
-            #logger.debug("found expiring forward flow for "+str(ffid))
+            #self._logger.debug("found expiring forward flow for "+str(ffid))
         elif rfid in self._active:
             (fid, rec) = (rfid, self._active[rfid])
-            #logger.debug("found reverse flow for "+str(rfid))
+            #self._logger.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
             (fid, rec) =  (rfid, self._expiring[rfid])
-            #logger.debug("found expiring reverse flow for "+str(rfid))
+            #self._logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
             rec = {'first': ip.seconds}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
-                    logger.debug("ignoring "+str(ffid))
+                    self._logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
                     self._ct_ignored += 1
                     return (None, None, False)
@@ -232,7 +232,7 @@ class Observer:
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
-            logger.debug("new flow for "+str(ffid))
+            self._logger.debug("new flow for "+str(ffid))
             self._ct_flow += 1
 
 
@@ -244,13 +244,12 @@ class Observer:
         """
         Mark a given flow ID as complete
         """
-        # logger = logging.getLogger("observer")
         # move flow to expiring table
-        # logger.debug("Moving flow " + str(fid) + " to expiring queue")
+        # self._logger.debug("Moving flow " + str(fid) + " to expiring queue")
         try:
             self._expiring[fid] = self._active[fid]
         except KeyError:
-            #logger.debug("Tried to expire an already expired flow")
+            #self._logger.debug("Tried to expire an already expired flow")
             pass
         else:
             del self._active[fid]
@@ -289,6 +288,7 @@ class Observer:
             if fid in self._expiring:
                 self._emit_flow(self._expiring[fid])
                 del self._expiring[fid]
+                self._logger.debug("emitted "+str(fid)+" on expiry")
         return tfn
 
     def purge_idle(self, timeout=30):
@@ -300,10 +300,12 @@ class Observer:
     def flush(self):
         for fid in self._expiring:
             self._emit_flow(self._expiring[fid])
+            self._logger.debug("emitted "+str(fid)+" expiring during flush")
         self._expiring.clear()
 
         for fid in self._active:
             self._emit_flow(self._active[fid])
+            self._logger.debug("emitted "+str(fid)+" active during flush")
         self._active.clear()
 
         self._ignored.clear()
@@ -325,7 +327,7 @@ class Observer:
                     break
 
         # log observer info on shutdown
-        logging.getLogger("observer").info(
+        self._logger.info(
                 ("processed %u packets "+
                 "(%u dropped, %u short, %u non-ip) "+
                 "into %u flows (%u ignored)") % (
