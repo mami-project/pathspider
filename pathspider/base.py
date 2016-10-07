@@ -172,7 +172,7 @@ class Spider:
         baseline measurements.
         """
 
-        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
+        raise NotImplementedError("Cannot instantiate an abstract Spider")
 
     def config_one(self):
         """
@@ -180,7 +180,13 @@ class Spider:
         experimental measurements.
         """
 
-        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
+        raise NotImplementedError("Cannot instantiate an abstract Spider")
+
+    def configurator(self):
+        raise NotImplementedError("Cannot instantiate an abstract Spider")
+
+    def worker(self):
+        raise NotImplementedError("Cannot instantiate an abstract Spider")
 
     def pre_connect(self, job):
         """
