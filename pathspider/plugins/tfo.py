@@ -100,11 +100,13 @@ def _tfocookie(tcp):
         return (None, None)
 
 def _tfosetup(rec, ip):
-        rec['tfo_kind'] = 0
-        rec['tfo_cklen'] = 0
-        rec['tfo_seq'] = 0
-        rec['tfo_len'] = 0
-        rec['tfo_ack'] = 0
+    rec['tfo_kind'] = 0
+    rec['tfo_cklen'] = 0
+    rec['tfo_seq'] = 0
+    rec['tfo_len'] = 0
+    rec['tfo_ack'] = 0
+
+    return True
 
 def _tfopacket(rec, tcp, rev):
     # Shortcut non-SYN

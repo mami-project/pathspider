@@ -224,7 +224,7 @@ class Observer:
             rec = {'first': ip.seconds}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
-                    self._logger.debug("ignoring "+str(ffid))
+                    # self._logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
                     self._ct_ignored += 1
                     return (None, None, False)
@@ -232,7 +232,7 @@ class Observer:
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
-            self._logger.debug("new flow for "+str(ffid))
+            # self._logger.debug("new flow for "+str(ffid))
             self._ct_flow += 1
 
 
@@ -288,7 +288,7 @@ class Observer:
             if fid in self._expiring:
                 self._emit_flow(self._expiring[fid])
                 del self._expiring[fid]
-                self._logger.debug("emitted "+str(fid)+" on expiry")
+                # self._logger.debug("emitted "+str(fid)+" on expiry")
         return tfn
 
     def purge_idle(self, timeout=30):
@@ -300,12 +300,12 @@ class Observer:
     def flush(self):
         for fid in self._expiring:
             self._emit_flow(self._expiring[fid])
-            self._logger.debug("emitted "+str(fid)+" expiring during flush")
+            # self._logger.debug("emitted "+str(fid)+" expiring during flush")
         self._expiring.clear()
 
         for fid in self._active:
             self._emit_flow(self._active[fid])
-            self._logger.debug("emitted "+str(fid)+" active during flush")
+            # self._logger.debug("emitted "+str(fid)+" active during flush")
         self._active.clear()
 
         self._ignored.clear()
