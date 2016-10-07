@@ -50,7 +50,6 @@ def execute_test(cmd, job_args):
             except ProcessLookupError:
                 logger.warning("Tried to kill process that had already completed.")
             output = process.communicate()[0]
-        print(repr(process))
         return output.decode('ascii')
 
 class TLS(Spider):
