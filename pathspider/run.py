@@ -99,15 +99,17 @@ def run_pathspider():
 
         spider.start()
 
-        logger.info("starting to add jobs")
+        logger.debug("starting job feeder...")
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
 
         with open(args.output, 'w') as outputfile:
+            logger.info("opening output file "+args.output)
             while True:
                 result = spider.outqueue.get()
                 if result == SHUTDOWN_SENTINEL:
                     break
                 outputfile.write(json.dumps(result) + "\n")
+                logger.debug("wrote a result")
                 spider.outqueue.task_done()
 
     except KeyboardInterrupt:
