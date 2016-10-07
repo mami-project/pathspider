@@ -59,7 +59,11 @@ def run_pathspider():
     # Add plugins
     subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
     for plugin in plugins:
-        plugin.register_args(subparsers)
+        try:
+            plugin.register_args(subparsers)
+        except AttributeError:
+            # Don't try to register arguments for subclasses that don't care.
+            pass
 
     pathspider.util.dnsresolv.register_args(subparsers)
 

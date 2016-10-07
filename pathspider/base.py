@@ -840,4 +840,3 @@ class DesynchronizedSpider(Spider):
                     self.jobqueue.task_done()
             else: 
                 time.sleep(QUEUE_SLEEP)
-

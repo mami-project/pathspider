@@ -15,7 +15,7 @@ SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "config",
                                                        "connstate"])
 
-class TemplateSpider(SynchronizedSpider):
+class Template(SynchronizedSpider):
 
     """
     A template PATHspider plugin.
