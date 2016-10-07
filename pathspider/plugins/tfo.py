@@ -236,7 +236,7 @@ class TFO(DesynchronizedSpider):
             pass
 
         return TFOSpiderRecord(job[0], job[1], conn.port, job[2], config,
-                               conn.c0t, conn.c1t, connstate == CONN_OK, job[3])
+                               conn.c0t, conn.c1t, conn.state == CONN_OK, job[3])
 
 
     def create_observer(self):
