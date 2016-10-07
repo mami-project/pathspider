@@ -8,7 +8,7 @@ from datetime import datetime
 import socket
 import collections
 
-from pathspider.base import Spider
+from pathspider.base import SynchronizedSpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
