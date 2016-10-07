@@ -107,6 +107,7 @@ def run_pathspider():
             while True:
                 result = spider.outqueue.get()
                 if result == SHUTDOWN_SENTINEL:
+                    logger.info("output complete")
                     break
                 outputfile.write(json.dumps(result) + "\n")
                 logger.debug("wrote a result")
