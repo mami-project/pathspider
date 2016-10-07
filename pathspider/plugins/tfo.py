@@ -17,10 +17,16 @@ from pathspider.observer import basic_count
 from pathspider.observer.tcp import tcp_setup
 from pathspider.observer.tcp import tcp_complete
 
-Connection = collections.namedtuple("Connection", ["client", "port", "state"])
-TFOSpiderRecord = collections.namedtuple("TFOSpiderRecord", ["ip", "rport", "port",
-                                                       "host", "tfostate",
-                                                       "connstate", "rank"])
+from timeit import default_timer as timer
+
+TFOConnection = collections.namedtuple("TFOConnection", 
+                                       ["client", "port", "state", 
+                                        "c0t", "c1t"])
+TFOSpiderRecord = collections.namedtuple("TFOSpiderRecord", 
+                                         ["ip", "rport", "port",
+                                          "host", "tfostate",
+                                          "c0t", "c1t",
+                                          "connstate", "rank"])
 
 CONN_OK = 0
 CONN_FAILED = 1
@@ -167,19 +173,25 @@ class TFO(DesynchronizedSpider):
         else:
             af = socket.AF_INET
 
+        # default timers
+        c0t = 0
+        c1t = 0
+
         # regular TCP
         if config == 0:
             sock = socket.socket(af, socket.SOCK_STREAM)
 
             try:
+                tt = timer()
                 sock.settimeout(self.conn_timeout)
                 sock.connect((job[0], job[1]))
+                c0t = timer() - tt
 
-                return Connection(sock, sock.getsockname()[1], CONN_OK)
+                return TFOConnection(sock, sock.getsockname()[1], CONN_OK, c0t, c1t)
             except TimeoutError:
-                return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
+                return TFOConnection(sock, sock.getsockname()[1], CONN_TIMEOUT, c0t, c1t)
             except OSError:
-                return Connection(sock, sock.getsockname()[1], CONN_FAILED)
+                return TFOConnection(sock, sock.getsockname()[1], CONN_FAILED, c0t, c1t)
 
         # with TFO
         if config == 1:
@@ -188,28 +200,32 @@ class TFO(DesynchronizedSpider):
             # step one: request cookie
             try:
                 # pylint: disable=no-member
+                tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
                 sock.close()
+                c0t = timer() - tt
             except:
                 pass
 
             # step two: use cookie
             try:
+                tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1])) # pylint: disable=no-member
+                c1t = timer() - tt
 
-                return Connection(sock, sock.getsockname()[1], CONN_OK)
+                return TFOConnection(sock, sock.getsockname()[1], CONN_OK, c0t, c1t)
             except TimeoutError:
-                return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
+                return TFOConnection(sock, sock.getsockname()[1], CONN_TIMEOUT, c0t, c1t)
             except OSError:
-                return Connection(sock, sock.getsockname()[1], CONN_FAILED)
+                return TFOConnection(sock, sock.getsockname()[1], CONN_FAILED, c0t, c1t)
 
     def post_connect(self, job, conn, pcs, config):
         if conn.state == CONN_OK:
-            rec = TFOSpiderRecord(job[0], job[1], conn.port, job[2], config, True, job[3])
+            rec = TFOSpiderRecord(job[0], job[1], conn.port, job[2], config, True, job[3], conn.c0t, conn.c1t)
         else:
-            rec = TFOSpiderRecord(job[0], job[1], conn.port, job[2], config, False, job[3])
+            rec = TFOSpiderRecord(job[0], job[1], conn.port, job[2], config, False, job[3], conn.c0t, conn.c1t)
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
@@ -247,6 +263,8 @@ class TFO(DesynchronizedSpider):
             flow['rank'] = res.rank
             flow['tfostate'] = res.tfostate
             flow['observed'] = True
+            flow['cookie0_time'] = res.c0t
+            flow['cookie1_time'] = res.c1t
 
         logger.debug("Result: " + str(flow))
         self.outqueue.put(flow)
