@@ -8,6 +8,7 @@ import socket
 import collections
 
 from pathspider.base import SynchronizedSpider
+from pathspider.base import PluggableSpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -48,7 +49,7 @@ def dscp_extract(rec, ip, rev):
 
 ## DSCP main class
 
-class DSCP(SynchronizedSpider):
+class DSCP(SynchronizedSpider, PluggableSpider):
 
     def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count=worker_count,

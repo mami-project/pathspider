@@ -850,3 +850,8 @@ class DesynchronizedSpider(Spider):
                     self.jobqueue.task_done()
             else: 
                 time.sleep(QUEUE_SLEEP)
+
+class PluggableSpider:
+    @staticmethod
+    def register_args(subparsers):
+        raise NotImplementedError("Cannot register an abstract plugin")

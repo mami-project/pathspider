@@ -9,6 +9,7 @@ import socket
 import collections
 
 from pathspider.base import SynchronizedSpider
+from pathspider.base import PluggableSpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -81,7 +82,7 @@ def ecncode(rec, ip, rev):
 
 ## ECN main class
 
-class ECN(SynchronizedSpider):
+class ECN(SynchronizedSpider, PluggableSpider):
 
     def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count=worker_count,

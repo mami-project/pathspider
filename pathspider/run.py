@@ -9,14 +9,14 @@ import json
 
 from straight.plugin import load
 
-from pathspider.base import Spider
+from pathspider.base import PluggableSpider
 from pathspider.base import SHUTDOWN_SENTINEL
 
 import pathspider.util.dnsresolv
 
 import sys
 
-plugins = load("pathspider.plugins", subclasses=Spider)
+plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
 def job_feeder(inputfile, spider):
     logger = logging.getLogger("feeder")

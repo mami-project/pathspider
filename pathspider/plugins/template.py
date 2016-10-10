@@ -4,6 +4,7 @@ import collections
 import logging
 
 from pathspider.base import SynchronizedSpider
+from pathspider.base import PluggableSpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -15,7 +16,7 @@ SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "config",
                                                        "connstate"])
 
-class Template(SynchronizedSpider):
+class Template(SynchronizedSpider, PluggableSpider):
 
     """
     A template PATHspider plugin.

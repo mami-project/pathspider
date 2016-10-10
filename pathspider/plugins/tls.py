@@ -10,6 +10,7 @@ from subprocess import PIPE
 from subprocess import TimeoutExpired
 
 from pathspider.base import DesynchronizedSpider
+from pathspider.base import PluggableSpider
 from pathspider.base import NO_FLOW
 
 from pathspider.observer.dummy import Observer
@@ -52,7 +53,7 @@ def execute_test(cmd, job_args):
             output = process.communicate()[0]
         return output.decode('ascii')
 
-class TLS(DesynchronizedSpider):
+class TLS(DesynchronizedSpider, PluggableSpider):
     """
     A PATHspider plugin for TLS testing.
     """
