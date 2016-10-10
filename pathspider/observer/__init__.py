@@ -310,7 +310,8 @@ class Observer:
 
         self._ignored.clear()
 
-    def run_flow_enqueuer(self, flowqueue, irqueue=None):
+    def run_flow_enqueuer(self, flowqueue, irqueue=None, purge_interval=1000):
+        # store interrupt queue
         if irqueue:
             self._irq = irqueue
             self._irq_fired = None
@@ -322,6 +323,8 @@ class Observer:
                 f = self._next_flow()
                 if f:
                     flowqueue.put(f)
+                    if purge_interval and (self._ct_flow % purge_interval == 0):
+                        self.purge_idle()
                 else:
                     self.flush()
                     break
