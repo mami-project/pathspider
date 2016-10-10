@@ -101,10 +101,12 @@ def _tfocookie(tcp):
         return (None, None)
 
 def _tfosetup(rec, ip):
-    rec['tfo_kind'] = 0
-    rec['tfo_cklen'] = 0
+    rec['tfo_synkind'] = 0
+    rec['tfo_ackkind'] = 0
+    rec['tfo_synclen'] = 0
+    rec['tfo_ackclen'] = 0
     rec['tfo_seq'] = 0
-    rec['tfo_len'] = 0
+    rec['tfo_dlen'] = 0
     rec['tfo_ack'] = 0
 
     return True
@@ -121,7 +123,7 @@ def _tfopacket(rec, tcp, rev):
             rec['tfo_synkind'] = tfo_kind
             rec['tfo_synclen'] = len(tfo_cookie)
             rec['tfo_seq'] = tcp.seq_nbr
-            rec['tfo_len'] = len(tcp.data) - tcp.doff*4
+            rec['tfo_dlen'] = len(tcp.data) - tcp.doff*4
             rec['tfo_ack'] = 0
 
     # Look for ACK of TFO data (and cookie)
