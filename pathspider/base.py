@@ -325,6 +325,9 @@ class Spider:
                     time.sleep(QUEUE_SLEEP)
                     logger.debug("result queue is empty")
                 else:
+                    if res == None:
+                        # handle skipped results
+                        continue
                     if res == SHUTDOWN_SENTINEL:
                         merging_results = False
                         logger.debug("stopping result merging on sentinel")

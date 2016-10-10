@@ -31,6 +31,7 @@ TFOSpiderRecord = collections.namedtuple("TFOSpiderRecord",
 CONN_OK = 0
 CONN_FAILED = 1
 CONN_TIMEOUT = 2
+CONN_SKIPPED = 3
 
 USER_AGENT = "pathspider"
 
@@ -117,15 +118,19 @@ def _tfopacket(rec, tcp, rev):
     if tcp.syn_flag and not tcp.ack_flag:
         (tfo_kind, tfo_cookie) = _tfocookie(tcp)
         if tfo_kind is not None:
-            rec['tfo_kind'] = tfo_kind
-            rec['tfo_cklen'] = len(tfo_cookie)
+            rec['tfo_synkind'] = tfo_kind
+            rec['tfo_synclen'] = len(tfo_cookie)
             rec['tfo_seq'] = tcp.seq_nbr
             rec['tfo_len'] = len(tcp.data) - tcp.doff*4
             rec['tfo_ack'] = 0
 
-    # Look for ACK of TFO data
-    elif tcp.syn_flag and tcp.ack_flag and rec['tfo_kind']:
+    # Look for ACK of TFO data (and cookie)
+    elif tcp.syn_flag and tcp.ack_flag and rec['tfo_synkind']:
         rec['tfo_ack'] = tcp.ack_nbr
+        (tfo_kind, tfo_cookie) = _tfocookie(tcp)
+        if tfo_kind is not None:
+            rec['tfo_ackkind'] = tfo_kind
+            rec['tfo_ackclen'] = len(tfo_cookie)
 
     # tell observer to keep going
     return True
@@ -179,7 +184,7 @@ class TFO(DesynchronizedSpider):
         c0t = 0
         c1t = 0
 
-        # regular TCP
+        # regular TCP: add skip flag to job on timeout or error
         if config == 0:
             sock = socket.socket(af, socket.SOCK_STREAM)
 
@@ -189,14 +194,22 @@ class TFO(DesynchronizedSpider):
                 sock.connect((job[0], job[1]))
                 c0t = timer() - tt
 
+                job.append(False)
                 return TFOConnection(sock, sock.getsockname()[1], CONN_OK, c0t, c1t)
             except TimeoutError:
+                job.append(True)
                 return TFOConnection(sock, sock.getsockname()[1], CONN_TIMEOUT, c0t, c1t)
             except OSError:
+                job.append(True)
                 return TFOConnection(sock, sock.getsockname()[1], CONN_FAILED, c0t, c1t)
 
         # with TFO
         if config == 1:
+            # skip if config zero failed
+            if job[4]:
+                return TFOConnection(None, None, CONN_SKIPPED, 0, 0)
+
+            # make a message
             message = bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
 
             # step one: request cookie
@@ -229,6 +242,9 @@ class TFO(DesynchronizedSpider):
         #     conn.sock.shutdown(socket.SHUT_RDWR)
         # except:
         #     pass
+
+        if conn.state == CONN_SKIPPED:
+            return None 
 
         try:
             conn.sock.close()
