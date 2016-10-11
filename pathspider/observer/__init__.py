@@ -298,9 +298,7 @@ class Observer:
 
         :param timeout idle timeout in seconds
         """
-
-        # copy keys to a list so _flow_complete won't break the iterator
-        for fid in list(self._active.keys()):
+        for fid in self._active:
             if self._pt - self._active[fid]['last'] > timeout:
                 self._flow_complete(fid)
 
