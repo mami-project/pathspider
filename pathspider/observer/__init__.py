@@ -450,26 +450,3 @@ def simple_observer(lturi):
                     ip4_chain=[basic_count],
                     ip6_chain=[basic_count])
 
-def test_observer(lturi):
-    import threading
-
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-
-    o = simple_observer(lturi)
-    q = queue.Queue()
-    t = threading.Thread(target=o.run_flow_enqueuer,
-                         args=(q,),
-                         daemon=True)
-    t.start()
-
-    flowcount = 0
-    while True:
-        f = q.get()
-        if f == SHUTDOWN_SENTINEL:
-            break
-        flowcount += 1
-
-    logging.getLogger().info("test observer received "+str(flowcount)+" flows")
-
-
