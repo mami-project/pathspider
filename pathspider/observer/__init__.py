@@ -300,7 +300,7 @@ class Observer:
         """
 
         # copy keys to a list so _flow_complete won't break the iterator
-        active_fids = list(self._active.keys())
+        active_fids = list(self._active.keys()):
 
         for fid in active_fids:
             if self._pt - self._active[fid]['last'] > timeout:
