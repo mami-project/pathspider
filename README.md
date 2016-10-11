@@ -6,7 +6,7 @@
 
 ![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png)
 
-[pathspider.mami-project.eu](pathspider.mami-project.eu)
+[pathspider.net](https://pathspider.net/)
 
 ## Documentation
 
