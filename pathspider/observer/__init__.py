@@ -276,12 +276,10 @@ class Observer:
         while len(self._tq) > 0 and pt > min(self._tq, key=lambda x: x.time).time:
             try:
                 pct = heapq.heappop(self._tq)
-                self._logger.debug("firing timer for "+str(fid)+" at "+str(self._pt + delay))
+                pct.fn()
             except:
                 print("Timer queue exception; tq is: "+repr(self._tq))
-                type, value, tb = sys.exc_info()
-                traceback.print_exc()
-                pdb.post_mortem(tb)
+                sys.exit(1)
 
     def _finish_expiry_tfn(self, fid):
         """
