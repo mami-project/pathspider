@@ -3,6 +3,7 @@ import logging
 import base64
 import heapq
 import queue
+import math
 
 import multiprocessing as mp
 
@@ -54,7 +55,9 @@ class Observer:
                  ip6_chain=[],
                  tcp_chain=[],
                  udp_chain=[],
-                 l4_chain=[]):
+                 l4_chain=[],
+                 idle_timeout=30,
+                 expiry_timeout=5):
         """
         Create an Observer.
 
@@ -93,9 +96,15 @@ class Observer:
         self._udp_chain = udp_chain
         self._l4_chain = l4_chain
 
-        # Packet timer and timer queue
-        self._pt = 0                   # current packet timer
-        self._tq = []                  # packet timer queue (heap)
+        # Packet timer and bintables
+        self._ptq = 0                   # current packet timer, quantized
+        self._idle_bins = {}            # map bin number to set of fids
+        self._expiry_bins = {}          # map bin number to set of fids
+        self._idle_timeout = idle_timeout
+        self._expiry_timeout = expiry_timeout
+        self._bin_quantum = 1
+
+        #self._tq = []                  # packet timer queue (heap)
 
         # Flow tables
         self._active = {}
@@ -175,10 +184,10 @@ class Observer:
         # we processed a packet, keep going
         return True
 
-    def _set_timer(self, delay, fid):
-        # add to queue
-        heapq.heappush(self._tq, PacketClockTimer(self._pt + delay,
-                       self._finish_expiry_tfn(fid)))
+    # def _set_timer(self, delay, fid):
+    #     # add to queue
+    #     heapq.heappush(self._tq, PacketClockTimer(self._pt + delay,
+    #                    self._finish_expiry_tfn(fid)))
 
     def _get_flow(self):
         """
@@ -208,16 +217,16 @@ class Observer:
         elif rfid in self._ignored:
             return (None, None, False)
         elif ffid in self._active:
-            (fid, rec) = (ffid, self._active[ffid])
+            (fid, rec, active) = (ffid, self._active[ffid], True)
             #self._logger.debug("found forward flow for "+str(ffid))
         elif ffid in self._expiring:
-            (fid, rec) = (ffid, self._expiring[ffid])
+            (fid, rec, active) = (ffid, self._expiring[ffid], False)
             #self._logger.debug("found expiring forward flow for "+str(ffid))
         elif rfid in self._active:
-            (fid, rec) = (rfid, self._active[rfid])
+            (fid, rec, active) = (rfid, self._active[rfid], True)
             #self._logger.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
-            (fid, rec) =  (rfid, self._expiring[rfid])
+            (fid, rec, active) =  (rfid, self._expiring[rfid], False)
             #self._logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
@@ -232,29 +241,54 @@ class Observer:
             # wasn't vetoed. add to active table.
             fid = ffid
             self._active[ffid] = rec
+            active = True
             # self._logger.debug("new flow for "+str(ffid))
             self._ct_flow += 1
 
-
-        # update time and return record
+        # update time and idle bin and return record
         rec['last'] = ip.seconds
-        return (fid, rec, bool(fid == rfid))
+        rec['_idle_bin'] = 0
 
-    def _flow_complete(self, fid, delay=5):
+        # update idle bin if we're not expiring
+        if active:
+            new_idle_bin = math.ceil((rec['last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
+            if rec["_idle_bin"] < new_idle_bin:
+                if rec['_idle_bin'] in self._idle_bins:
+                    self._idle_bins[rec['_idle_bin']] -= set(fid)
+                if new_idle_bin in self._idle_bins:
+                    self._idle_bins[new_idle_bin] |= set(fid)
+                else:
+                    self._idle_bins[new_idle_bin] = set(fid)
+                rec['_idle_bin'] = new_idle_bin
+
+        return (fid, rec, bool(fid == rfid)) 
+
+    def _flow_complete(self, fid):
         """
         Mark a given flow ID as complete
         """
         # move flow to expiring table
         # self._logger.debug("Moving flow " + str(fid) + " to expiring queue")
-        try:
-            self._expiring[fid] = self._active[fid]
-        except KeyError:
-            #self._logger.debug("Tried to expire an already expired flow")
-            pass
-        else:
-            del self._active[fid]
-            # set up a timer to fire to emit the flow after timeout
-            self._set_timer(delay, fid)
+
+        # skip all of this unless the flow is still in the active table
+        if fid not in self._active:
+            return
+
+        # remove flow ID from idle bin
+        rec = self._active[fid]
+        self._idle_bins[rec['_idle_bin']] -= set(fid)
+        del(rec['_idle_bin'])
+
+        # move record to expiring table
+        self._expiring[fid] = rec
+        del self._active[fid]
+
+        # assign expiry bin
+        expiry_bin = math.ciel((rec['last'] + self._expiry_timeout) / self._bin_quantum) * self._bin_quantum
+        if expiry_bin in self._exipry_bins:
+            self._expiry_bins[expiry_bin] += set(fid)
+        else: 
+            self._expiry_bins[expiry_bin] = set(fid)
 
     def _emit_flow(self, rec):
         self._emitted.append(rec)
@@ -267,35 +301,64 @@ class Observer:
         return self._emitted.popleft()
 
     def _tick(self, pt):
-        # Advance packet clock
-        self._pt = pt
+        # quantize and skip if we're not advancing
+        next_ptq = math.ceil(pt / self._bin_quantum) * self._bin_quantum
+        if next_ptq <= self._ptq:
+            return
+        elif self._ptq == 0:
+            # handle zero case
+            self._ptq = next_ptq
+            return
 
-        # fire all timers whose time has come
-        while len(self._tq) > 0 and pt > min(self._tq, key=lambda x: x.time).time:
-            try:
-                heapq.heappop(self._tq).fn()
-            except:
-                type, value, tb = sys.exc_info()
-                traceback.print_exc()
-                pdb.post_mortem(tb)
+        # advance quantum
+        for bint in range(self._ptq + self._bin_quantum, next_ptq + self._bin_quantum, self._bin_quantum):
+            self._logger.debug("tick: "+str(bint))
 
-    def _finish_expiry_tfn(self, fid):
-        """
-        On expiry timer, emit the flow
-        and delete it from the expiring queue
-        """
-        def tfn():
-            if fid in self._expiring:
-                self._emit_flow(self._expiring[fid])
-                del self._expiring[fid]
-                # self._logger.debug("emitted "+str(fid)+" on expiry")
-        return tfn
+            # process idle
+            if bint in self._idle_bins:
+                for fid in self._idle_bins[bint].copy():
+                    self._flow_complete(fid)
+                del(self._idle_bins[bint])
 
-    def purge_idle(self, timeout=30):
-        # TODO test this, it's probably pretty slow.
-        for fid in self._active:
-            if self._pt - self._active['fid']['last'] > timeout:
-                self._flow_complete(fid)
+            # process expiry
+            if bint in self._expiry_bins:
+                for fid in self._expiry_bins[bint].copy():
+                    self._emit_flow(self._expiring[fid])
+                    del self._expiring[fid]
+                del(self._expiry_bins[bint])
+
+        self._ptq = next_ptq
+
+    # def _tick(self, pt):
+    #     # Advance packet clock
+    #     self._pt = pt
+
+    #     # fire all timers whose time has come
+    #     while len(self._tq) > 0 and pt > min(self._tq, key=lambda x: x.time).time:
+    #         try:
+    #             heapq.heappop(self._tq).fn()
+    #         except:
+    #             type, value, tb = sys.exc_info()
+    #             traceback.print_exc()
+    #             pdb.post_mortem(tb)
+
+    # def _finish_expiry_tfn(self, fid):
+    #     """
+    #     On expiry timer, emit the flow
+    #     and delete it from the expiring queue
+    #     """
+    #     def tfn():
+    #         if fid in self._expiring:
+    #             self._emit_flow(self._expiring[fid])
+    #             del self._expiring[fid]
+    #             # self._logger.debug("emitted "+str(fid)+" on expiry")
+    #     return tfn
+
+    # def purge_idle(self, timeout=30):
+    #     # TODO test this, it's probably pretty slow.
+    #     for fid in self._active:
+    #         if self._pt - self._active['fid']['last'] > timeout:
+    #             self._flow_complete(fid)
 
     def flush(self):
         for fid in self._expiring:
