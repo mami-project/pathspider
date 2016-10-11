@@ -230,7 +230,7 @@ class Observer:
             #self._logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
-            rec = {'first': ip.seconds}
+            rec = {'first': ip.seconds, '_idle_bin': 0}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
                     # self._logger.debug("ignoring "+str(ffid))
@@ -247,18 +247,21 @@ class Observer:
 
         # update time and idle bin and return record
         rec['last'] = ip.seconds
-        rec['_idle_bin'] = 0
 
         # update idle bin if we're not expiring
         if active:
             new_idle_bin = math.ceil((rec['last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
-            if rec["_idle_bin"] < new_idle_bin:
+            
+            if new_idle_bin > rec["_idle_bin"] :
+                #self._logger.debug("Flow "+str(fid)+" last "+str(rec['last'])+" new_idle "+str(new_idle_bin))
+
                 if rec['_idle_bin'] in self._idle_bins:
-                    self._idle_bins[rec['_idle_bin']] -= set(fid)
+                    self._idle_bins[rec['_idle_bin']] -= set((fid,))
                 if new_idle_bin in self._idle_bins:
-                    self._idle_bins[new_idle_bin] |= set(fid)
+                    self._idle_bins[new_idle_bin] |= set((fid,))
                 else:
-                    self._idle_bins[new_idle_bin] = set(fid)
+                    self._idle_bins[new_idle_bin] = set((fid,))
+
                 rec['_idle_bin'] = new_idle_bin
 
         return (fid, rec, bool(fid == rfid)) 
@@ -274,9 +277,11 @@ class Observer:
         if fid not in self._active:
             return
 
+
         # remove flow ID from idle bin
         rec = self._active[fid]
-        self._idle_bins[rec['_idle_bin']] -= set(fid)
+        self._idle_bins[rec['_idle_bin']] -= set((fid,))
+
         del(rec['_idle_bin'])
 
         # move record to expiring table
@@ -284,11 +289,13 @@ class Observer:
         del self._active[fid]
 
         # assign expiry bin
-        expiry_bin = math.ciel((rec['last'] + self._expiry_timeout) / self._bin_quantum) * self._bin_quantum
-        if expiry_bin in self._exipry_bins:
-            self._expiry_bins[expiry_bin] += set(fid)
+        expiry_bin = math.ceil((self._ptq + self._expiry_timeout) / self._bin_quantum) * self._bin_quantum
+        self._logger.debug("Completing flow "+str(fid)+" at "+str(self._ptq)+" to expire "+str(expiry_bin)+" (in "+str(expiry_bin-self._ptq)+"s)")
+
+        if expiry_bin in self._expiry_bins:
+            self._expiry_bins[expiry_bin] |= set((fid,))
         else: 
-            self._expiry_bins[expiry_bin] = set(fid)
+            self._expiry_bins[expiry_bin] = set((fid,))
 
     def _emit_flow(self, rec):
         self._emitted.append(rec)
@@ -313,18 +320,24 @@ class Observer:
         # advance quantum
         for bint in range(self._ptq + self._bin_quantum, next_ptq + self._bin_quantum, self._bin_quantum):
             self._logger.debug("tick: "+str(bint))
+            #self._logger.debug(str(len(self._idle_bins))+" idle bins: "+repr(self._idle_bins.keys()))
+            #self._logger.debug(str(len(self._expiry_bins))+" expiry bins: "+repr(self._expiry_bins.keys()))
 
             # process idle
             if bint in self._idle_bins:
-                for fid in self._idle_bins[bint].copy():
-                    self._flow_complete(fid)
+                if len(self._idle_bins[bint]) > 0:
+                    self._logger.debug("processing "+str(len(self._idle_bins[bint]))+" flows in idle bin "+str(bint))
+                    for fid in self._idle_bins[bint].copy():
+                        self._flow_complete(fid)
                 del(self._idle_bins[bint])
 
             # process expiry
             if bint in self._expiry_bins:
-                for fid in self._expiry_bins[bint].copy():
-                    self._emit_flow(self._expiring[fid])
-                    del self._expiring[fid]
+                if len(self._expiry_bins[bint]) > 0:
+                    self._logger.debug("processing "+str(len(self._expiry_bins[bint]))+" flows in expiry bin "+str(bint))
+                    for fid in self._expiry_bins[bint].copy():
+                        self._emit_flow(self._expiring[fid])
+                        del self._expiring[fid]
                 del(self._expiry_bins[bint])
 
         self._ptq = next_ptq
@@ -445,3 +458,27 @@ def simple_observer(lturi):
                     new_flow_chain=[basic_flow],
                     ip4_chain=[basic_count],
                     ip6_chain=[basic_count])
+
+def test_observer(lturi):
+    import threading
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+
+    o = simple_observer(lturi)
+    q = queue.Queue()
+    t = threading.Thread(target=o.run_flow_enqueuer,
+                         args=(q,),
+                         daemon=True)
+    t.start()
+
+    flowcount = 0
+    while True:
+        f = q.get()
+        if f == SHUTDOWN_SENTINEL:
+            break
+        flowcount += 1
+
+    logging.getLogger().info("test observer received "+str(flowcount)+" flows")
+
+
