@@ -292,14 +292,9 @@ class Observer:
         return tfn
 
     def purge_idle(self, timeout=30):
-        """
-        Scan the active flow table and complete any 
-        flow that's been idle more than a given number of seconds.
-
-        :param timeout idle timeout in seconds
-        """
+        # TODO test this, it's probably pretty slow.
         for fid in self._active:
-            if self._pt - self._active[fid]['last'] > timeout:
+            if self._pt - self._active['fid']['last'] > timeout:
                 self._flow_complete(fid)
 
     def flush(self):
@@ -316,18 +311,6 @@ class Observer:
         self._ignored.clear()
 
     def run_flow_enqueuer(self, flowqueue, irqueue=None, purge_interval=1000):
-        """
-        Continually consume flows from the observer and stick them 
-        into a given queue. Run this method from a thread, and read flows out of
-        the resulting queue. 
-
-        :param flowqueue queue to enqueue completed flows to
-        :param irqueue queue the observer will read interrupts from. 
-                       If present, writing any object to this queue 
-                       will shut down the observer.
-        :param purge_interval number of flows to emit between idle purges 
-
-        """
         # store interrupt queue
         if irqueue:
             self._irq = irqueue
