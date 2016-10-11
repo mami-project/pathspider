@@ -177,8 +177,10 @@ class Observer:
 
     def _set_timer(self, delay, fid):
         # add to queue
-        heapq.heappush(self._tq, PacketClockTimer(self._pt + delay,
-                       self._finish_expiry_tfn(fid)))
+        self._logger.debug("setting timer for "+str(fid)+" at "+str(self._pt + delay))
+        heapq.heappush(self._tq, 
+                        PacketClockTimer(self._pt + delay,
+                                         self._finish_expiry_tfn(fid)))
 
     def _get_flow(self):
         """
@@ -273,8 +275,10 @@ class Observer:
         # fire all timers whose time has come
         while len(self._tq) > 0 and pt > min(self._tq, key=lambda x: x.time).time:
             try:
-                heapq.heappop(self._tq).fn()
+                pct = heapq.heappop(self._tq)
+                self._logger.debug("firing timer for "+str(fid)+" at "+str(self._pt + delay))
             except:
+                print("Timer queue exception; tq is: "+repr(self._tq))
                 type, value, tb = sys.exc_info()
                 traceback.print_exc()
                 pdb.post_mortem(tb)
