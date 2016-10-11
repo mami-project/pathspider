@@ -300,9 +300,7 @@ class Observer:
         """
 
         # copy keys to a list so _flow_complete won't break the iterator
-        active_fids = list(self._active.keys()):
-
-        for fid in active_fids:
+        for fid in list(self._active.keys()):
             if self._pt - self._active[fid]['last'] > timeout:
                 self._flow_complete(fid)
 
@@ -319,7 +317,7 @@ class Observer:
 
         self._ignored.clear()
 
-    def run_flow_enqueuer(self, flowqueue, irqueue=None, purge_interval=None):
+    def run_flow_enqueuer(self, flowqueue, irqueue=None, purge_interval=1000):
         """
         Continually consume flows from the observer and stick them 
         into a given queue. Run this method from a thread, and read flows out of
