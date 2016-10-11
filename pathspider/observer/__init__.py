@@ -253,7 +253,6 @@ class Observer:
             new_idle_bin = math.ceil((rec['last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
             
             if new_idle_bin > rec["_idle_bin"] :
-                #self._logger.debug("Flow "+str(fid)+" last "+str(rec['last'])+" new_idle "+str(new_idle_bin))
 
                 if rec['_idle_bin'] in self._idle_bins:
                     self._idle_bins[rec['_idle_bin']] -= set((fid,))
@@ -270,13 +269,9 @@ class Observer:
         """
         Mark a given flow ID as complete
         """
-        # move flow to expiring table
-        # self._logger.debug("Moving flow " + str(fid) + " to expiring queue")
-
         # skip all of this unless the flow is still in the active table
         if fid not in self._active:
             return
-
 
         # remove flow ID from idle bin
         rec = self._active[fid]
@@ -290,7 +285,7 @@ class Observer:
 
         # assign expiry bin
         expiry_bin = math.ceil((self._ptq + self._expiry_timeout) / self._bin_quantum) * self._bin_quantum
-        self._logger.debug("Completing flow "+str(fid)+" at "+str(self._ptq)+" to expire "+str(expiry_bin)+" (in "+str(expiry_bin-self._ptq)+"s)")
+        #self._logger.debug("Completing flow "+str(fid)+" at "+str(self._ptq)+" to expire "+str(expiry_bin)+" (in "+str(expiry_bin-self._ptq)+"s)")
 
         if expiry_bin in self._expiry_bins:
             self._expiry_bins[expiry_bin] |= set((fid,))
@@ -320,13 +315,10 @@ class Observer:
         # advance quantum
         for bint in range(self._ptq + self._bin_quantum, next_ptq + self._bin_quantum, self._bin_quantum):
             self._logger.debug("tick: "+str(bint))
-            #self._logger.debug(str(len(self._idle_bins))+" idle bins: "+repr(self._idle_bins.keys()))
-            #self._logger.debug(str(len(self._expiry_bins))+" expiry bins: "+repr(self._expiry_bins.keys()))
 
             # process idle
             if bint in self._idle_bins:
                 if len(self._idle_bins[bint]) > 0:
-                    self._logger.debug("processing "+str(len(self._idle_bins[bint]))+" flows in idle bin "+str(bint))
                     for fid in self._idle_bins[bint].copy():
                         self._flow_complete(fid)
                 del(self._idle_bins[bint])
@@ -334,7 +326,6 @@ class Observer:
             # process expiry
             if bint in self._expiry_bins:
                 if len(self._expiry_bins[bint]) > 0:
-                    self._logger.debug("processing "+str(len(self._expiry_bins[bint]))+" flows in expiry bin "+str(bint))
                     for fid in self._expiry_bins[bint].copy():
                         self._emit_flow(self._expiring[fid])
                         del self._expiring[fid]
