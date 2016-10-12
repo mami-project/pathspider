@@ -93,6 +93,7 @@ QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
 SHUTDOWN_SENTINEL = "SHUTDOWN_SENTINEL"
+NO_RESULT = None
 NO_FLOW = None
 
 class Spider:
@@ -325,7 +326,7 @@ class Spider:
                     time.sleep(QUEUE_SLEEP)
                     logger.debug("result queue is empty")
                 else:
-                    if res == None:
+                    if res == NO_RESULT:
                         # handle skipped results
                         continue
                     if res == SHUTDOWN_SENTINEL:

@@ -9,7 +9,7 @@ import collections
 
 from pathspider.base import DesynchronizedSpider
 from pathspider.base import PluggableSpider
-from pathspider.base import NO_FLOW
+from pathspider.base import NO_RESULT, NO_FLOW
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
@@ -247,7 +247,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         #     pass
 
         if conn.state == CONN_SKIPPED:
-            return None 
+            return NO_RESULT 
 
         try:
             conn.sock.close()
