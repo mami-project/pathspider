@@ -319,7 +319,7 @@ class Spider:
                         self.flowtab[flowkey] = flow
 
                         # And reap the oldest, if the reap queue is full
-                        self.flowreap.append[flowkey]
+                        self.flowreap.append(flowkey)
                         if len(self.flowreap) > self.flowreap_size:
                             try:
                                 del self.flowtab[self.flowreap.popleft()]
