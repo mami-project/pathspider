@@ -92,7 +92,7 @@ class SemaphoreN(threading.BoundedSemaphore):
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
-SHUTDOWN_SENTINEL = None
+SHUTDOWN_SENTINEL = "SHUTDOWN_SENTINEL"
 NO_FLOW = None
 
 class Spider:

@@ -12,7 +12,7 @@ import sys
 import pdb
 import traceback
 
-SHUTDOWN_SENTINEL = None
+from pathspider.base import SHUTDOWN_SENTINEL
 
 def _flow4_ids(ip):
     # FIXME keep map of fragment IDs to keys
