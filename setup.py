@@ -28,8 +28,8 @@ setup(
     url='https://pathspider.mami-project.eu/',
 
     # Author details
-    author='Elio Gubser',
-    author_email='elio.gubser@alumni.ethz.ch',
+    author='Iain Learmonth',
+    author_email='irl@fsfe.org',
 
     # Choose your license
     license='GNU GPLv2',
@@ -62,7 +62,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['straight.plugin'],
+    install_requires=['straight.plugin', 'dnspython3'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
