@@ -151,6 +151,8 @@ class Spider:
 
         self.restab = {}
         self.flowtab = {}
+        self.flowreap = collections.deque()
+        self.flowreap_size = min(self.worker_count * 100, 10000) 
 
         self.outqueue = queue.Queue(QUEUE_SIZE)
 
@@ -313,11 +315,16 @@ class Spider:
                     elif flowkey in self.flowtab:
                         logger.debug("won't merge duplicate flow")
                     else:
-                        # FIXME: How to keep flowtab from
-                        # exploding with unrelated flows?
-                        # We need a timer queue for flow expiry.
-                        # See Issue #30
+                        # Create a new flow
                         self.flowtab[flowkey] = flow
+
+                        # And reap the oldest, if the reap queue is full
+                        self.flowreap.append[flowkey]
+                        if len(self.flowreap) > self.flowreap_size:
+                            try:
+                                del self.flowtab[self.flowreap.popleft()]
+                            except KeyError:
+                                pass
 
             else:
                 try:
