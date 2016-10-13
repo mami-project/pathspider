@@ -123,22 +123,22 @@ class Observer:
         self._ct_flow = 0
 
     def _interrupted(self):
-        try:
-            if not self._irq_fired and self._irq is not None:
+        if not self._irq_fired and self._irq is not None:
+            try:
                 self._irq.get_nowait()
                 self._irq_fired = True
-        except queue.Empty:
-            pass
+            except queue.Empty:
+                pass
 
         return self._irq_fired
 
     def _next_packet(self):
-        # see if we're done iterating
-        if not self._trace.read_packet(self._pkt):
-            return False
-
         # see if someone told us to stop
         if self._interrupted():
+            return False      
+
+        # see if we're done iterating
+        if not self._trace.read_packet(self._pkt):
             return False
 
         # count the packet
