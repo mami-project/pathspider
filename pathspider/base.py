@@ -164,7 +164,7 @@ class Spider:
 
         self.observer_process = None
 
-#        self._worker_state = [ "not_started" ] * self.worker_count
+        self._worker_state = [ "not_started" ] * self.worker_count
 
         self.lock = threading.Lock()
         self.exception = None
@@ -292,7 +292,15 @@ class Spider:
         merging_flows = True
         merging_results = True
 
+        merge_cycles = 0
+
         while self.running and merging_results:
+
+            if merge_cycles % 20 == 0:
+                for wn in range(0, self.worker_count):
+                    logger.debug("worker %3u: %s" % (wn, self._worker_state[wn]))
+            merge_cycles += 1
+
             if self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
                     flow = self.flowqueue.get_nowait()
@@ -697,7 +705,7 @@ class SynchronizedSpider(Spider):
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
                         logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        #self._worker_state[worker_number] = "shutdown_sentinel"
+                        self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
@@ -709,58 +717,58 @@ class SynchronizedSpider(Spider):
                     #logger.debug("no job available, sleeping")
                     # spin the semaphores
                     self.sem_config_zero.acquire()
-                    #self._worker_state[worker_number] = "sleep_0"
+                    self._worker_state[worker_number] = "sleep_0"
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
-                    #self._worker_state[worker_number] = "sleep_1"
+                    self._worker_state[worker_number] = "sleep_1"
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_zero_rdy.release()
                 else:
                     # Hook for preconnection
-                    #self._worker_state[worker_number] = "preconn"
+                    self._worker_state[worker_number] = "preconn"
                     pcs = self.pre_connect(job)
 
                     # Wait for configuration zero
-                    #self._worker_state[worker_number] = "wait_0"
+                    self._worker_state[worker_number] = "wait_0"
                     self.sem_config_zero.acquire()
 
                     # Connect in configuration zero
-                    #self._worker_state[worker_number] = "conn_0"
+                    self._worker_state[worker_number] = "conn_0"
                     conn0 = self.connect(job, pcs, 0)
 
                     # Wait for configuration one
-                    #self._worker_state[worker_number] = "wait_1"
+                    self._worker_state[worker_number] = "wait_1"
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
 
                     # Connect in configuration one
-                    #self._worker_state[worker_number] = "conn_1"
+                    self._worker_state[worker_number] = "conn_1"
                     conn1 = self.connect(job, pcs, 1)
 
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
 
                     # Pass results on for merge
-                    #self._worker_state[worker_number] = "postconn_0"
+                    self._worker_state[worker_number] = "postconn_0"
                     self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
-                    #self._worker_state[worker_number] = "postconn_1"
+                    self._worker_state[worker_number] = "postconn_1"
                     self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
 
-                    #self._worker_state[worker_number] = "done"
+                    self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: # not worker_active, spin the semaphores
                 self.sem_config_zero.acquire()
-                #self._worker_state[worker_number] = "shutdown_0"
+                self._worker_state[worker_number] = "shutdown_0"
                 time.sleep(QUEUE_SLEEP)
                 with self.active_worker_lock:
                     if self.active_worker_count <= 0:
-                        #self._worker_state[worker_number] = "shutdown_complete"
+                        self._worker_state[worker_number] = "shutdown_complete"
                         break
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
-                #self._worker_state[worker_number] = "shutdown_1"
+                self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
 
@@ -823,7 +831,7 @@ class DesynchronizedSpider(Spider):
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
                         logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        #self._worker_state[worker_number] = "shutdown_sentinel"
+                        self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
@@ -835,24 +843,24 @@ class DesynchronizedSpider(Spider):
                     time.sleep(QUEUE_SLEEP)
                 else:
                     # Hook for preconnection
-                    #self._worker_state[worker_number] = "preconn"
+                    self._worker_state[worker_number] = "preconn"
                     pcs = self.pre_connect(job)
 
                     # Connect in configuration zero
-                    #self._worker_state[worker_number] = "conn_0"
+                    self._worker_state[worker_number] = "conn_0"
                     conn0 = self.connect(job, pcs, 0)
 
                     # Connect in configuration one
-                    #self._worker_state[worker_number] = "conn_1"
+                    self._worker_state[worker_number] = "conn_1"
                     conn1 = self.connect(job, pcs, 1)
 
                     # Pass results on for merge
-                    #self._worker_state[worker_number] = "postconn_0"
+                    self._worker_state[worker_number] = "postconn_0"
                     self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
-                    #self._worker_state[worker_number] = "postconn_1"
+                    self._worker_state[worker_number] = "postconn_1"
                     self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
 
-                    #self._worker_state[worker_number] = "done"
+                    self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: 
