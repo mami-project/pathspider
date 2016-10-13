@@ -863,8 +863,11 @@ class DesynchronizedSpider(Spider):
                     self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
-            else: 
+            elif not self.stopping:
                 time.sleep(QUEUE_SLEEP)
+            else:
+                self._worker_state[worker_number] = "shutdown_complete"
+                break
 
 class PluggableSpider:
     @staticmethod
