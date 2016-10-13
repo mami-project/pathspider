@@ -491,9 +491,8 @@ class Spider:
             # Set stopping flag
             self.stopping = True
 
-            # Place two shutdown sentinels per worker
-            # in the job queue FIXME HACK
-            for i in range(self.worker_count):
+            # Put a bunch of shutdown signals in the job queue
+            for i in range(self.worker_count * 2):
                 self.jobqueue.put(SHUTDOWN_SENTINEL)
 
             # Wait for worker threads to shut down
