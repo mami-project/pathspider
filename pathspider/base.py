@@ -493,7 +493,7 @@ class Spider:
         """
         logger = logging.getLogger('pathspider')
 
-        logger.info("shutting down pathspider")
+        logger.info("beginning shutdown")
 
         with self.lock:
             # Set stopping flag
