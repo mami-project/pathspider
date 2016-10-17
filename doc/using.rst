@@ -1,11 +1,8 @@
 Using PATHspider
 ================
 
-Quickstart
-----------
-
 Dependencies
-~~~~~~~~~~~~
+------------
 
 PATHspider is a command line tool. If you have installed PATHspider from a
 package manager (e.g. apt or pip), you will already have all the dependencies
@@ -16,17 +13,29 @@ then you will need to install some dependencies. On Debian GNU/Linux:
 
 .. code-block:: shell
 
- # sudo apt install python3-libtrace python3-straight.plugin
+ # sudo apt install python3-libtrace python3-straight.plugin python3-dnspython
 
-In order to build the documentation from source, you will also need the
-following dependencies:
+On other platforms, you may install the dependencies required via pip:
 
 .. code-block:: shell
 
- # sudo apt install python3-sphinx
+ # pip install -r requirements.txt
+
+In order to build the documentation from source or to use the testsuite, you
+will also need the following dependencies:
+
+.. code-block:: shell
+
+ # sudo apt install python3-sphinx python3-coverage pylint3
+
+Or from pip:
+
+.. code-block:: shell
+
+ # pip install -r requirements-dev.txt
 
 Usage
-~~~~~
+-----
 
 You can run PATHspider from the command line. In order for the Observer to
 work, you will need permissions to capture raw packets from the network
@@ -44,41 +53,50 @@ will have been setuid or will have filesystem permissions set.
 
 .. code-block:: shell
 
- # pathspider -h
- usage: run.py [-h] [-s] [-l] [-p PLUGIN] [-i INTERFACE] [-w WORKER_COUNT]
-               INPUTFILE OUTPUTFILE
+ # pathspider --help
+ usage: pathspider [-h] [-s] [-i INTERFACE] [-w WORKERS] [--input INPUTFILE]
+                   [--output OUTPUTFILE] [-v]
+                   PLUGIN ...
 
  Pathspider will spider the paths.
-
- positional arguments:
-   INPUTFILE             a file containing a list of remote hosts to test, with
-                         any accompanying metadata expected by the pathspider
-                         test. this file should be formatted as a comma-
-                         seperated values file.
-   OUTPUTFILE            the file to output results data to
 
  optional arguments:
    -h, --help            show this help message and exit
    -s, --standalone      run in standalone mode. this is the default mode (and
                          currently the only supported mode). in the future,
                          mplane will be supported as a mode of operation.
-   -l, --list-plugins    print the list of installed plugins
-   -p PLUGIN, --plugin PLUGIN
-                         use named plugin
    -i INTERFACE, --interface INTERFACE
                          the interface to use for the observer
-   -w WORKER_COUNT, --worker-count WORKER_COUNT
+   -w WORKERS, --workers WORKERS
                          number of workers to use
+   --input INPUTFILE     a file containing a list of remote hosts to test, with
+                         any accompanying metadata expected by the pathspider
+                         test. this file should be formatted as a comma-
+                         seperated values file. Defaults to standard input.
+   --output OUTPUTFILE   the file to output results data to. Defaults to
+                         standard output.
+   -v, --verbose         log debug-level output.
+
+ Plugins:
+   The following plugins are available for use:
+
+     dscp                DiffServ Codepoints
+     tls                 Transport Layer Security
+     tfo                 TCP Fast Open
+     ecn                 Explicit Congestion Notification
+     dnsresolv           DNS resolution for hostnames to IPv4 and v6 addresses
+
+ Spider safely!
 
 Example
-~~~~~~~
+-------
 
-You can run a small study using ECNSpider and the included `webinput.csv` file
+You can run a small study using the ECN plugin and the included `webinput.csv` file
 to measure path transparency to ECN for a small selection of web servers:
 
 .. code-block:: shell
 
- # pathspider -i eth0 -w 10 examples/webinput.csv /tmp/results.txt
+ # pathspider -i eth0 ecn <examples/webinput.csv >/tmp/results.txt
 
 .. note::
 

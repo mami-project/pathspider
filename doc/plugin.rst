@@ -32,9 +32,9 @@ not required, these can be implemented as no-ops.
 
 An example implementation of these methods can be found in `ecnspider3`:
 
-.. automethod:: ecnspider3.ECNSpider.config_zero
+.. automethod:: ecn.ECN.config_zero
 
-.. automethod:: ecnspider3.ECNSpider.config_one
+.. automethod:: ecn.ECN.config_one
 
 (Pre-,Post-)Connection
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -49,9 +49,9 @@ selecting the value to use based on the configuration in the later functions.
 
 An example implementation of these methods can be found in `ecnspider3`:
 
-.. automethod:: ecnspider3.ECNSpider.connect
+.. automethod:: ecn.ECN.connect
 
-.. automethod:: ecnspider3.ECNSpider.post_connect
+.. automethod:: ecn.ECN.post_connect
 
 Merging
 ^^^^^^^
@@ -66,7 +66,7 @@ to be recorded in the dataset for the measurement run.
 
 An example implementation of this method can be found in `ecnspider3`:
 
-.. automethod:: ecnspider3.ECNSpider.merge
+.. automethod:: ecn.ECN.merge
 
 Plugin Template
 ---------------
@@ -74,14 +74,5 @@ Plugin Template
 A template plugin is available in the plugins that ship with the PATHspider
 distribution:
 
-.. autoclass:: templatespider.TemplateSpider
-
-ISpider Interface
------------------
-
-PATHspider will expect the following functions and attributes to be available
-in any plugin:
-
-.. autointerface:: pathspider.base.ISpider
-    :members:
+.. autoclass:: template.Template
 
