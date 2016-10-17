@@ -8,5 +8,6 @@ before_script:
   - "pylint -E setup.py pathspider"
 script:
   - nosetests --with-coverage
+  - coverage combine
 after_success:
   - coveralls
