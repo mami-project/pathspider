@@ -40,21 +40,12 @@ def ecn_code(rec, ip, rev):
     EO = 0x01
     CE = 0x03
 
-    if (ip.traffic_class & CE == EZ):
-        if rev:
-            rec['rev_ez'] = True
-        else:
-            rec['fwd_ez'] = True
-    if (ip.traffic_class & CE == EO):
-        if rev:
-            rec['rev_eo'] = True
-        else:
-            rec['fwd_eo'] = True
-    if (ip.traffic_class & CE == CE):
-        if rev:
-            rec['rev_ce'] = True
-        else:
-            rec['fwd_ce'] = True
+    if ip.traffic_class & CE == EZ:
+        rec['rev_ez' if rev else 'fwd_ez'] = True
+    if ip.traffic_class & CE == EO:
+        rec['rev_eo' if rev else 'fwd_eo'] = True
+    if ip.traffic_class & CE == CE:
+        rec['rev_ce' if rev else 'fwd_ce'] = True
 
     return True
 
@@ -106,18 +97,20 @@ class ECN(SynchronizedSpider, PluggableSpider):
         tstop = str(datetime.utcnow())
 
         if conn.state == Conn.OK:
-            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host, config, True, conn.tstart, tstop)
+            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
+                               config, True, conn.tstart, tstop)
         else:
-            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host, config, False, conn.tstart, tstop)
+            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
+                               config, False, conn.tstart, tstop)
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
-        except:
+        except: # FIXME: What are we catching?
             pass
 
         try:
             conn.client.close()
-        except:
+        except: # FIXME: What are we catching?
             pass
 
         return rec
@@ -207,10 +200,12 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         logger = logging.getLogger('ecn')
         if flow == NO_FLOW:
-            flow = {"dip": res.ip,
-                    "sp": res.port,
-                    "dp": res.rport,
-                    "observed": False }
+            flow = {
+                "dip": res.ip,
+                "sp": res.port,
+                "dp": res.rport,
+                "observed": False,
+                }
         else:
             flow['observed'] = True
 

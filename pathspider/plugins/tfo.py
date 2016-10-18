@@ -271,7 +271,14 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     def merge(self, flow, res):
         logger = logging.getLogger('tfo')
         if flow == NO_FLOW:
-            flow = {"dip": res.ip, "sp": res.port, "dp": res.rport, "connstate": res.connstate, "config": res.config, "observed": False }
+            flow = {
+                "dip": res.ip,
+                "sp": res.port,
+                "dp": res.rport,
+                "connstate": res.connstate,
+                "config": res.config,
+                "observed": False,
+                }
         else:
             flow['connstate'] = res.connstate
             flow['host'] = res.host

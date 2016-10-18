@@ -1,20 +1,14 @@
 
 import argparse
-import csv
+import sys
 import logging
-import time
-import threading
-import json
-
 
 from straight.plugin import load
 
 from pathspider.base import PluggableSpider
-from pathspider.base import SHUTDOWN_SENTINEL
 
 import pathspider.util.dnsresolv
 
-import sys
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
@@ -65,8 +59,6 @@ def handle_args():
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
-
-    logger = logging.getLogger("pathspider")
 
     if hasattr(args, "func"):
         # Run a utility function

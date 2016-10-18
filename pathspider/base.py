@@ -162,7 +162,7 @@ class Spider:
         self.restab = {}
         self.flowtab = {}
         self.flowreap = collections.deque()
-        self.flowreap_size = min(self.worker_count * 100, 10000) 
+        self.flowreap_size = min(self.worker_count * 100, 10000)
 
         self.outqueue = queue.Queue(QUEUE_SIZE)
 
@@ -708,7 +708,7 @@ class SynchronizedSpider(Spider):
 
     def worker(self, worker_number):
         """
-        This function provides the logic for 
+        This function provides the logic for
         configuration-synchronized worker threads.
 
         :param worker_number: The unique number of the worker.
@@ -729,7 +729,7 @@ class SynchronizedSpider(Spider):
          * Perform post-connection operations for config_one and pass the
            result to the merger
          * Do it all again
-        
+
         If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
         terminate as this indicates that all the jobs have now been processed.
         """
@@ -826,7 +826,7 @@ class DesynchronizedSpider(Spider):
 
     def configurator(self):
         """
-        Since there is no need for a configurator thread in a 
+        Since there is no need for a configurator thread in a
         desynchronized spider, this thread is a no-op
         """
         logger = logging.getLogger('pathspider')
@@ -834,7 +834,7 @@ class DesynchronizedSpider(Spider):
 
     def worker(self, worker_number):
         """
-        This function provides the logic for 
+        This function provides the logic for
         configuration-synchronized worker threads.
 
         :param worker_number: The unique number of the worker.
@@ -855,7 +855,7 @@ class DesynchronizedSpider(Spider):
          * Perform post-connection operations for config_one and pass the
            result to the merger
          * Do it all again
-        
+
         If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
         terminate as this indicates that all the jobs have now been processed.
         """

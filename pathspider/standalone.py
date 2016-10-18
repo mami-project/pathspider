@@ -5,9 +5,6 @@ import json
 import sys
 import threading
 
-from straight.plugin import load
-
-from pathspider.base import PluggableSpider
 from pathspider.base import SHUTDOWN_SENTINEL
 
 
