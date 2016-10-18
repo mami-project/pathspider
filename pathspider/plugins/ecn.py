@@ -19,7 +19,7 @@ from pathspider.observer.tcp import tcp_setup
 from pathspider.observer.tcp import tcp_handshake
 from pathspider.observer.tcp import tcp_complete
 from pathspider.observer.tcp import TCP_SAE
-from pathspider.observer.tcp import TCP_SAEW
+from pathspider.observer.tcp import TCP_SAEC
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
@@ -41,16 +41,16 @@ def ecn_setup(rec, ip):
     return True
 
 def ecn_code(rec, ip, rev):
-    EZ = 0x01
-    EO = 0x02
+    EZ = 0x02
+    EO = 0x01
     CE = 0x03
 
-    if (ip.traffic_class & EZ == EZ):
+    if (ip.traffic_class & CE == EZ):
         if rev:
             rec['rev_ez'] = True
         else:
             rec['fwd_ez'] = True
-    if (ip.traffic_class & EO == EO):
+    if (ip.traffic_class & CE == EO):
         if rev:
             rec['rev_eo'] = True
         else:
@@ -190,7 +190,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 cond_conn = 'ecn.connectivity.offline'
             conditions.append(cond_conn)
 
-            if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
+            if flows[1]['rev_syn_flags'] & TCP_SAEC == TCP_SAE:
                 negotiated = True
                 conditions.append('ecn.negotiated')
             else:

@@ -1,5 +1,5 @@
 
-import pathspider.run
+from pathspider.standalone import job_feeder
 
 class FakeSpider:
     def __init__(self):
@@ -22,7 +22,7 @@ def test_job_feeder_webtest():
                      ['2001:67c:10ec:36c2::61', 80, 'ecn.ethz.ch', '5'],
                      ['139.133.1.4', 80, 'abdn.ac.uk', '6']]
 
-    pathspider.run.job_feeder("examples/webtest.csv", spider)
+    job_feeder("examples/webtest.csv", spider)
     assert spider.was_shutdown
     assert spider.jobs == expected_jobs
 
@@ -36,7 +36,7 @@ def test_job_feeder_webtest_newline():
                      ['2001:67c:10ec:36c2::61', 80, 'ecn.ethz.ch', '5'],
                      ['139.133.1.4', 80, 'abdn.ac.uk', '6']]
 
-    pathspider.run.job_feeder("tests/testdata/webtest_newline.csv", spider)
+    job_feeder("tests/testdata/webtest_newline.csv", spider)
     assert spider.was_shutdown
     assert spider.jobs == expected_jobs
 

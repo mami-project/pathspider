@@ -18,22 +18,7 @@ import sys
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
-def job_feeder(inputfile, spider):
-    logger = logging.getLogger("feeder")
-    with open(inputfile) as fp:
-        logger.debug("job_feeder: started")
-        reader = csv.reader(fp, delimiter=',', quotechar='"')
-        for row in reader:
-            if len(row) > 0:
-                # port numbers should be integers
-                row[1] = int(row[1])
-                spider.add_job(row)
-
-        logger.info("job_feeder: all jobs added, waiting for spider to finish")
-        spider.shutdown()
-        logger.debug("job_feeder: stopped")
-
-def run_pathspider():
+def handle_args():
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
         def _format_action(self, action):
             parts = super()._format_action(action)
@@ -47,7 +32,7 @@ def run_pathspider():
             'paths.'), formatter_class=SubcommandHelpFormatter)
     parser.add_argument('-s', '--standalone', action='store_true', help='''run in
         standalone mode. this is the default mode (and currently the only supported
-        mode). in the future, mplane will be supported as a mode of operation.''')
+        mode). in the future, mplane will be supported as a mode of operation.''', default=True)
     parser.add_argument('-i', '--interface', help='''the interface to use for the observer''', default="eth0")
     parser.add_argument('-w', '--workers', type=int, help='''number of workers to use''', default=100)
     parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE', help='''a file
@@ -87,34 +72,10 @@ def run_pathspider():
         # Run a utility function
         sys.exit(args.func(args))
 
-    try:
-        if hasattr(args, "spider"):
-            spider = args.spider(args.workers, "int:" + args.interface, args)
-        else:
-            logger.error("Plugin not found! Cannot continue.")
-            logger.error("Use --help to list all plugins.")
-            sys.exit(1)
-
-        logger.info("activating spider...")
-
-        spider.start()
-
-        logger.debug("starting job feeder...")
-        threading.Thread(target=job_feeder, args=(args.input, spider)).start()
-
-        with open(args.output, 'w') as outputfile:
-            logger.info("opening output file "+args.output)
-            while True:
-                result = spider.outqueue.get()
-                if result == SHUTDOWN_SENTINEL:
-                    logger.info("output complete")
-                    break
-                outputfile.write(json.dumps(result) + "\n")
-                logger.debug("wrote a result")
-                spider.outqueue.task_done()
-
-    except KeyboardInterrupt:
-        logger.error("Received keyboard interrupt, dying now.")
+    if args.standalone:
+        # we're running in standalone mode
+        from pathspider.standalone import run_standalone
+        run_standalone(args)
 
 if __name__ == "__main__":
-    run_pathspider()
+    handle_args()

@@ -1,2 +1,4 @@
 [run]
 concurrency = multiprocessing
+include =
+ pathspider/*

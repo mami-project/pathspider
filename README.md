@@ -1,12 +1,13 @@
 # PATHspider
 
-[![Build Status](https://travis-ci.org/mami-project/pathspider.svg?branch=master)](https://travis-ci.org/mami-project/pathspider)
+[![Build Status](https://img.shields.io/jenkins/s/https/jenkins.erg.abdn.ac.uk/pathspider.svg)](https://jenkins.erg.abdn.ac.uk/job/pathspider/)
 [![Coverage Status](https://coveralls.io/repos/github/mami-project/pathspider/badge.svg?branch=master)](https://coveralls.io/github/mami-project/pathspider?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/pathspider/badge/?version=latest)](http://pathspider.readthedocs.io/en/latest/?badge=latest)
+[![Citation Information](https://pathspider.net/doi.svg)](http://dx.doi.org/10.1145/2959424.2959441)
 
 ![PATHspider Logo](https://pathspider.mami-project.eu/img/pathspider.png)
 
-[pathspider.net](https://pathspider.net/)
+Homepage: [pathspider.net](https://pathspider.net/)
 
 ## Documentation
 
