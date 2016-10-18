@@ -201,7 +201,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
             if flows[1]['rev_eo']:
                 conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
-            if flows[1]['rev_ez']:
+            if flows[1]['rev_ce']:
                 conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
 
             self.outqueue.put({
