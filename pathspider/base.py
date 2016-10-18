@@ -346,7 +346,7 @@ class Spider:
                             except KeyError:
                                 pass
 
-            else if merging_results:
+            elif merging_results:
                 try:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
