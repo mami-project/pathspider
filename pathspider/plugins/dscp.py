@@ -16,6 +16,7 @@ from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
 from pathspider.observer.tcp import tcp_setup
+from pathspider.observer.tcp import tcp_handshake
 from pathspider.observer.tcp import tcp_complete
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
@@ -30,8 +31,13 @@ CONN_TIMEOUT = 2
 ## Chain functions
 
 def dscp_setup(rec, ip):
-    rec['fwd_dscp'] = None
-    rec['rev_dscp'] = None
+    if ip.tcp:
+        # we'll only care about these if it's TCP
+        rec['fwd_syn_dscp'] = None
+        rec['rev_syn_dscp'] = None
+
+    rec['fwd_data_dscp'] = None
+    rec['rev_data_dscp'] = None
     return True
 
 def dscp_extract(rec, ip, rev):
@@ -136,7 +142,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
                             new_flow_chain=[basic_flow, tcp_setup, dscp_setup],
                             ip4_chain=[basic_count, dscp_extract],
                             ip6_chain=[basic_count, dscp_extract],
-                            tcp_chain=[tcp_complete])
+                            tcp_chain=[tcp_handshake, tcp_complete])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
