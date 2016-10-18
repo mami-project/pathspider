@@ -306,7 +306,7 @@ class Spider:
 
         # merge_cycles = 0
 
-        while self.running and merging_results:
+        while self.running and (merging_results or merging_flows):
 
             # if merge_cycles % 20 == 0:
             #     for wn in range(0, self.worker_count):
