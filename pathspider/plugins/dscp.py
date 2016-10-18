@@ -10,6 +10,7 @@ import collections
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import Conn
+from pathspider.base import Connection
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -20,7 +21,6 @@ from pathspider.observer.tcp import tcp_setup
 from pathspider.observer.tcp import tcp_handshake
 from pathspider.observer.tcp import tcp_complete
 
-Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "config",
                                                        "connstate"])
@@ -83,37 +83,24 @@ class DSCP(SynchronizedSpider, PluggableSpider):
                 '--set-dscp', str(self.args.codepoint)])
         logger.debug("Configurator enabled DSCP marking")
 
-    def _connect(self, sock, job):
-        try:
-            sock.settimeout(self.conn_timeout)
-            sock.connect((job[0], job[1]))
-
-            return Connection(sock, sock.getsockname()[1], Conn.OK)
-        except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT)
-        except OSError:
-            return Connection(sock, sock.getsockname()[1], Conn.FAILED)
-
     def connect(self, job, pcs, config):
         """
         Performs a TCP connection.
         """
 
-        if ":" in job[0]:
-            sock = socket.socket(socket.AF_INET6)
-        else:
-            sock = socket.socket(socket.AF_INET)
-
-        conn = self._connect(sock, job)
+        conn = self.tcp_connect(job)
+        sock = conn.client
 
         try:
             sock.shutdown(socket.SHUT_RDWR)
             sock.close()
+            # FIXME: This is intended to ensure the connection is done and
+            # won't see futher packets after the next configuration, but the
+            # observer functions could also be made more robust too.
         except:
             pass
 
         return conn
-
 
     def post_connect(self, job, conn, pcs, config):
         """

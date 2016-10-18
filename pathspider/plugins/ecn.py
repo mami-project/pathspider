@@ -21,7 +21,6 @@ from pathspider.observer.tcp import tcp_complete
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
 
-Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "rank", "host", "config",
                                                        "connstate", "tstart", "tstop"])
@@ -96,24 +95,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         Performs a TCP connection.
         """
 
-        job_ip, job_port, job_host, job_rank = job
-
-        tstart = str(datetime.utcnow())
-
-        if ":" in job_ip:
-            sock = socket.socket(socket.AF_INET6)
-        else:
-            sock = socket.socket(socket.AF_INET)
-
-        try:
-            sock.settimeout(self.conn_timeout)
-            sock.connect((job_ip, job_port))
-
-            return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
-        except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT, tstart)
-        except OSError:
-            return Connection(sock, sock.getsockname()[1], Conn.FAILED, tstart)
+        return self.tcp_connect(job)
 
     def post_connect(self, job, conn, pcs, config):
         """

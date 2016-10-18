@@ -33,6 +33,7 @@ import collections
 import threading
 import multiprocessing as mp
 import queue
+from datetime import datetime
 from enum import Enum
 
 from ipaddress import ip_address
@@ -95,6 +96,8 @@ class Conn(Enum):
     FAILED = 1
     TIMEOUT = 2
     SKIPPED = 3
+
+Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
@@ -175,6 +178,8 @@ class Spider:
 
         self.lock = threading.Lock()
         self.exception = None
+
+        self.conn_timeout = 0
 
     def config_zero(self):
         """
@@ -614,6 +619,35 @@ class Spider:
             return
 
         self.jobqueue.put(job)
+
+    def tcp_connect(self, job):
+        """
+        This helper function will perform a TCP connection. It will not perform
+        any special action in the event that this is the experimental flow,
+        it only performs a TCP connection. This function expects that
+        self.conn_timeout has been set to a sensible value.
+        """
+
+        if self.conn_timeout is None:
+            self.conn_timeout = 3
+
+        tstart = str(datetime.utcnow())
+
+        if ":" in job[0]:
+            sock = socket.socket(socket.AF_INET6)
+        else:
+            sock = socket.socket(socket.AF_INET)
+
+        try:
+            sock.settimeout(self.conn_timeout)
+            sock.connect((job[0], job[1]))
+
+            return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
+        except TimeoutError:
+            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT, tstart)
+        except OSError:
+            return Connection(sock, sock.getsockname()[1], Conn.FAILED, tstart)
+
 
 # def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
 #     if ipv == 4:
