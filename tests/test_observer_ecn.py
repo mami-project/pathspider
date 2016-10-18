@@ -13,6 +13,9 @@ from pathspider.observer.tcp import TCP_SEC
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.plugins.ecn import ECN
 
+class FakeECNArgs:
+    timeout = 5
+
 def test_observer_ecn():
     try:
         import plt # libtrace may not be available
@@ -23,7 +26,7 @@ def test_observer_ecn():
 
     logging.getLogger().setLevel(logging.INFO)
 
-    spider = ECN(1, lturi, None)
+    spider = ECN(1, lturi, FakeECNArgs())
     o = spider.create_observer()
     q = queue.Queue()
     t = threading.Thread(target=o.run_flow_enqueuer,
@@ -67,7 +70,7 @@ def test_observer_ecn_partial_flow():
 
     logging.getLogger().setLevel(logging.INFO)
 
-    spider = ECN(1, lturi, None)
+    spider = ECN(1, lturi, FakeECNArgs())
     o = spider.create_observer()
     q = queue.Queue()
     t = threading.Thread(target=o.run_flow_enqueuer,
