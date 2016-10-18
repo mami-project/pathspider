@@ -5,7 +5,7 @@ TCP_ACK = 0x10
 TCP_SYN = 0x02
 
 TCP_SEC = ( TCP_SYN | TCP_ECE | TCP_CWR )
-TCP_SAEW = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
+TCP_SAEC = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
 def tcp_setup(rec, ip):
