@@ -179,7 +179,7 @@ class Spider:
         self.lock = threading.Lock()
         self.exception = None
 
-        self.conn_timeout = 0
+        self.conn_timeout = None
 
     def config_zero(self):
         """
@@ -629,7 +629,7 @@ class Spider:
         """
 
         if self.conn_timeout is None:
-            self.conn_timeout = 3
+            raise RuntimeError("Plugin did not set TCP connect timeout.")
 
         tstart = str(datetime.utcnow())
 

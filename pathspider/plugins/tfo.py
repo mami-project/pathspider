@@ -170,8 +170,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         super().__init__(worker_count=worker_count,
                          libtrace_uri=libtrace_uri,
                          args=args)
-        self.tos = None # set by configurator
-        self.conn_timeout = 10
+        self.conn_timeout = args.timeout
 
     def connect(self, job, pcs, config):
         # determine ip version
@@ -288,5 +287,6 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     @staticmethod
     def register_args(subparsers):
         parser = subparsers.add_parser('tfo', help="TCP Fast Open")
+        parser.add_argument("--timeout", default=5, type=int, help="The timeout to use for attempted connections in seconds (Default: 5)")
         parser.set_defaults(spider=TFO)
 
