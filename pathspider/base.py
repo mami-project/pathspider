@@ -313,7 +313,7 @@ class Spider:
             #         logger.debug("worker %3u: %s" % (wn, self._worker_state[wn]))
             # merge_cycles += 1
 
-            if self.flowqueue.qsize() >= self.resqueue.qsize():
+            if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
@@ -346,7 +346,7 @@ class Spider:
                             except KeyError:
                                 pass
 
-            else:
+            else if merging_results:
                 try:
                     res = self.resqueue.get_nowait()
                 except queue.Empty:
