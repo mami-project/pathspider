@@ -188,6 +188,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 cond_conn = 'ecn.connectivity.transient'
             else:
                 cond_conn = 'ecn.connectivity.offline'
+            conditions.append(cond_conn)
 
             if flows[1]['rev_syn_flags'] & TCP_SAEW == TCP_SAE:
                 negotiated = True
