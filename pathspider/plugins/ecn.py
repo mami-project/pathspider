@@ -10,8 +10,8 @@ import collections
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
+from pathspider.base import Conn
 from pathspider.base import NO_FLOW
-
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -23,12 +23,8 @@ from pathspider.observer.tcp import TCP_SAEC
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "rank", "host", "ecnstate",
+                                                       "rank", "host", "config",
                                                        "connstate", "tstart", "tstop"])
-
-CONN_OK = 0
-CONN_FAILED = 1
-CONN_TIMEOUT = 2
 
 USER_AGENT = "pathspider"
 
@@ -113,11 +109,11 @@ class ECN(SynchronizedSpider, PluggableSpider):
             sock.settimeout(self.conn_timeout)
             sock.connect((job_ip, job_port))
 
-            return Connection(sock, sock.getsockname()[1], CONN_OK, tstart)
+            return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
         except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT, tstart)
+            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT, tstart)
         except OSError:
-            return Connection(sock, sock.getsockname()[1], CONN_FAILED, tstart)
+            return Connection(sock, sock.getsockname()[1], Conn.FAILED, tstart)
 
     def post_connect(self, job, conn, pcs, config):
         """
@@ -128,7 +124,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         tstop = str(datetime.utcnow())
 
-        if conn.state == CONN_OK:
+        if conn.state == Conn.OK:
             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host, config, True, conn.tstart, tstop)
         else:
             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host, config, False, conn.tstart, tstop)
@@ -169,7 +165,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
             other_flow = self.comparetab.pop(dip)
 
             # first has always ecn off, while the second has ecn on
-            flows = (flow, other_flow) if other_flow['ecnstate'] else (other_flow, flow)
+            flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
             conditions = []
 
             # discard non-observed flows and flows with no syn observed
@@ -240,7 +236,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         flow['rank'] = res.rank
         flow['host'] = res.host
         flow['connstate'] = res.connstate
-        flow['ecnstate'] = res.ecnstate
+        flow['config'] = res.config
         flow['tstart'] = res.tstart
         flow['tstop'] = res.tstop
 

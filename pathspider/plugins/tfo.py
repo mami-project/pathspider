@@ -9,7 +9,9 @@ import collections
 
 from pathspider.base import DesynchronizedSpider
 from pathspider.base import PluggableSpider
-from pathspider.base import NO_RESULT, NO_FLOW
+from pathspider.base import Conn
+from pathspider.base import NO_RESULT
+from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
@@ -25,14 +27,9 @@ TFOConnection = collections.namedtuple("TFOConnection",
                                         "c0t", "c1t"])
 TFOSpiderRecord = collections.namedtuple("TFOSpiderRecord", 
                                          ["ip", "rport", "port",
-                                          "host", "tfostate",
+                                          "host", "config",
                                           "c0t", "c1t",
                                           "connstate", "rank"])
-
-CONN_OK = 0
-CONN_FAILED = 1
-CONN_TIMEOUT = 2
-CONN_SKIPPED = 3
 
 USER_AGENT = "pathspider"
 
@@ -198,19 +195,19 @@ class TFO(DesynchronizedSpider, PluggableSpider):
                 c0t = timer() - tt
 
                 job.append(False)
-                return TFOConnection(sock, sock.getsockname()[1], CONN_OK, c0t, c1t)
+                return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
             except TimeoutError:
                 job.append(True)
-                return TFOConnection(sock, sock.getsockname()[1], CONN_TIMEOUT, c0t, c1t)
+                return TFOConnection(sock, sock.getsockname()[1], Conn.TIMEOUT, c0t, c1t)
             except OSError:
                 job.append(True)
-                return TFOConnection(sock, sock.getsockname()[1], CONN_FAILED, c0t, c1t)
+                return TFOConnection(sock, sock.getsockname()[1], Conn.FAILED, c0t, c1t)
 
         # with TFO
         if config == 1:
             # skip if config zero failed
             if job[4]:
-                return TFOConnection(None, None, CONN_SKIPPED, 0, 0)
+                return TFOConnection(None, None, Conn.SKIPPED, 0, 0)
 
             # make a message
             message = bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
@@ -233,11 +230,11 @@ class TFO(DesynchronizedSpider, PluggableSpider):
                 sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1])) # pylint: disable=no-member
                 c1t = timer() - tt
 
-                return TFOConnection(sock, sock.getsockname()[1], CONN_OK, c0t, c1t)
+                return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
             except TimeoutError:
-                return TFOConnection(sock, sock.getsockname()[1], CONN_TIMEOUT, c0t, c1t)
+                return TFOConnection(sock, sock.getsockname()[1], Conn.TIMEOUT, c0t, c1t)
             except OSError:
-                return TFOConnection(sock, sock.getsockname()[1], CONN_FAILED, c0t, c1t)
+                return TFOConnection(sock, sock.getsockname()[1], Conn.FAILED, c0t, c1t)
 
     def post_connect(self, job, conn, pcs, config):
         # try not shutting down
@@ -246,7 +243,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         # except:
         #     pass
 
-        if conn.state == CONN_SKIPPED:
+        if conn.state == Conn.SKIPPED:
             return NO_RESULT 
 
         try:
@@ -255,7 +252,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             pass
 
         return TFOSpiderRecord(job[0], job[1], conn.port, job[2], config,
-                               conn.c0t, conn.c1t, conn.state == CONN_OK, job[3])
+                               conn.c0t, conn.c1t, conn.state == Conn.OK, job[3])
 
 
     def create_observer(self):
@@ -275,12 +272,12 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     def merge(self, flow, res):
         logger = logging.getLogger('tfo')
         if flow == NO_FLOW:
-            flow = {"dip": res.ip, "sp": res.port, "dp": res.rport, "connstate": res.connstate, "tfostate": res.tfostate, "observed": False }
+            flow = {"dip": res.ip, "sp": res.port, "dp": res.rport, "connstate": res.connstate, "config": res.config, "observed": False }
         else:
             flow['connstate'] = res.connstate
             flow['host'] = res.host
             flow['rank'] = res.rank
-            flow['tfostate'] = res.tfostate
+            flow['config'] = res.config
             flow['observed'] = True
             flow['cookie0_time'] = res.c0t
             flow['cookie1_time'] = res.c1t

@@ -9,6 +9,7 @@ import collections
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
+from pathspider.base import Conn
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -21,12 +22,8 @@ from pathspider.observer.tcp import tcp_complete
 
 Connection = collections.namedtuple("Connection", ["client", "port", "state"])
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "host", "dscp",
+                                                       "host", "config",
                                                        "connstate"])
-
-CONN_OK = 0
-CONN_FAILED = 1
-CONN_TIMEOUT = 2
 
 ## Chain functions
 
@@ -91,11 +88,11 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             sock.settimeout(self.conn_timeout)
             sock.connect((job[0], job[1]))
 
-            return Connection(sock, sock.getsockname()[1], CONN_OK)
+            return Connection(sock, sock.getsockname()[1], Conn.OK)
         except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], CONN_TIMEOUT)
+            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT)
         except OSError:
-            return Connection(sock, sock.getsockname()[1], CONN_FAILED)
+            return Connection(sock, sock.getsockname()[1], Conn.FAILED)
 
     def connect(self, job, pcs, config):
         """
@@ -123,7 +120,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         Create the SpiderRecord
         """
 
-        if conn.state == CONN_OK:
+        if conn.state == Conn.OK:
             rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
         else:
             rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
@@ -162,11 +159,11 @@ class DSCP(SynchronizedSpider, PluggableSpider):
                     "sp": res.port,
                     "dp": res.rport,
                     "connstate": res.connstate,
-                    "dscp": res.dscp,
+                    "config": res.config,
                     "observed": False }
         else:
             flow['connstate'] = res.connstate
-            flow['dscp'] = res.dscp
+            flow['config'] = res.config
             flow['observed'] = True
 
         logger.debug("Result: " + str(flow))

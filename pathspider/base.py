@@ -33,6 +33,7 @@ import collections
 import threading
 import multiprocessing as mp
 import queue
+from enum import Enum
 
 from ipaddress import ip_address
 
@@ -88,6 +89,12 @@ class SemaphoreN(threading.BoundedSemaphore):
         """
         while self.acquire(blocking=False):
             pass
+
+class Conn(Enum):
+    OK = 0
+    FAILED = 1
+    TIMEOUT = 2
+    SKIPPED = 3
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
