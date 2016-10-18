@@ -2,3 +2,4 @@ coveralls
 coverage
 pylint
 nose
+nose-cov
