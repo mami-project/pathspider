@@ -38,7 +38,7 @@ def test_observer_random_flowcount():
 
 def test_observer_real_flowcount():
     lturi = "pcap:tests/testdata/real.pcap"
-    assert _test_observer(lturi) == 6342
+    assert _test_observer(lturi) == 6317
 
 def test_observer_icmp_flowcount():
     lturi = "pcap:tests/testdata/icmp.pcap"

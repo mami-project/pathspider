@@ -15,12 +15,19 @@ import traceback
 from pathspider.base import SHUTDOWN_SENTINEL
 
 def _flow4_ids(ip):
+    # Only import this when needed
+    import plt as libtrace
+
     # FIXME keep map of fragment IDs to keys
-    # FIXME link ICMP by looking at payload
-    icmp_types = { 3, 4, 5, 11, 12 }
-    if ip.proto == 1 and ip.icmp.type in icmp_types:
-        ip = ip.icmp.payload
-    if ip.proto == 6 or ip.proto == 17 or ip.proto == 132:
+
+    icmp_with_payload = {3, 4, 5, 11, 12}
+    quotation_fid = False
+    if ip.proto == 1 and ip.icmp.type in icmp_with_payload:
+        ip = libtrace.ip(ip.icmp.data[8:]) # pylint: disable=no-member
+        quotation_fid = True
+
+    protos_with_ports = {6, 17, 132, 136}
+    if ip.proto in protos_with_ports:
         # key includes ports
         fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10] + ip.payload[0:4]
         rid = ip.dst_prefix.addr + ip.src_prefix.addr + ip.data[9:10] + ip.payload[2:4] + ip.payload[0:2]
@@ -28,7 +35,12 @@ def _flow4_ids(ip):
         # no ports, just 3-tuple
         fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10]
         rid = ip.dst_prefix.addr + ip.src_prefix.addr + ip.data[9:10]
-    return (base64.b64encode(fid), base64.b64encode(rid))
+
+    if quotation_fid:
+        # If the fid is based on an ICMP quotation, need to be reversed
+        return (base64.b64encode(rid), base64.b64encode(fid))
+    else:
+        return (base64.b64encode(fid), base64.b64encode(rid))
 
 def _flow6_ids(ip6):
     # FIXME link ICMP by looking at payload
@@ -56,6 +68,8 @@ class Observer:
                  new_flow_chain=[],
                  ip4_chain=[],
                  ip6_chain=[],
+                 icmp4_chain=[],
+                 icmp6_chain=[],
                  tcp_chain=[],
                  udp_chain=[],
                  l4_chain=[],
@@ -70,6 +84,13 @@ class Observer:
         :type ip4_chain: array(function)
         :param ip6_chain: Array of functions to pass IPv6 headers to.
         :type ip6_chain: array(function)
+	:param icmp4_chain: Array of functions to pass IPv4 headers containing
+                            ICMPv4 headers to.
+        :type icmp4_chain: array(function)
+	:param icmp6_chain: Array of functions to pass IPv6 headers containing
+                            ICMPv6 headers to.
+        :type icmp6_chain: array(function)
+        :param tcp_chain: Array of functions to pass TCP headers to.
         :param tcp_chain: Array of functions to pass TCP headers to.
         :type tcp_chain: array(function)
         :param udp_chain: Array of functions to pass UDP headers to.
@@ -95,6 +116,8 @@ class Observer:
         self._new_flow_chain = new_flow_chain
         self._ip4_chain = ip4_chain
         self._ip6_chain = ip6_chain
+        self._icmp4_chain = icmp4_chain
+        self._icmp6_chain = icmp6_chain
         self._tcp_chain = tcp_chain
         self._udp_chain = udp_chain
         self._l4_chain = l4_chain
@@ -136,6 +159,9 @@ class Observer:
         return self._irq_fired
 
     def _next_packet(self):
+        # Import only when needed
+        import plt as libtrace
+
         # see if someone told us to stop
         if self._interrupted():
             return False      
@@ -165,9 +191,18 @@ class Observer:
         if self._pkt.ip:
             for fn in self._ip4_chain:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip, rev=rev)
+            if self._pkt.icmp:
+                for fn in self._icmp4_chain:
+                    q = libtrace.ip(self._pkt.ip.icmp.data[8:]) # pylint: disable=no-member
+                    keep_flow = keep_flow and fn(rec, self._pkt.ip, q, rev=rev)
+
         elif self._pkt.ip6:
             for fn in self._ip6_chain:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
+            if self._pkt.icmp6:
+                for fn in self._icmp6_chain:
+                    q = libtrace.ip(self._pkt.ip.icmp6.data[8:]) # pylint: disable=no-member
+                    keep_flow = keep_flow and fn(rec, self._pkt.ip6, q, rev=rev)
 
         # run transport header chains
         if self._pkt.tcp:
