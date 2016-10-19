@@ -43,3 +43,7 @@ def test_observer_real_flowcount():
 def test_observer_icmp_flowcount():
     lturi = "pcap:tests/testdata/icmp.pcap"
     assert _test_observer(lturi) == 1
+
+def test_observer_icmp_unreachable_flowcount():
+    lturi = "pcap:tests/testdata/icmp_unreachable.pcap"
+    assert _test_observer(lturi) == 2
