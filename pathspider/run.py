@@ -12,7 +12,7 @@ import pathspider.util.dnsresolv
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
-def handle_args():
+def handle_args(argv):
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
         def _format_action(self, action):
             parts = super()._format_action(action)
@@ -52,7 +52,7 @@ def handle_args():
         parser.print_help()
         sys.exit(1)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv[1:])
 
     logging.basicConfig()
     if args.verbose:
@@ -70,4 +70,4 @@ def handle_args():
         run_standalone(args)
 
 if __name__ == "__main__":
-    handle_args()
+    handle_args(sys.argv)
