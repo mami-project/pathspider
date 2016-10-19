@@ -17,6 +17,9 @@ from pathspider.base import SHUTDOWN_SENTINEL
 def _flow4_ids(ip):
     # FIXME keep map of fragment IDs to keys
     # FIXME link ICMP by looking at payload
+    icmp_types = { 3, 4, 5, 11, 12 }
+    if ip.proto == 1 and ip.icmp.type in icmp_types:
+        ip = ip.icmp.payload
     if ip.proto == 6 or ip.proto == 17 or ip.proto == 132:
         # key includes ports
         fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10] + ip.payload[0:4]
