@@ -69,5 +69,8 @@ def handle_args(argv):
         from pathspider.standalone import run_standalone
         run_standalone(args)
 
-if __name__ == "__main__":
+def handle_args_wrapper():
     handle_args(sys.argv)
+
+if __name__ == "__main__":
+    handle_args_wrapper()
