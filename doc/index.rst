@@ -32,3 +32,13 @@ Table of Contents
    abstract
    observer
    advanced
+
+Acknowledgements
+----------------
+
+Current development of PATHspider is supported by the European Union's Horizon
+2020 project MAMI. This project has received funding from the European Union's
+Horizon 2020 research and innovation programme under grant agreement No 688421.
+The opinions expressed and arguments employed reflect only the authors' view.
+The European Commission is not responsible for any use that may be made of that
+information.
