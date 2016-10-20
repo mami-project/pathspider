@@ -15,9 +15,13 @@ def job_feeder(inputfile, spider):
         logger.debug("job_feeder: started")
         reader = csv.reader(fp, delimiter=',', quotechar='"')
         for row in reader:
-            if len(row) > 0:
+            if len(row) >= 2:
                 # port numbers should be integers
-                row[1] = int(row[1])
+                try:
+                    row[1] = int(row[1])
+                except ValueError:
+                    logger.warning("Invalid port number in job! Skipping!")
+                    continue
                 spider.add_job(row)
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
