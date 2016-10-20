@@ -153,13 +153,3 @@ References
 .. [RIPEAtlas] Ripe, N.C.C.. `RIPE atlas <http://atlas.ripe.net>`_.
 .. [Filasto12] Filasto, A. and Appelbaum, J., 2012, August. `OONI: Open Observatory of Network Interference <https://www.usenix.org/system/files/conference/foci12/foci12-final12.pdf>`_. In FOCI.
 .. [Kreibich10] Kreibich, C., Weaver, N., Nechaev, B. and Paxson, V., 2010, November. `Netalyzr: illuminating the edge network <http://dl.acm.org/citation.cfm?id=1879173>`_. In Proceedings of the 10th ACM SIGCOMM conference on Internet measurement (pp. 246-259). ACM.
-
-Acknowledgements
-----------------
-
-Current development of PATHspider is supported by the European Union's Horizon
-2020 project MAMI. This project has received funding from the European Union's
-Horizon 2020 research and innovation programme under grant agreement No 688421.
-The opinions expressed and arguments employed reflect only the authors' view.
-The European Commission is not responsible for any use that may be made of that
-information.
