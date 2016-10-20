@@ -8,7 +8,6 @@ Contents:
 
    intro
    using
-   architecture
    plugin
    abstract
    observer
