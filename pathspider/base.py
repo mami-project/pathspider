@@ -620,50 +620,6 @@ class Spider:
 
         self.jobqueue.put(job)
 
-    def tcp_connect(self, job):
-        """
-        This helper function will perform a TCP connection. It will not perform
-        any special action in the event that this is the experimental flow,
-        it only performs a TCP connection. This function expects that
-        self.conn_timeout has been set to a sensible value.
-        """
-
-        if self.conn_timeout is None:
-            raise RuntimeError("Plugin did not set TCP connect timeout.")
-
-        tstart = str(datetime.utcnow())
-
-        if ":" in job[0]:
-            sock = socket.socket(socket.AF_INET6)
-        else:
-            sock = socket.socket(socket.AF_INET)
-
-        try:
-            sock.settimeout(self.conn_timeout)
-            sock.connect((job[0], job[1]))
-
-            return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
-        except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT, tstart)
-        except OSError:
-            return Connection(sock, sock.getsockname()[1], Conn.FAILED, tstart)
-
-
-# def local_address(ipv=4, target="path-ams.corvid.ch", port=53):
-#     if ipv == 4:
-#         addrfamily = socket.AF_INET
-#     elif ipv == 6:
-#         addrfamily = socket.AF_INET6
-#     else:
-#         assert False
-
-#     try:
-#         sock = socket.socket(addrfamily, socket.SOCK_DGRAM)
-#         sock.connect((target, port))
-#         return ip_address(sock.getsockname()[0])
-#     except:
-#         #FIXME: What exceptions do we expect?
-#         return None
 
 class SynchronizedSpider(Spider):
 
@@ -704,7 +660,6 @@ class SynchronizedSpider(Spider):
         # until the next check at the start of the loop
         self.sem_config_zero.release_n(self.worker_count)
         self.sem_config_one.release_n(self.worker_count)
-
 
     def worker(self, worker_number):
         """
@@ -812,6 +767,35 @@ class SynchronizedSpider(Spider):
                 # self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
+
+    def tcp_connect(self, job):
+        """
+        This helper function will perform a TCP connection. It will not perform
+        any special action in the event that this is the experimental flow,
+        it only performs a TCP connection. This function expects that
+        self.conn_timeout has been set to a sensible value.
+        """
+
+        if self.conn_timeout is None:
+            raise RuntimeError("Plugin did not set TCP connect timeout.")
+
+        tstart = str(datetime.utcnow())
+
+        if ":" in job[0]:
+            sock = socket.socket(socket.AF_INET6)
+        else:
+            sock = socket.socket(socket.AF_INET)
+
+        try:
+            sock.settimeout(self.conn_timeout)
+            sock.connect((job[0], job[1]))
+
+            return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
+        except TimeoutError:
+            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT, tstart)
+        except OSError:
+            return Connection(sock, sock.getsockname()[1], Conn.FAILED, tstart)
+
 
 class DesynchronizedSpider(Spider):
 
