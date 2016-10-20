@@ -40,9 +40,11 @@ def test_observer_real_flowcount():
     lturi = "pcap:tests/testdata/real.pcap"
     assert _test_observer(lturi) == 6317
 
-def test_observer_icmp_flowcount():
-    lturi = "pcap:tests/testdata/icmp.pcap"
-    assert _test_observer(lturi) == 1
+def test_observer_icmp_ttl_flowcount():
+    lturi = "pcap:tests/testdata/icmp_ttl.pcap"
+    # the following assertion will break if we take TCP sequence numbers
+    # into consideration in the observer
+    assert _test_observer(lturi) == 297
 
 def test_observer_icmp_unreachable_flowcount():
     lturi = "pcap:tests/testdata/icmp_unreachable.pcap"
