@@ -26,7 +26,7 @@ Table of Contents
 .. toctree::
    :maxdepth: 2
 
-   overview
+   intro
    installation
    using
    plugin
