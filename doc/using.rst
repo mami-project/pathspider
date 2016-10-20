@@ -75,6 +75,8 @@ Job List
 
 The standalone runner expects...
 
+.. _defaultoutput:
+
 Output Format
 ~~~~~~~~~~~~~
 
@@ -98,6 +100,9 @@ following values set in their output:
 | Key        | Description                                                    |
 +============+================================================================+
 | config     | 0 for baseline, 1 for experimental                             |
++------------+----------------------------------------------------------------+
+| connstate  | True if the connection was successful, False if the connection |
+|            | failed (e.g. due to timeout).                                  |
 +------------+----------------------------------------------------------------+
 | dip        | Layer 3 (IPv4/IPv6) source address                             |
 +------------+----------------------------------------------------------------+

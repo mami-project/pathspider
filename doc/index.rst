@@ -29,7 +29,8 @@ Table of Contents
    intro
    installation
    using
-   plugin
+   plugins
+   plugindev
    abstract
    observer
    advanced
