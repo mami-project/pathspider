@@ -54,6 +54,11 @@ def test_observer_icmp_unreachable_flowcount():
     assert _test_observer(lturi) == 2
 
 def test_observer_shutdown():
+    try:
+        import plt # libtrace may not be available
+    except:
+        raise nose.SkipTest
+
     flowqueue = mp.Queue(QUEUE_SIZE)
     observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
 
