@@ -27,6 +27,7 @@ Table of Contents
    :maxdepth: 2
 
    overview
+   installation
    using
    plugin
    abstract
