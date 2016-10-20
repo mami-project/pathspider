@@ -31,4 +31,4 @@ Table of Contents
    plugin
    abstract
    observer
-
+   advanced
