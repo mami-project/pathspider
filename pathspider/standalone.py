@@ -7,6 +7,7 @@ import threading
 
 from pathspider.base import SHUTDOWN_SENTINEL
 
+from pathspider.network import interface_up
 
 def job_feeder(inputfile, spider):
     logger = logging.getLogger("feeder")
@@ -28,7 +29,11 @@ def run_standalone(args):
 
     try:
         if hasattr(args, "spider"):
-            spider = args.spider(args.workers, "int:" + args.interface, args)
+            if interface_up(args.interface):
+                spider = args.spider(args.workers, "int:" + args.interface, args)
+            else:
+                logger.error("The chosen interface is not up! Cannot continue.")
+                sys.exit(1)
         else:
             logger.error("Plugin not found! Cannot continue.")
             logger.error("Use --help to list all plugins.")
