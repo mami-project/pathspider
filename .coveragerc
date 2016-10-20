@@ -2,6 +2,8 @@
 concurrency = multiprocessing
 include =
  pathspider/*
+
+[report]
 exclude_lines =
     # Have to re-enable the standard pragma
     pragma: no cover
