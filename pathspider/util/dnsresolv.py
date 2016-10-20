@@ -64,7 +64,8 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
     '''
     A wrapper around :meth:`csv.reader`, that makes it a generator.
 
-    :meth:`csv_gen` does not return entire records, instead it extracts one particular field from a record.
+    :meth:`csv_gen` does not return entire records, instead it extracts
+           one particular field from a record.
 
     :param \*args: Arguments passed to :meth:`csv.reader`.
     :param \*\*kwargs: Keyword arguments passed to :meth:`csv.reader`.
@@ -103,13 +104,17 @@ def resolution_worker(iq, oq):
             rank = entry[0]
             domain = entry[1]
 
-            # NOTE www.com or www.co.uk would be incorrectly handled by checking for a leading "www." first. Alexa's list generally omits the almost ubiquitous "www.", but not always: www.uk.com is a counter-example.
+            # NOTE www.com or www.co.uk would be incorrectly handled by
+            # checking for a leading "www." first. Alexa's list generally omits
+            # the almost ubiquitous "www.", but not always: www.uk.com is a
+            # counter-example.
             wdomain = domain
             #if domain[:4] != 'www.':
                 #wdomain = 'www.' + domain
             wdomain = 'www.' + domain
 
-            # ``domain`` is the 'original' passed in, and ``wdomain`` is domain with a 'www.' prepended where applicable
+            # ``domain`` is the 'original' passed in, and ``wdomain`` is domain
+            # with a 'www.' prepended where applicable
 
             if WWW == 'never':
                 (a, a4) = resolve_both(domain)
@@ -192,15 +197,20 @@ def main(args):
 
     # Some validation
     if args.workers <= 0:
-        raise ValueError('Workers must be a positive integer, it was set to {}.'.format(args.workers))
+        raise ValueError('Workers must be a positive integer, ' 
+        'it was set to {}.'.format(args.workers))
     if args.sleep < 0:
-        raise ValueError('Sleep must be a non-negative float, it was set to {}.'.format(args.sleep))
+        raise ValueError('Sleep must be a non-negative float, '
+        'it was set to {}.'.format(args.sleep))
     if args.timeout <= 0:
-        raise ValueError('Timeout must be a positive integer, it was set to {}.'.format(args.timeout))
+        raise ValueError('Timeout must be a positive integer, '
+        'it was set to {}.'.format(args.timeout))
     if args.debug_skip < 0:
-        raise ValueError('Debug-skip must be a non-negative integer, it was set to {}.'.format(args.debug_skip))
+        raise ValueError('Debug-skip must be a non-negative integer, '
+        'it was set to {}.'.format(args.debug_skip))
     if args.debug_count < 0:
-        raise ValueError('Debug-count must be a non-negative integer, it was set to {}.'.format(args.debug_count))
+        raise ValueError('Debug-count must be a non-negative integer, '
+        'it was set to {}.'.format(args.debug_count))
 
     global TIMEOUT
     TIMEOUT = args.timeout
@@ -226,12 +236,14 @@ def main(args):
 
         logger.info('Starting worker threads...')
         for i in range(args.workers):
-            t = threading.Thread(target=resolution_worker, name='worker_{}'.format(i), args=(iq, oq), daemon=True)
+            t = threading.Thread(target=resolution_worker,
+                    name='worker_{}'.format(i), args=(iq, oq), daemon=True)
             t.start()
             ts[t.name] = t
 
         logger.info('Starting output thread...')
-        ot = threading.Thread(target=output_worker, name='output_worker', args=(oq, writer), daemon=True)
+        ot = threading.Thread(target=output_worker, name='output_worker',
+                args=(oq, writer), daemon=True)
         ot.start()
 
         logger.info('Enqueueing domains...')
@@ -243,7 +255,10 @@ def main(args):
                 current_rate = float(1000) / (tt - tl).total_seconds()
                 average_rate = float(dc+1) / (tt - t0).total_seconds()
                 tl = tt
-                logger.info('Enqueued {num_dom:>6} domains. Rate: {cur:9.2f} Hz. Average rate: {avg:9.2f} Hz.'.format(num_dom=dc+1, cur=current_rate, avg=average_rate))
+                logstring = 'Enqueued {num_dom:>6} domains. '
+                'Rate: {cur:9.2f} Hz. Average rate: {avg:9.2f} Hz.'
+                logger.info(logstring.format(num_dom=dc+1, cur=current_rate,
+                        avg=average_rate))
 
         # now enqueue a quit signal
         iq.put(None)
@@ -256,21 +271,53 @@ def main(args):
     time = t1 - t0
     average_rate = float(dc+1) / time.total_seconds()
     logger.info('Resolution completed.')
-    logger.info('Resolved {num_dom} domains. Total time: {time}. Average rate: {avg:.2f} domains per second.'.format(num_dom=dc+1, time=time, avg=average_rate))
+    logstring = 'Resolved {num_dom} domains. Total time: {time}. Average rate: '
+    '{avg:.2f} domains per second.'
+    logger.info(logstring.format(num_dom=dc+1, time=time, avg=average_rate))
 
 def register_args(subparsers):
-    parser = subparsers.add_parser('dnsresolv', help='DNS resolution for hostnames to IPv4 and v6 addresses')
+    parser = subparsers.add_parser('dnsresolv',
+            help='DNS resolution for hostnames to IPv4 and v6 addresses')
     parser.set_defaults(func=main)
 
     # FIXME use type=argparse.FileType() here
-    #parser.add_argument('input_file', type=str, help='CSV format input data file with one domain per line. The domain must be in one field of a record, that record is selected with the "position" argument.')
-    #parser.add_argument('output_file', type=str, help='CSV format output data file with domain names and associated IP addresses. Each record has the format: "domain,IPv4,IPv6".')
+    #parser.add_argument('input_file', type=str,
+    #       help='CSV format input data file with one domain per line. '
+    #       'The domain must be in one field of a record, that record is '
+    #       'selected with the "position" argument.')
+    #parser.add_argument('output_file', type=str,
+    #       help='CSV format output data file with domain names and associated '
+    #       'IP addresses. Each record has the format: "domain,IPv4,IPv6".')
 
-    #parser.add_argument('--workers', '-w', type=int, default='5', help='The number of worker threads used for resolution.')
-    parser.add_argument('--timeout', '-t', type=int, default='10', help='Timeout for DNS resolution.')
-    parser.add_argument('--sleep', '-s', type=float, default='0', help='Sleep before every request. Useful for rate-limiting.')
-    parser.add_argument('--www', default='preferred', choices=['never', 'preferred', 'always', 'both'], help='Mode for prepending "www." to every domain before resolution. "never" will never prepend "www.". "preferred" will prepend "www." if the resolution of the domain including "www." is successful (more specifically: an A record is returned), and otherwise fall back to omitting the "www.". "always" will prepend "www." and will return no IP address in the output file, even when the domain without "www." can be resolved to one. "both" behaves as "always" and "never" together, that is, it resolves each domain with and without a prepended "www.". All values for this option will never stack the www\'s, that is "www.example.com" will never be expanded to "www.www.example.com". An existing "www." prefix from a domain from the input file will never be dropped. If this value is not "never", then the output file may contain different FQDNs from the input file, as "example.com" might be turned into "www.example.com".')
+    #parser.add_argument('--workers', '-w', type=int, default='5',
+    #        help='The number of worker threads used for resolution.')
+    parser.add_argument('--timeout', '-t', type=int, default='10',
+            help='Timeout for DNS resolution.')
+    parser.add_argument('--sleep', '-s', type=float, default='0',
+            help='Sleep before every request. Useful for rate-limiting.')
+    parser.add_argument('--www', default='preferred',
+            choices=['never', 'preferred', 'always', 'both'],
+            help='Mode for prepending "www." to every domain before resolution.' 
+            ' "never" will never prepend "www.". "preferred" will prepend '
+            '"www." if the resolution of the domain including "www." '
+            'is successful (more specifically: an A record is returned), '
+            'and otherwise fall back to omitting the "www.". "always" will '
+            'prepend "www." and will return no IP address in the output file, '
+            'even when the domain without "www." can be resolved to one. '
+            '"both" behaves as "always" and "never" together, that is, it '
+            'resolves each domain with and without a prepended "www.". '
+            'All values for this option will never stack the www\'s, that is '
+            '"www.example.com" will never be expanded to "www.www.example.com".'
+            ' An existing "www." prefix from a domain from the input file will '
+            'never be dropped. If this value is not "never", then the output '
+            'file may contain different FQDNs from the input file, as '
+            '"example.com" might be turned into "www.example.com".')
 
-    parser.add_argument('--debug-skip', type=int, default='0', dest='debug_skip', help='Skip the first N domains, and do not resolve them.')
-    parser.add_argument('--debug-count', type=int, default='0', dest='debug_count', help='Perform resolution for at most N domains. All of them if this value is set to 0.')
+    parser.add_argument('--debug-skip', type=int, default='0',
+             dest='debug_skip',
+             help='Skip the first N domains, and do not resolve them.')
+    parser.add_argument('--debug-count', type=int, default='0', 
+            dest='debug_count',
+            help='Perform resolution for at most N domains. '
+                    'All of them if this value is set to 0.')
 
