@@ -63,4 +63,4 @@ target/
 .vagrant
 
 # vim swap files
-.swp
+*.swp
