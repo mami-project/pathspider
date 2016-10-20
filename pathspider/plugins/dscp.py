@@ -20,6 +20,7 @@ from pathspider.observer import basic_count
 from pathspider.observer.tcp import tcp_setup
 from pathspider.observer.tcp import tcp_handshake
 from pathspider.observer.tcp import tcp_complete
+from pathspider.observer.tcp import TCP_SYN
 
 SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                        "host", "config",
@@ -41,13 +42,16 @@ def dscp_extract(rec, ip, rev):
     tos = ip.traffic_class
     dscp = tos >> 2
 
-    if rev:
-        if rec['rev_dscp'] is None:
-            rec['rev_dscp'] = dscp
-    else:
-        if rec['fwd_dscp'] is None:
-            rec['fwd_dscp'] = dscp
+    if ip.tcp:
+        if ip.tcp.flags & TCP_SYN == TCP_SYN:
+            rec['rev_syn_dscp' if rev else 'fwd_syn_dscp'] = dscp
+            return True
+        if ip.tcp.payload is None:
+            return True
 
+    # If not TCP or TCP with payload
+    data_key = 'rev_data_dscp' if rev else 'fwd_data_dscp'
+    rec[data_key] = rec[data_key] or dscp
     return True
 
 ## DSCP main class
