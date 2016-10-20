@@ -70,3 +70,59 @@ of web servers and save the results in ``results.txt``:
 
  If you've not installed PATHspider from apt, you will find the webinput.csv
  example script in the examples folder of the source distribution.
+
+Data Formats
+------------
+
+PATHspider uses `newline delimited JSON <http://ndjson.org/>`_ for both the
+input and output format. This gives flexibility in the actual contents of the
+data as different tests may require data to remain associated with jobs,
+for example the Alexa ranking of a webserver, so that it can be present in the
+final output, or in some cases the data may be used as part of the test, for
+example when running tests against authoritative DNS servers and needing to
+know a domain for which the server should be authoritative.
+
+Job List
+~~~~~~~~
+
+The standalone runner expects...
+
+Output Format
+~~~~~~~~~~~~~
+
+PATHspider's output is in the form of two records per job, as JSON dicts. One
+record will be for the baseline (A) connection, and one for the experimental
+(B) connection. These JSON records contain the original job information, any
+information added by the connection functions and any information added by the
+Observer.
+
+The connection logic of all the plugins that ship with the PATHspider
+distribution will set a ``config`` value, either 0 or 1 (with 0 being baseline,
+1 being experimental) to distinguish flows. Due to the highly parallel nature
+of PATHspider, the two flows for a particular job may not be output together
+and may have other flows between them. Any analysis tools will need to take
+this into consideration.
+
+The plugins that ship with the PATHspider distribution will also have the
+following values set in their output:
+
++------------+----------------------------------------------------------------+
+| Key        | Description                                                    |
++============+================================================================+
+| dip        | Layer 3 (IPv4/IPv6) source address                             |
++------------+----------------------------------------------------------------+
+| sp         | Layer 4 (TCP/UDP) source port                                  |
++------------+----------------------------------------------------------------+
+| dp         | Layer 4 (TCP/UDP) destination port                             |
++------------+----------------------------------------------------------------+
+| pkt_fwd    | A count of the number of packets seen in the forward direction |
++------------+----------------------------------------------------------------+
+| pkt_rev    | A count of the number of packets seen in the reverse direction |
++------------+----------------------------------------------------------------+
+| oct_fwd    | A count of the number of octets seen in the forward direction  |
++------------+----------------------------------------------------------------+
+| oct_rev    | A count of the number of octets seen in the reverse direction  |
++------------+----------------------------------------------------------------+
+
+For detail on the values in individual plugins, see the section for that plugin
+later in this documentation.
