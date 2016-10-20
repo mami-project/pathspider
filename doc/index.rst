@@ -34,6 +34,23 @@ Table of Contents
    observer
    advanced
 
+.. toctree::
+   :hidden:
+
+   references
+
+Citing PATHspider
+-----------------
+
+When presenting work that uses PATHspider, we would appreciate it if you could
+cite PATHspider as:
+
+    Learmonth, I.R., Trammell, B., Kuhlewind, M. and Fairhurst, G., 2016, July.
+    `PATHspider: A tool for active measurement of path transparency
+    <https://mami-project.eu/wp-content/uploads/2015/10/anrw16-final13.pdf>`_.
+    In Proceedings of the 2016 Applied Networking Research Workshop (pp. 62-64).
+    ACM.
+
 Acknowledgements
 ----------------
 
