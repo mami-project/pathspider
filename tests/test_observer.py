@@ -1,11 +1,14 @@
 
 import logging
 import queue
+import multiprocessing as mp
 import threading
 
 import nose
 
 from pathspider.base import SHUTDOWN_SENTINEL
+from pathspider.base import QUEUE_SIZE
+from pathspider.observer import Observer
 from pathspider.observer import simple_observer
 
 def _test_observer(lturi):
@@ -49,3 +52,24 @@ def test_observer_icmp_ttl_flowcount():
 def test_observer_icmp_unreachable_flowcount():
     lturi = "pcap:tests/testdata/icmp_unreachable.pcap"
     assert _test_observer(lturi) == 2
+
+def test_observer_shutdown():
+    flowqueue = mp.Queue(QUEUE_SIZE)
+    observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
+
+    observer = Observer("pcap:tests/testdata/random.pcap")
+    observer_process = mp.Process(
+        args=(flowqueue,
+              observer_shutdown_queue),
+        target=observer.run_flow_enqueuer,
+        name='observer',
+        daemon=True)
+    observer_process.start()
+
+    observer_shutdown_queue.put(True)
+
+    assert flowqueue.get(True, timeout=3) == SHUTDOWN_SENTINEL
+
+    observer_process.join(3)
+
+    assert not observer_process.is_alive()
