@@ -176,12 +176,26 @@ def resolution_worker(iq, oq):
         finally:
             iq.task_done()
 
-def output_worker(oq, writer):
+def add_port_number(entry, port):
+    '''
+    Add a port number to an entry
+    
+    Transforms an entry from (ip, domain, rank) to (ip, <port>, domain, rank)
+    if port is not None
+    '''
+    
+    if port == None:
+        return entry
+
+    return (entry[0], port) + entry[1:]
+
+def output_worker(oq, writer, add_port):
     logger = logging.getLogger('dnsresolv')
 
     logger.info("output thread started")
     while True:
         entry = oq.get()
+        entry = add_port_number(entry, add_port)
         if entry is None:
             logger.info("Output handling shutdown signal")
             oq.task_done()
@@ -243,7 +257,7 @@ def main(args):
 
         logger.info('Starting output thread...')
         ot = threading.Thread(target=output_worker, name='output_worker',
-                args=(oq, writer), daemon=True)
+                args=(oq, writer, args.add_port), daemon=True)
         ot.start()
 
         logger.info('Enqueueing domains...')
@@ -295,9 +309,13 @@ def register_args(subparsers):
             help='Timeout for DNS resolution.')
     parser.add_argument('--sleep', '-s', type=float, default='0',
             help='Sleep before every request. Useful for rate-limiting.')
+    parser.add_argument('--add-port', '-p', type=int, default=None,
+            dest='add_port',
+            help='If specified, this port number will be added to every'
+            'line in the output file.')
     parser.add_argument('--www', default='preferred',
             choices=['never', 'preferred', 'always', 'both'],
-            help='Mode for prepending "www." to every domain before resolution.' 
+            help='Mode for prepending "www." to every domain before resolution.'
             ' "never" will never prepend "www.". "preferred" will prepend '
             '"www." if the resolution of the domain including "www." '
             'is successful (more specifically: an A record is returned), '
