@@ -68,11 +68,11 @@ directory structure. This example is explained in the following sections.
      """
  
      def config_zero(self):
-         logger = logging.getLogger("template")
+         logger = logging.getLogger("example")
          logger.debug("Configuration zero")
  
      def config_one(self):
-         logger = logging.getLogger("template")
+         logger = logging.getLogger("example")
          logger.debug("Configuration one")
  
      def connect(self, job, pcs, config):
@@ -84,7 +84,7 @@ directory structure. This example is explained in the following sections.
          return rec
  
      def create_observer(self):
-         logger = logging.getLogger("template")
+         logger = logging.getLogger("example")
          try:
              return simple_observer()
          except:
@@ -104,8 +104,8 @@ directory structure. This example is explained in the following sections.
  
      @staticmethod
      def register_args(subparsers):
-         parser = subparsers.add_parser('template', help="Template for development")
-         parser.set_defaults(spider=Template)
+         parser = subparsers.add_parser('example', help="Example starting point for development")
+         parser.set_defaults(spider=Example)
  
 
 You will need to provide implementations for each of these functions, which
@@ -175,7 +175,7 @@ example:
      [...]
 
      def create_observer(self):
-         logger = logging.getLogger("template")
+         logger = logging.getLogger("example")
          try:
              return Observer(self.libtrace_uri,
                              new_flow_chain=[basic_flow],
@@ -205,9 +205,6 @@ should pass your functions to the appropriate chain:
 | l4_chain             | Functions to record details from other layer     |
 |                      | 4 headers.                                       |
 +----------------------+--------------------------------------------------+
-
-
-
 
 Library Observer Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -276,3 +273,14 @@ An example implementation of this method can be found in the ECN plugin:
 
 .. _observer:
 
+Running Your Plugin
+-------------------
+
+In order to run your plugin, in the root of your plugin source tree run:
+
+.. code-block:: shell
+
+ PYTHONPATH=. pathspider example </usr/share/doc/pathspider/examples.csv >results.txt
+
+Unless you install your plugin, you will need to add the plugin tree to the
+``PYTHONPATH`` to allow the plugin to be discovered.
