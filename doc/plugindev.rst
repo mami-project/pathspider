@@ -1,16 +1,16 @@
 Developing Plugins
 ==================
 
-PATHspider is written to be extensible and the plugins that included in the
-PATHspider distribution are only examples of the measurements that PATHspider
-can perform.
+PATHspider is written to be extensible and the plugins that are included in the
+PATHspider distribution are examples of the measurements that PATHspider can
+perform.
 
 :mod:`pathspider.plugins` is a namespace package. Namespace packages are a
 mechanism for splitting a single Python package across multiple directories on
 disk. One or more distributions may provide modules which exist inside the same
-namespace package. The PATHspider distribution's plugins are installed here,
-but also 3rd-party plugins can exist in this path without being a part of the
-PATHspider distribution.
+namespace package. The PATHspider distribution's plugins are installed in
+:mod:`pathspider.plugins`, but also 3rd-party plugins can exist in this path
+without being a part of the PATHspider distribution.
 
 Quickstart
 ----------
@@ -50,8 +50,9 @@ Example Plugin
 
 The following code can be found in the quickstart example as a starting point
 for developing your plugin. If you are not using the quickstart example, you
-may copy and paste this code a Python file under ``pathspider/plugins/`` in the
-directory structure. This example is explained in the following sections.
+may copy and paste this code into a Python file under ``pathspider/plugins/``
+in the directory structure. This example is explained in the following
+sections.
 
 .. code-block:: python
 
@@ -159,9 +160,9 @@ An example implementation of these methods can be found in the ECN plugin:
 Observer Functions
 ------------------
 
-PATHspider's observer will accept functions and pass python-libtrace dissected
-packets along with the associated flow record to them for every packet
-recieved.
+PATHspider's observer will accept functions and pass `python-libtrace
+<https://www.cs.auckland.ac.nz/~nevil/python-libtrace/>`_ dissected packets
+along with the associated flow record to them for every packet recieved.
 
 The :mod:`pathspider.observer` module provides
 :func:`pathspider.observer.simple_observer` which allows the creation of a very
@@ -260,7 +261,7 @@ function is in.
 
 If a function returns False, as it has identified the end of the flow, the
 Observer will consider the flow to be finished and will pass it to be merged
-with the job record after a short delay. This might occur, for TCP flows, when
+with the job record after a short delay. This might occur for TCP flows when
 both FIN packets have been seen using the
 :func:`pathspider.observer.tcp.tcp_complete` function.
 
