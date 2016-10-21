@@ -18,7 +18,7 @@ the use of TCP Fast Open.
 Usage Example
 -------------
 
-To use the DSCP plugin, specify ``tfo`` as the plugin to use on the command-line:
+To use the TFO plugin, specify ``tfo`` as the plugin to use on the command-line:
 
 .. code-block:: shell
 

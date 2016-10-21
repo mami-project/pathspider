@@ -7,4 +7,6 @@ documentation for them here:
 .. toctree::
    :maxdepth: 1
 
+   plugins/ecn
    plugins/dscp
+   plugins/tfo
