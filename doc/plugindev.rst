@@ -280,8 +280,6 @@ An example implementation of this method can be found in the ECN plugin:
 .. automethod:: pathspider.plugins.ecn.ECN.merge
 
 
-.. _observer:
-
 Running Your Plugin
 -------------------
 
