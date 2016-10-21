@@ -8,8 +8,8 @@ passing through them. This has led to an ossification of the Internet protocol
 stack: new protocols and extensions can be difficult to deploy when middleboxes
 do not understand them [Honda11]_. PATHspider is a software measurement tool
 for active measurement of Internet path transparency to transport protocols and
-transport protocol extensions, to generate raw data at scale to determine the
-size and shape of this problem.
+transport protocol extensions, that can generate raw data at scale to determine
+the size and shape of this problem.
 
 The A/B testing measurement methodology used by PATHspider is simple: We
 perform connections from a set of observation points to a set of measurement
@@ -42,7 +42,7 @@ Given PATHspider's modular design and implementation in Python, plugins to
 perform measurements for any transport protocol or extension are easy to
 build and can take advantage of the rich Python library ecosystem, including
 high-level application libraries, low-level socket interfaces, and packet
-forging tools such as Scapy.
+forging tools such as `Scapy <http://www.secdev.org/projects/scapy/>`_.
 
 .. architecture:
 
@@ -82,7 +82,7 @@ Using semaphores, the configurator waits for each worker to complete an
 operation and then changes the state to perform the next batch of operations.
 This process cycles continually until no more jobs remain. In a typical
 experiment, multiple workers (on the order of hundreds) are active, since much
-of the time in a connection test is spent waiting for an answer for the
+of the time in a connection test is spent waiting for an answer from the
 target or a timeout to fire.
 
 In addition, packets are separately captured for analysis by the observer using
