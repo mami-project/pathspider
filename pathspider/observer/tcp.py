@@ -1,9 +1,14 @@
 
 TCP_CWR = 0x80
 TCP_ECE = 0x40
+TCP_URG = 0x20
 TCP_ACK = 0x10
+TCP_PSH = 0x08
+TCP_RST = 0x04
 TCP_SYN = 0x02
+TCP_FIN = 0x01
 
+TCP_SA = ( TCP_SYN | TCP_ACK )
 TCP_SEC = ( TCP_SYN | TCP_ECE | TCP_CWR )
 TCP_SAEC = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
@@ -22,20 +27,19 @@ def tcp_setup(rec, ip):
     return True
 
 def tcp_handshake(rec, tcp, rev):
-    flags = tcp.flags
+    if rec['tcp_connected']:
+        # short-circuit if we're done here
+        return True
 
-    if flags & TCP_SYN:
-        if rev == 0:
-            rec['fwd_syn_flags'] = flags
-        if rev == 1:
-            rec['rev_syn_flags'] = flags
+    if tcp.syn_flag:
+        rec['rev_syn_flags' if rev else 'fwd_syn_flags'] = tcp.flags
 
     # TODO: This test could perhaps be improved upon.
     # This test is intended to catch the completion of the 3WHS.
     if (not rec['tcp_connected'] and rev == 0 and
        rec['fwd_syn_flags'] is not None and
        rec['rev_syn_flags'] is not None and
-       flags & TCP_ACK):
+       tcp.ack_flag):
         rec['tcp_connected'] = True
 
     return True

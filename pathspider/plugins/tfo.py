@@ -18,6 +18,7 @@ from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
 from pathspider.observer.tcp import tcp_setup
+from pathspider.observer.tcp import tcp_handshake
 from pathspider.observer.tcp import tcp_complete
 
 from timeit import default_timer as timer
@@ -257,16 +258,16 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     def create_observer(self):
         logger = logging.getLogger('tfo')
         logger.info("Creating observer")
-        try:
-            return Observer(self.libtrace_uri,
+#        try:
+        return Observer(self.libtrace_uri,
                             new_flow_chain=[basic_flow, tcp_setup, _tfosetup],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
-                            tcp_chain=[tcp_complete, _tfopacket])
-        except:
-            logger.error("Observer not cooperating, abandon ship")
-            traceback.print_exc()
-            sys.exit(-1)
+                            tcp_chain=[tcp_handshake, tcp_complete, _tfopacket])
+#        except:
+#            logger.error("Observer not cooperating, abandon ship")
+#            traceback.print_exc()
+#            sys.exit(-1)
 
     def merge(self, flow, res):
         logger = logging.getLogger('tfo')
