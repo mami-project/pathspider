@@ -12,8 +12,9 @@ sending data to the client even before the reception of the final ACK packet of
 the three-way handshake, skipping that way a round-trip delay and lowering the
 latency in the start of data transmission.
 
-The TFO plugin for PATHspider aims to detect breakage in the Internet due to
-the use of TCP Fast Open.
+The TFO plugin for PATHspider aims to detect connectivity breakage due to the
+the use of TCP Fast Open, implementation of TCP Fast Open, and TFO
+implementation anomalies.
 
 Usage Example
 -------------
@@ -38,18 +39,18 @@ plugin also provides the following fields for each flow:
 +---------------+-------------------------------------------------------------+
 | Key           | Description                                                 |
 +===============+=============================================================+
-| tfo_synkind   |                                                             |
+| tfo_synkind   | TCP Option Kind of TFO option on SYN (34, 254; 0 = none)    |
 +---------------+-------------------------------------------------------------+
-| tfo_ackkind   |                                                             |
+| tfo_ackkind   | TCP Option Kind of TFO option on SYN/ACK (34, 254; 0 = none)|
 +---------------+-------------------------------------------------------------+
-| tfo_synclen   |                                                             |
+| tfo_synclen   | TFO Cookie Length on SYN                                    |
 +---------------+-------------------------------------------------------------+
-| tfo_ackclen   |                                                             |
+| tfo_ackclen   | TFO Cookie Length on SYN/ACK                                |
 +---------------+-------------------------------------------------------------+
-| tfo_seq       |                                                             |
+| tfo_seq       | Sequence number of SYN                                      |
 +---------------+-------------------------------------------------------------+
-| tfo_dlen      |                                                             |
+| tfo_dlen      | Length of TCP payload on SYN                                |
 +---------------+-------------------------------------------------------------+
-| tfo_ack       |                                                             |
+| tfo_ack       | Ack number of SYN/ACK. For ACKed data, = seq + dlen + 1     |
 +---------------+-------------------------------------------------------------+
 
