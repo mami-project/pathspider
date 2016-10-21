@@ -47,6 +47,6 @@ responsible for any use that may be made of that information.
 |MAMI Logo|
 
 .. |MAMI Logo|
-   image:: https://raw.githubusercontent.com/mami-project/roadshows/master/logos/mami-bauhaus.png
+   image:: https://raw.githubusercontent.com/mami-project/pathspider/master/doc/_static/mami-bauhaus.png
    :target: https://mami-project.eu/
    :width: 300
