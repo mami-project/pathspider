@@ -2,7 +2,7 @@ ECN Plugin
 ==========
 
 Explicit Congestion Notification (ECN) is an extension to the Internet Protocol
-and to the Transmission Control Protocol. [RFC3168]_ ECN allows end-to-end
+and to the Transmission Control Protocol. [RFC3186]_ ECN allows end-to-end
 notification of network congestion without dropping packets.  ECN is an
 optional feature that may be used between two ECN-enabled endpoints when the
 underlying network infrastructure also supports it.
