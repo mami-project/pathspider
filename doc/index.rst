@@ -30,6 +30,7 @@ Table of Contents
    installation
    using
    plugins
+   resolver
    plugindev
    abstract
    observer

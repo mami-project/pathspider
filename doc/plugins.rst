@@ -5,11 +5,10 @@ A number of plugins ship with the PATHspider distribution. You can find
 documentation for them here:
 
 .. toctree::
-   :maxdepth: 1
+   :titlesonly:
+   :glob:
 
-   plugins/ecn
-   plugins/dscp
-   plugins/tfo
+   plugins/*
 
 3rd-Party Plugins
 -----------------
