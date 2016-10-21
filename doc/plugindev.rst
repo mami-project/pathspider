@@ -12,6 +12,15 @@ namespace package. The PATHspider distribution's plugins are installed here,
 but also 3rd-party plugins can exist in this path without being a part of the
 PATHspider distribution.
 
+Quickstart
+----------
+
+The directory layout and example plugin below can be found in the
+`pathspider-example GitHub repository
+<https://github.com/mami-project/pathspider-example/>`_. You can get going
+quickly by forking this repository and using that as a basis for plugin
+development.
+
 Directory Layout
 ----------------
 
