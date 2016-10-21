@@ -24,6 +24,8 @@ Documentation
 
 For information on how to get started, see the `documentation`_.
 
+.. _documentation: http://pathspider.rtfd.io/
+
 License
 -------
 
@@ -42,5 +44,8 @@ grant agreement No 688421. The opinions expressed and arguments employed
 reflect only the authors’ view. The European Commission is not
 responsible for any use that may be made of that information.
 
-.. _documentation: http://pathspider.rtfd.io/
+|MAMI Logo|
 
+.. |MAMI Logo|
+   image:: https://raw.githubusercontent.com/mami-project/roadshows/master/logos/mami-bauhaus.png
+   :target: https://mami-project.eu/
