@@ -1,16 +1,14 @@
 PATHspider
 ==========
 
-|Build Status| |Coverage Status| |Documentation Status| |PyPI Status| |Citation Information|
+Release: 1.0.0 / Codename: `Heteropoda venatoria <https://en.wikipedia.org/wiki/Heteropoda_venatoria>`_
 
-.. |Build Status| image:: https://img.shields.io/jenkins/s/https/jenkins.erg.abdn.ac.uk/pathspider.svg
-   :target: https://jenkins.erg.abdn.ac.uk/job/pathspider/
-.. |Coverage Status| image:: https://coveralls.io/repos/github/mami-project/pathspider/badge.svg?branch=master
-   :target: https://coveralls.io/github/mami-project/pathspider?branch=master
-.. |Documentation Status| image:: https://readthedocs.org/projects/pathspider/badge/?version=latest
-   :target: http://pathspider.readthedocs.io/en/latest/?badge=latest
-.. |PyPI Status| image:: https://img.shields.io/pypi/v/pathspider.svg
-   :target: https://pypi.python.org/pypi/pathspider
+|Documentation Status| |PyPI Status| |Citation Information|
+
+.. |Documentation Status| image:: https://readthedocs.org/projects/pathspider/badge/?version=1.0.0
+   :target: http://pathspider.readthedocs.io/en/latest/?badge=1.0.0
+.. |PyPI Status| image:: https://img.shields.io/badge/pypi-v1.0.0-blue.svg
+   :target: https://pypi.python.org/pypi/pathspider/1.0.0
 .. |Citation Information| image:: https://pathspider.net/doi.svg
    :target: http://dx.doi.org/10.1145/2959424.2959441
 
