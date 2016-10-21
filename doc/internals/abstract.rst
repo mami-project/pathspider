@@ -7,7 +7,11 @@ The core functionality of PATHspider is implemented in two classes:
 :class:`pathspider.base.Spider` which provides a skeleton that has the required
 functions for any plugin. The documentation for this base class is below:
 
-.. autoclass:: pathspider.base.Spider
+pathspider.base
+---------------
+
+.. automodule:: pathspider.base
    :members:
+   :undoc-members:
 
 

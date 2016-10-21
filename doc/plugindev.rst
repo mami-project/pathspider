@@ -36,8 +36,13 @@ the following):
 Your plugin will be written in ``example.py`` and this plugin will be
 discovered automatically when you run PATHspider.
 
-An Example Plugin
------------------
+Example Plugin
+--------------
+
+The following code can be found in the quickstart example as a starting point
+for developing your plugin. If you are not using the quickstart example, you
+may copy and paste this code a Python file under ``pathspider/plugins/`` in the
+directory structure. This example is explained in the following sections.
 
 .. code-block:: python
 
@@ -49,19 +54,17 @@ An Example Plugin
  from pathspider.base import PluggableSpider
  from pathspider.base import NO_FLOW
  
- from pathspider.observer import Observer
- from pathspider.observer import basic_flow
- from pathspider.observer import basic_count
+ from pathspider.observer import simple_observer
  
  Connection = collections.namedtuple("Connection", ["host", "state"])
  SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
                                                         "host", "config",
                                                         "connstate"])
  
- class Template(SynchronizedSpider, PluggableSpider):
+ class Example(SynchronizedSpider, PluggableSpider):
  
      """
-     A template PATHspider plugin.
+     An example PATHspider plugin.
      """
  
      def config_zero(self):
@@ -73,7 +76,7 @@ An Example Plugin
          logger.debug("Configuration one")
  
      def connect(self, job, pcs, config):
-         sock = "Hello"
+         sock = tcp_connect(job)
          return Connection(sock, 1)
  
      def post_connect(self, job, conn, pcs, config):
@@ -83,10 +86,7 @@ An Example Plugin
      def create_observer(self):
          logger = logging.getLogger("template")
          try:
-             return Observer(self.libtrace_uri,
-                             new_flow_chain=[basic_flow],
-                             ip4_chain=[basic_count],
-                             ip6_chain=[basic_count])
+             return simple_observer()
          except:
              logger.error("Observer would not start")
              sys.exit(-1)
@@ -107,16 +107,12 @@ An Example Plugin
          parser = subparsers.add_parser('template', help="Template for development")
          parser.set_defaults(spider=Template)
  
-Required Functions
-------------------
 
-In order to write a plugin you will need to produce implementations for the
-following: :func:`config_zero <ISpider.config_zero>`, :func:`config_one
-<ISpider.config_one>`, :func:`connect <ISpider.connect>` and :func:`merge
-<ISpider.merge>`.
+You will need to provide implementations for each of these functions, which
+are explained next. We'll start with the connection logic.
 
-Optionally, you can provide :func:`pre_connect <ISpider.pre_connect>` and
-:func:`post_connect <ISpider.post_connect>`.
+Connection Logic
+----------------
 
 Configurator
 ^^^^^^^^^^^^
@@ -127,14 +123,14 @@ be a call to sysctl, changes via netfilter or a call to a robot arm to
 reposition the satellite array. In the event that global state changes are
 not required, these can be implemented as no-ops.
 
-An example implementation of these methods can be found in `ecnspider3`:
+An example implementation of these methods can be found in the ECN plugin:
 
-.. automethod:: ecn.ECN.config_zero
+.. automethod:: pathspider.plugins.ecn.ECN.config_zero
 
-.. automethod:: ecn.ECN.config_one
+.. automethod:: pathspider.plugins.ecn.ECN.config_one
 
-(Pre-,Post-)Connection
-^^^^^^^^^^^^^^^^^^^^^^
+(Pre-,Post-) Connection
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The pre-connection function will run only once, and the result of the
 pre-connection operation will be available to both runs of the connection and
@@ -144,43 +140,53 @@ If you require to pass different values depending on the configuration, you can
 perform two operations in the pre-connect function, returning a tuple, and
 selecting the value to use based on the configuration in the later functions.
 
-An example implementation of these methods can be found in `ecnspider3`:
+An example implementation of these methods can be found in the ECN plugin:
 
-.. automethod:: ecn.ECN.connect
+.. automethod:: pathspider.plugins.ecn.ECN.connect
 
-.. automethod:: ecn.ECN.post_connect
+.. automethod:: pathspider.plugins.ecn.ECN.post_connect
 
-Merging
-^^^^^^^
 
-The merge function will be called for every job and given the job record and
-the observer record. The merge function is then to return the final record
-to be recorded in the dataset for the measurement run.
-
-.. warning:: It is possible for the Observer to return a NO_FLOW object in
-             some circumstances, where the flow has not been observed. Any
-             implementation must handle this gracefully.
-
-An example implementation of this method can be found in `ecnspider3`:
-
-.. automethod:: ecn.ECN.merge
-
-Plugin Template
----------------
-
-A template plugin is available in the plugins that ship with the PATHspider
-distribution:
-
-.. autoclass:: template.Template
-
-.. _observer:
-
-Observer Function Chains
-------------------------
+Observer Functions
+------------------
 
 PATHspider's observer will accept functions and pass python-libtrace dissected
 packets along with the associated flow record to them for every packet
 recieved.
+
+The :mod:`pathspider.observer` module provides
+:func:`pathspider.observer.simple_observer` which allows the creation of a very
+simple Observer during development of the other portions of the plugin. There
+are two simple examples of observer functions that are used in the observer
+created by this function.
+
+When you are ready to start working with your own Observer functions, you will
+need to expand your ``create_observer()`` function. You can use the following
+example:
+
+.. code-block:: python
+
+ from pathspider.observer import Observer
+ from pathspider.observer import basic_flow
+ from pathspider.observer import basic_count
+
+ class Example(SynchronizedSpider, PluggableSpider):
+
+     [...]
+
+     def create_observer(self):
+         logger = logging.getLogger("template")
+         try:
+             return Observer(self.libtrace_uri,
+                             new_flow_chain=[basic_flow],
+                             ip4_chain=[basic_count],
+                             ip6_chain=[basic_count])
+         except:
+             logger.error("Observer would not start")
+             sys.exit(-1)
+
+Depending on the types of analysis you would like to do on the packets, you
+should pass your functions to the appropriate chain:
 
 +----------------------+--------------------------------------------------+
 | Function Chain       | Description                                      |
@@ -200,25 +206,29 @@ recieved.
 |                      | 4 headers.                                       |
 +----------------------+--------------------------------------------------+
 
-Quickstart
-----------
 
-The :mod:`pathspider.observer` module provides
-:func:`pathspider.observer.simple_observer` which allows the creation of a very
-simple Observer during development of the other portions of the plugin. There
-are two simple examples of observer functions that are used in the observer
-created by this function.
+
+
+Library Observer Functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`pathspider.observer.basic_flow` function simply creates the inital
 state for the flow record, extracting the 5-tuple and initialising counters.
 The counters are used by the :func:`pathspider.observer.basic_count` function
-that counts the number of packets and octets seen in each direction.
+that counts the number of packets and octets seen in each direction. These
+combined will allow your plugin to produce the :ref:`default output fields
+<defaultoutput>`.
 
-Initialisation happens in the ``new_flow_chain`` and the counts happen in the
-``ip4_chain`` and ``ip6_chain``.
+PATHspider also provides library observer functions for some protocols:
+
+.. toctree::
+   :glob:
+   :titlesonly:
+
+   plugindev/*
 
 Writing Observer Functions
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When you are ready to write functions for the observer, first identify which
 data should be stored in the flow record. This is a :class:`dict` that is made
@@ -226,26 +236,10 @@ available for every call to an observer function for a particular flow and
 not shared across flows. Once the flow is completed, this is the record that
 will be returned to the merger.
 
-Handling New Flows
-^^^^^^^^^^^^^^^^^^
-
 The flow record should be initialised when a new flow has been identified. The
 functions in the ``new_flow_chain`` are called, in sequence, when a new flow
 is identified by the Observer. These functions are passed two arguments:
 ``rec`` - the empty flow record, and ``ip`` - the IP header.
-
-At a minimum, this should contain::
-
-    def example_flow(rec, ip):
-        # Extract addresses and ports
-        (rec['sip'], rec['dip'], rec['proto']) = (str(ip.src_prefix), str(ip.dst_prefix), ip.proto)
-        (rec['sp'], rec['dp']) = extract_ports(ip)
-
-*Note: You will need to import :func:`pathspider.observer.extract_ports` to use
-this example.*
-
-Writing Analysis Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You should familiarise yourself with the `python-libtrace documentation
 <https://www.cs.auckland.ac.nz/~nevil/python-libtrace/>`_. The analysis
@@ -258,11 +252,27 @@ python-libtrace object, to the function. The same flow record is always passed
 for each call for the same flow, regardless of which function chain the
 function is in.
 
-An example function is the implementation of
-:func:`pathspider.observer.basic_flow`.
-
 If a function returns False, as it has identified the end of the flow, the
 Observer will consider the flow to be finished and will pass it to be merged
 with the job record after a short delay. This might occur, for TCP flows, when
-both FIN packets have been seen.
+both FIN packets have been seen using the
+:func:`pathspider.observer.tcp.tcp_complete` function.
+
+Merging
+-------
+
+The merge function will be called for every job and given the job record and
+the observer record. The merge function is then to return the final record
+to be recorded in the dataset for the measurement run.
+
+.. warning:: It is possible for the Observer to return a NO_FLOW object in
+             some circumstances, where the flow has not been observed. Any
+             implementation must handle this gracefully.
+
+An example implementation of this method can be found in the ECN plugin:
+
+.. automethod:: pathspider.plugins.ecn.ECN.merge
+
+
+.. _observer:
 
