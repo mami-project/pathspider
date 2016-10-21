@@ -58,7 +58,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
                          libtrace_uri=libtrace_uri,
                          args=args)
         self.conn_timeout = args.timeout
-        self.comparetab = {}
 
     def config_zero(self):
         """
@@ -133,63 +132,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
             traceback.print_exc()
             sys.exit(-1)
 
-    def combine_flows(self, flow):
-        dip = flow['dip']
-        if dip in self.comparetab:
-            other_flow = self.comparetab.pop(dip)
-
-            # first has always ecn off, while the second has ecn on
-            flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
-            conditions = []
-
-            # discard non-observed flows and flows with no syn observed
-            for f in flows:
-                if not (f['observed'] and "rev_syn_flags" in f.keys()):
-                    return
-
-            tstart = min(flow['tstart'], other_flow['tstart'])
-            tstop = max(flow['tstop'], other_flow['tstop'])
-
-            if flows[0]['connstate'] and flows[1]['connstate']:
-                cond_conn = 'ecn.connectivity.works'
-            elif flows[0]['connstate'] and not flows[1]['connstate']:
-                cond_conn = 'ecn.connectivity.broken'
-            elif not flows[0]['connstate'] and not flows[1]['connstate']:
-                cond_conn = 'ecn.connectivity.transient'
-            else:
-                cond_conn = 'ecn.connectivity.offline'
-            conditions.append(cond_conn)
-
-            if flows[1]['rev_syn_flags'] & TCP_SAEC == TCP_SAE:
-                negotiated = True
-                conditions.append('ecn.negotiated')
-            else:
-                negotiated = False
-                conditions.append('ecn.not_negotiated')
-
-            if flows[1]['rev_ez']:
-                conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
-            if flows[1]['rev_eo']:
-                conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
-            if flows[1]['rev_ce']:
-                conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
-
-            self.outqueue.put({
-                'sip': flow['sip'],
-                'dip': dip,
-                'dp': flow['dp'],
-                'conditions': conditions,
-                'hostname': flow['host'],
-                'rank': flow['rank'],
-                'flow_results': flows,
-                'time': {
-                    'from': tstart,
-                    'to': tstop
-                }
-            })
-        else:
-            self.comparetab[dip] = flow
-
     def merge(self, flow, res):
         """
         Merge flow records.
@@ -217,7 +159,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         flow['tstop'] = res.tstop
 
         logger.debug("Result: " + str(flow))
-        self.combine_flows(flow)
+        self.outqueue.put(flow)
 
     @staticmethod
     def register_args(subparsers):
