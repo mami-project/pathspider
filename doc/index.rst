@@ -32,8 +32,6 @@ Table of Contents
    plugins
    resolver
    plugindev
-   abstract
-   observer
    advanced
 
 .. toctree::
