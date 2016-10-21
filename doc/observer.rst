@@ -94,10 +94,3 @@ Observer will consider the flow to be finished and will pass it to be merged
 with the job record after a short delay. This might occur, for TCP flows, when
 both FIN packets have been seen.
 
-Observer Implementation
------------------------
-
-.. automodule:: pathspider.observer
-   :members:
-   :undoc-members:
-   :special-members: __init__
