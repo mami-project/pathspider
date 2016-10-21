@@ -3,8 +3,8 @@ Usage Overview
 
 You can run PATHspider from the command line. In order for the Observer to
 work, you will need permissions to capture raw packets from the network
-interface. If you've installed from apt then either the executable in /usr/bin
-will have been setuid or will have filesystem permissions set.
+interface. This will require you to use ``sudo`` or equivalent in order to
+run PATHspider.
 
 .. code-block:: text
 
