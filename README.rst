@@ -49,3 +49,4 @@ responsible for any use that may be made of that information.
 .. |MAMI Logo|
    image:: https://raw.githubusercontent.com/mami-project/roadshows/master/logos/mami-bauhaus.png
    :target: https://mami-project.eu/
+   :width: 300px
