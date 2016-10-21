@@ -62,9 +62,11 @@ of web servers and save the results in ``results.txt``:
 Data Formats
 ------------
 
-PATHspider uses `newline delimited JSON <http://ndjson.org/>`_ for both the
-input and output format. This gives flexibility in the actual contents of the
-data as different tests may require data to remain associated with jobs,
+PATHspider uses `newline delimited JSON <http://ndjson.org/>`_ (ndjson) for the
+output format. At present, the input format is CSV although in future versions
+we will deprecate the CSV input format and use a ndjson format input to unify
+the data formats. The ndjson format gives flexibility in the actual contents of
+the data as different tests may require data to remain associated with jobs,
 for example the Alexa ranking of a webserver, so that it can be present in the
 final output, or in some cases the data may be used as part of the test, for
 example when running tests against authoritative DNS servers and needing to
@@ -73,7 +75,19 @@ know a domain for which the server should be authoritative.
 Job List
 ~~~~~~~~
 
-The standalone runner expects...
+The standalone runner expects a CSV file as input, with one line per job. The
+format for each line should be as follows::
+
+ target_ip,target_port,target_hostname,target_rank
+
+The current input format is optimised for the use case of using the Alexa top
+1 million webservers and so includes a value for the ranking in that list for
+the job. This value is opaque to PATHspider and may be set to any string
+desirable, or to ``0`` if this is not required.
+
+If the ``target_port`` is not a valid integer, the job will be skipped and a
+warning emitted by the logger. Blank lines are permitted and will be ignored by
+the job feeder.
 
 .. _defaultoutput:
 
