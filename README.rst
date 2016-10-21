@@ -9,7 +9,7 @@ PATHspider
    :target: https://coveralls.io/github/mami-project/pathspider?branch=master
 .. |Documentation Status| image:: https://readthedocs.org/projects/pathspider/badge/?version=latest
    :target: http://pathspider.readthedocs.io/en/latest/?badge=latest
-.. |PyPI Status| .. image:: https://img.shields.io/pypi/v/pathspider.svg
+.. |PyPI Status| image:: https://img.shields.io/pypi/v/pathspider.svg
    :target: https://pypi.python.org/pypi/pathspider
 .. |Citation Information| image:: https://pathspider.net/doi.svg
    :target: http://dx.doi.org/10.1145/2959424.2959441
