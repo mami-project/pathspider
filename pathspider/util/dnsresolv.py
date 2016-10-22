@@ -27,7 +27,7 @@ WWW = None  #: The value of the -www command line option
 Q_SIZE = 100  #: Maximum domain queue size
 
 
-def resolve(domain, query='A'):
+def resolve(domain, query='A', max_tries=3):
     '''
     Resolve a domain name to IP address(es).
 
@@ -38,25 +38,35 @@ def resolve(domain, query='A'):
     '''
     resolver = dns.resolver.Resolver()
     resolver.lifetime = TIMEOUT
-    answers = resolver.query(domain, query)
-    l = [a.to_text() for a in answers]
-    return l
+
+    while max_tries > 0:
+        try:
+            answer = resolver.query(domain, query)
+        except dns.exception.Timeout:
+            # Just a timeout, lets try again
+            max_tries = max_tries - 1
+            continue
+        except dns.exception.DNSException:
+            answer = None
+            break
+        else:
+            # if there would have been no answer, then the Resolver() would have
+            # raised a DNSException, so we know that there answer has content.
+            answer = [a.to_text() for a in answer]
+            # answer now is an array of strings of ip's
+            break    
+
+    if max_tries == 0: return None
+    return answer
 
 
 def resolve_both(domain):
     '''
     Helper function to handle_domain.
     '''
-    try:
-        a = resolve(domain)
-    except dns.exception.DNSException:
-        a = ['']
-
-    try:
-        a4 = resolve(domain, 'AAAA')
-    except dns.exception.DNSException:
-        a4 = [b'']
-
+    a = resolve(domain)
+    a4 = resolve(domain, 'AAAA')
+    
     return (a, a4)
 
 
@@ -87,8 +97,7 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
         if count != 0 and c >= count:
             break
 
-
-def resolution_worker(iq, oq):
+def resolution_worker(iq, oq, only_first=False):
     logger = logging.getLogger('dnsresolv')
     while True:
         entry = iq.get()
@@ -108,69 +117,60 @@ def resolution_worker(iq, oq):
             # checking for a leading "www." first. Alexa's list generally omits
             # the almost ubiquitous "www.", but not always: www.uk.com is a
             # counter-example.
-            wdomain = domain
+            
+            #wdomain = domain
             #if domain[:4] != 'www.':
                 #wdomain = 'www.' + domain
+            
             wdomain = 'www.' + domain
 
             # ``domain`` is the 'original' passed in, and ``wdomain`` is domain
-            # with a 'www.' prepended where applicable
+            # with a 'www.' prepended to it.
+
+            ## FIRST: try to get all the DNS records we want
+
+            #initalise all results to None:
+            a, a4, aw, a4w = None, None, None, None
 
             if WWW == 'never':
                 (a, a4) = resolve_both(domain)
             elif WWW == 'always':
-                (a, a4) = resolve_both(wdomain)
-                domain = wdomain
+                (aw, a4w) = resolve_both(wdomain)
             elif WWW == 'both':
                 (a, a4) = resolve_both(domain)
                 (aw, a4w) = resolve_both(wdomain)
-
-                if len(a) > 1:
-                    a = [a[0]]
-                if len(a4) > 1:
-                    a4 = [a4[0]]
-
-                if len(aw) > 1:
-                    aw = [aw[0]]
-                if len(a4w) > 1:
-                    a4w = [a4w[0]]
-
-                ret = [rank] + [domain] + a + a4
-                retw = [rank] + [wdomain] + aw + a4w
-                return [ret, retw]
             elif WWW == 'preferred':
-                try:
-                    a = resolve(wdomain)
-                    try:
-                        a4 = resolve(wdomain, 'AAAA')
-                    except dns.exception.DNSException:
-                        a4 = ['']
-                    domain = wdomain
-                except dns.exception.Timeout:
-                    # Just a timeout, using www is OK.
-                    a = ['']
-                    try:
-                        a4 = resolve(wdomain, 'AAAA')
-                    except dns.exception.DNSException:
-                        a4 = ['']
-                except dns.exception.DNSException:
-                    # Resolution failed, falling back.
-                    (a, a4) = resolve_both(domain)
+                # first, lets try to resolve the wdomain
+                (aw, a4w) = resolve_both(wdomain)
+                # now, if we didn't get an A or AAAA record, 
+                # try to get if for the domain
+                if aw == None:
+                    a = resolve(domain)
+                if a4w == None:
+                    a4 = resolve(domain, 'AAAA')
             else:
                 logger.error("Internal error: illegal WWW value")
                 sys.exit(1)
 
-            # Keep only the first address of each IP version
-            a = a[0]
-            a4 = a4[0]
+            ## SECOND: see what records we received, and process them
 
-            if type(a4) is bytes:
-                # FIXME: Something weird is going on here. Needs investigating.
-                a4 = a4.decode('ascii') # pylint: disable=no-member
+            if a != None:
+                for record in a:
+                    oq.put((record, domain, rank))
+                    if only_first: break
+            if a4 != None:
+                for record in a4:
+                    oq.put((record, domain, rank))
+                    if only_first: break
+            if aw != None:
+                for record in aw:
+                    oq.put((record, wdomain, rank))
+                    if only_first: break
+            if a4w != None:
+                for record in a4w:
+                    oq.put((record, wdomain, rank))
+                    if only_first: break
 
-            oq.put((a, domain, rank))
-            if a4 is not '':
-                oq.put((a4, domain, rank))
         except Exception as e:
             logger.warning("Discarding resolution for "+domain+": "+repr(e))
         finally:
@@ -251,7 +251,8 @@ def main(args):
         logger.info('Starting worker threads...')
         for i in range(args.workers):
             t = threading.Thread(target=resolution_worker,
-                    name='worker_{}'.format(i), args=(iq, oq), daemon=True)
+                    name='worker_{}'.format(i), args=(iq, oq, args.only_first),
+                    daemon=True)
             t.start()
             ts[t.name] = t
 
@@ -307,12 +308,21 @@ def register_args(subparsers):
     #        help='The number of worker threads used for resolution.')
     parser.add_argument('--timeout', '-t', type=int, default='10',
             help='Timeout for DNS resolution.')
+    
     parser.add_argument('--sleep', '-s', type=float, default='0',
             help='Sleep before every request. Useful for rate-limiting.')
+    
     parser.add_argument('--add-port', '-p', type=int, default=None,
             dest='add_port',
             help='If specified, this port number will be added to every'
             'line in the output file.')
+
+    parser.add_argument('--only-first', default=False,
+            action='store_true', dest='only_first',
+            help='Only process the first record of every DNS querry.'
+            'If this is true, at most one A and and one AAAA record will'
+            'be returned for every domain')
+
     parser.add_argument('--www', default='preferred',
             choices=['never', 'preferred', 'always', 'both'],
             help='Mode for prepending "www." to every domain before resolution.'
@@ -334,6 +344,7 @@ def register_args(subparsers):
     parser.add_argument('--debug-skip', type=int, default='0',
              dest='debug_skip',
              help='Skip the first N domains, and do not resolve them.')
+    
     parser.add_argument('--debug-count', type=int, default='0', 
             dest='debug_count',
             help='Perform resolution for at most N domains. '
