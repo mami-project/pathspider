@@ -21,9 +21,9 @@ from pathspider.observer.tcp import tcp_complete
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
 
-SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "rank", "host", "config",
-                                                       "connstate", "tstart", "tstop"])
+SpiderRecord = collections.namedtuple("SpiderRecord",
+        ["ip", "rport", "port", "rank", "host", "config",
+        "connstate", "tstart", "tstop"])
 
 USER_AGENT = "pathspider"
 
@@ -67,7 +67,8 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         logger = logging.getLogger('ecn')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=2'],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
         logger.debug("Configurator disabled ECN")
 
     def config_one(self):
@@ -77,7 +78,8 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         logger = logging.getLogger('ecn')
         subprocess.check_call(['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn=1'],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
 
     def connect(self, job, pcs, config):
@@ -139,7 +141,10 @@ class ECN(SynchronizedSpider, PluggableSpider):
             other_flow = self.comparetab.pop(dip)
 
             # first has always ecn off, while the second has ecn on
-            flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
+            if other_flow['config']:
+                flows = (flow, other_flow)
+            else:
+                flows = (other_flow, flow)
             conditions = []
 
             # discard non-observed flows and flows with no syn observed
@@ -168,11 +173,20 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 conditions.append('ecn.not_negotiated')
 
             if flows[1]['rev_ez']:
-                conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
+                if negotiated:
+                    conditions.append('ecn.ect_zero.seen')
+                else:
+                    conditions.append('ecn.ect_zero.unwanted')
             if flows[1]['rev_eo']:
-                conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
+                if negotiated:
+                    conditions.append('ecn.ect_one.seen')
+                else:
+                    conditions.append('ecn.ect_one.unwanted')
             if flows[1]['rev_ce']:
-                conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
+                if negotiated:
+                    conditions.append('ecn.ce.seen')
+                else:
+                    conditions.append('ecn.ce.unwanted')
 
             self.outqueue.put({
                 'sip': flow['sip'],
@@ -221,6 +235,9 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
     @staticmethod
     def register_args(subparsers):
-        parser = subparsers.add_parser('ecn', help="Explicit Congestion Notification")
-        parser.add_argument("--timeout", default=5, type=int, help="The timeout to use for attempted connections in seconds (Default: 5)")
+        parser = subparsers.add_parser('ecn',
+                help="Explicit Congestion Notification")
+        parser.add_argument("--timeout", default=5, type=int,
+                help="The timeout to use for attempted connections "
+                "in seconds (Default: 5)")
         parser.set_defaults(spider=ECN)
