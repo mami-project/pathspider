@@ -19,6 +19,7 @@ import datetime
 import argparse
 from time import sleep
 import logging
+import random
 
 TIMEOUT = None  #: The timeout for DNS resolution.
 SLEEP = None  #: Time to sleep before each resolution, for crude rate-limiting.
@@ -57,7 +58,7 @@ def resolve(domain, query='A', max_tries=3):
             # answer now is an array of strings of ip's
             break    
 
-    if max_tries == 0: return None
+    if max_tries <= 0: return None
     return answer
 
 
@@ -65,7 +66,7 @@ def resolve_both(domain):
     '''
     Gets al A and AAAA records for domain
     '''
-    a = resolve(domain)
+    a = resolve(domain, 'A')
     a4 = resolve(domain, 'AAAA')
     
     return (a, a4)
@@ -100,13 +101,15 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
 
 def resolution_worker(iq, oq, only_first=False):
     logger = logging.getLogger('dnsresolv')
+    
     while True:
         entry = iq.get()
 
         # Shutdown and cascade
         if entry is None:
-            logger.info("Input cascading shutdown signal")
-            oq.put(None)
+            # ad a random value, so you can see that the prompt is still moving
+            logger.debug("Resolution worker shutting down {}"
+                .format(random.random()))
             iq.task_done()
             break
 
@@ -146,13 +149,14 @@ def resolution_worker(iq, oq, only_first=False):
                 # now, if we didn't get an A or AAAA record, 
                 # try to get if for the domain
                 if aw == None:
-                    a = resolve(domain)
+                    a = resolve(domain, 'A')
                 if a4w == None:
                     a4 = resolve(domain, 'AAAA')
             else:
                 logger.error("Internal error: illegal WWW value")
                 sys.exit(1)
 
+    
             ## SECOND: see what records we received, and process them
 
             if a != None:
@@ -301,12 +305,18 @@ def main(args):
                 logger.info(logstring.format(num_dom=dc+1, cur=current_rate,
                         avg=average_rate))
 
-        # now enqueue a quit signal
-        iq.put(None)
+        # now enqueue a quit signal, one for each worker
+        for i in range(args.workers):
+            iq.put(None)
 
         # wait for queues to drain
+        logger.info('Sent shtudown signal to all resolution workers')
         iq.join()
+        logger.info('All resolution workers have shut down')
+        logger.info('Sending shut down signal to output worker')
+        oq.put(None)
         ot.join()
+        logger.info('Output worker has shut down')
 
     t1 = datetime.datetime.now()
     time = t1 - t0
