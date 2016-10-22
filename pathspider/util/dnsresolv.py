@@ -315,13 +315,13 @@ def register_args(subparsers):
     parser.add_argument('--add-port', '-p', type=int, default=None,
             dest='add_port',
             help='If specified, this port number will be added to every'
-            'line in the output file.')
+            ' line in the output file.')
 
     parser.add_argument('--only-first', default=False,
             action='store_true', dest='only_first',
             help='Only process the first record of every DNS querry.'
-            'If this is true, at most one A and and one AAAA record will'
-            'be returned for every domain')
+            ' If this is true, at most one A and and one AAAA record will'
+            ' be returned for every domain')
 
     parser.add_argument('--www', default='preferred',
             choices=['never', 'preferred', 'always', 'both'],
