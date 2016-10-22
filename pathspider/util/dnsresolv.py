@@ -189,17 +189,42 @@ def add_port_number(entry, port):
 
     return (entry[0], port) + entry[1:]
 
-def output_worker(oq, writer, add_port):
+def check_if_unique_ip(entry, set_of_ips):
+    """
+    Checks if an entry contains an IP that was not encountered before
+
+    Checks if the IP of `entry` is in `set_of_ips` already,
+    and if not, adds the IP of `entry` to `set_of_ips`
+
+    Returns `True` if the IP of `entry` was not yet in `set_of_ips`
+
+    entry: tuple of which element zero should be an IP address
+    set_of_ips: set of IP's that where previously seen
+    """
+
+    if entry[0] in set_of_ips:
+        return False
+    set_of_ips.add(entry[0])
+    return True
+
+def output_worker(oq, writer, add_port, unique_ip=False):
     logger = logging.getLogger('dnsresolv')
 
     logger.info("output thread started")
+    processed_ips = set()
     while True:
         entry = oq.get()
-        entry = add_port_number(entry, add_port)
+
         if entry is None:
             logger.info("Output handling shutdown signal")
             oq.task_done()
             break
+        
+        if unique_ip == True:
+            if not check_if_unique_ip(entry, processed_ips):
+                continue
+
+        entry = add_port_number(entry, add_port)
         writer.writerow(entry)
         oq.task_done()
 
@@ -258,7 +283,7 @@ def main(args):
 
         logger.info('Starting output thread...')
         ot = threading.Thread(target=output_worker, name='output_worker',
-                args=(oq, writer, args.add_port), daemon=True)
+                args=(oq, writer, args.add_port, args.unique_ip), daemon=True)
         ot.start()
 
         logger.info('Enqueueing domains...')
@@ -322,6 +347,11 @@ def register_args(subparsers):
             help='Only process the first record of every DNS querry.'
             ' If this is true, at most one A and and one AAAA record will'
             ' be returned for every domain')
+
+    parser.add_argument('--unique-ip', default=False,
+            action='store_true', dest='unique_ip',
+            help='If set, any output entries with duplicate IP addresses '
+            'will be discarted')
 
     parser.add_argument('--www', default='preferred',
             choices=['never', 'preferred', 'always', 'both'],
