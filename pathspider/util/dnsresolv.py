@@ -33,6 +33,7 @@ def resolve(domain, query='A', max_tries=3):
 
     :param str domain: The domain to be resolved.
     :param str query: The query type. May be either 'A' or 'AAAA'.
+    :param int max_tries: Number of times to try a lookup when a Timeout occurs
     :returns: A list of IP addresses as strings.
     :throws: Instances of ``dns.exception``
     '''
@@ -62,7 +63,7 @@ def resolve(domain, query='A', max_tries=3):
 
 def resolve_both(domain):
     '''
-    Helper function to handle_domain.
+    Gets al A and AAAA records for domain
     '''
     a = resolve(domain)
     a4 = resolve(domain, 'AAAA')
