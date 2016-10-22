@@ -144,7 +144,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
             # discard non-observed flows and flows with no syn observed
             for f in flows:
-                if not (f['observed'] and "rev_syn_flags" in f.keys()):
+                if not (f['observed'] and f['rev_syn_flags'] != None):
                     return
 
             tstart = min(flow['tstart'], other_flow['tstart'])
