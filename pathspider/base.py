@@ -97,7 +97,8 @@ class Conn(Enum):
     TIMEOUT = 2
     SKIPPED = 3
 
-Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
+Connection = collections.namedtuple("Connection",
+        ["client", "port", "state", "tstart"])
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
@@ -310,10 +311,12 @@ class Spider:
 
             # if merge_cycles % 20 == 0:
             #     for wn in range(0, self.worker_count):
-            #         logger.debug("worker %3u: %s" % (wn, self._worker_state[wn]))
+            #         logger.debug("worker %3u: %s" % \
+            #         (wn, self._worker_state[wn]))
             # merge_cycles += 1
 
-            if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
+            if merging_flows and \
+                    (self.flowqueue.qsize() >= self.resqueue.qsize()):
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
@@ -379,7 +382,8 @@ class Spider:
         # Both shutdown markers received.
         # Call merge on all remaining entries in the results table
         # with null flows.
-        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29
+        # Commented out for now;
+        #see https://github.com/mami-project/pathspider/issues/29
         for res_item in self.restab.items():
             res = res_item[1]
             self.merge(NO_FLOW, res)
@@ -700,12 +704,14 @@ class SynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        # self._worker_state[worker_number] = "shutdown_sentinel"
+                        logger.debug("shutting down worker "\
+                            +str(worker_number)+" on sentinel")
+                        #self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            logger.debug(str(self.active_worker_count)+" workers still active")
+                            logger.debug(str(self.active_worker_count)+\
+                                " workers still active")
                         continue
 
                     logger.debug("got a job: "+repr(job))
@@ -760,7 +766,7 @@ class SynchronizedSpider(Spider):
                 time.sleep(QUEUE_SLEEP)
                 with self.active_worker_lock:
                     if self.active_worker_count <= 0:
-                        # self._worker_state[worker_number] = "shutdown_complete"
+                        #self._worker_state[worker_number] = "shutdown_complete"
                         break
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
@@ -855,12 +861,14 @@ class DesynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        # self._worker_state[worker_number] = "shutdown_sentinel"
+                        logger.debug("shutting down worker "\
+                            +str(worker_number)+" on sentinel")
+                        #self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            logger.debug(str(self.active_worker_count)+" workers still active")
+                            logger.debug(str(self.active_worker_count)\
+                                +" workers still active")
                         continue
 
                     logger.debug("got a job: "+repr(job))
