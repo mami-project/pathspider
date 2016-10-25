@@ -23,21 +23,29 @@ def handle_args(argv):
 
     parser = argparse.ArgumentParser(description=('Pathspider will spider the '
             'paths.'), formatter_class=SubcommandHelpFormatter)
-    parser.add_argument('-s', '--standalone', action='store_true', help='''run in
-        standalone mode. this is the default mode (and currently the only supported
-        mode). in the future, mplane will be supported as a mode of operation.''', default=True)
-    parser.add_argument('-i', '--interface', help='''the interface to use for the observer''', default="eth0")
-    parser.add_argument('-w', '--workers', type=int, help='''number of workers to use''', default=100)
-    parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE', help='''a file
-            containing a list of remote hosts to test, with any accompanying
-            metadata expected by the pathspider test. this file should be formatted
-            as a comma-seperated values file. Defaults to standard input.''')
-    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE', 
-            help='''the file to output results data to. Defaults to standard output.''')
-    parser.add_argument('-v', '--verbose', action='store_true', help='''log debug-level output.''')
+    parser.add_argument('-s', '--standalone', action='store_true',
+        help='''run in standalone mode. this is the default mode (and currently 
+        the only supported mode). in the future, mplane will be supported as a 
+        mode of operation.''', default=True)
+    parser.add_argument('-i', '--interface',
+        help='''the interface to use for the observer''', default="eth0")
+    parser.add_argument('-w', '--workers', type=int,
+        help='''number of workers to use''', default=100)
+    parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE',
+        help='''a file  containing a list of remote hosts to test, with any 
+        accompanying metadata expected by the pathspider test. this file should 
+        be formatted as a comma-seperated values file. Defaults to standard 
+        input.''')
+    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',
+            help='''the file to output results data to. Defaults to 
+            standard output.''')
+    parser.add_argument('-v', '--verbose', action='store_true',
+        help='''log debug-level output.''')
 
     # Add plugins
-    subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
+    subparsers = parser.add_subparsers(title="Plugins",
+            description="The following plugins are available for use:",
+            metavar='PLUGIN', help='plugin to use')
     for plugin in plugins:
         try:
             plugin.register_args(subparsers)
