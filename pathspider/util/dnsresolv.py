@@ -112,10 +112,16 @@ def resolution_worker(iq, oq, only_first=False):
                 .format(random.random()))
             iq.task_done()
             break
-
+ 
         try:
             rank = entry[0]
             domain = entry[1]
+        except IndexError: 
+            logger.error("Badly formated input line: {}".format(entry))
+            iq.task_done()
+            continue
+
+        try:
 
             # NOTE www.com or www.co.uk would be incorrectly handled by
             # checking for a leading "www." first. Alexa's list generally omits
