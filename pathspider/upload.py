@@ -121,10 +121,11 @@ class Uploader():
         return url
                                     
 
-    def upload(self):
+    def upload(self, verify=True):
         """
         Upload the file to the PTO observatory
 
+        :param bool verify: If False, SSL certifcate will not be verified
         :rtype: requests.Response
         :returns: The http response
         """
@@ -140,7 +141,7 @@ class Uploader():
         url = self.get_upload_url()
         
         return requests.post(url, files=files, headers=self.headers,
-                verify=False)
+                verify=verify)
 
 u = Uploader(server, api_key)
 
@@ -149,4 +150,4 @@ for i in range(100):
 u.set_campaign('testing')
 u.set_target_filename('test11')
 
-print(u.upload().text)
+print(u.upload(verify=False).text)
