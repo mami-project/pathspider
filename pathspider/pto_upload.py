@@ -40,7 +40,7 @@ class Uploader():
 
         # set defaults
         self.campaign = 'testing'
-        self.target_filename = self.local_filename
+        self.set_target_filename(self.local_filename)
         self.hostname = None
         self.api_key = None
 
@@ -56,7 +56,7 @@ class Uploader():
         if campaign:
             self.campaign = campaign
         if filename:
-            self.target_filename = filename
+            self.set_target_filename(filename)
 
         # check if hostname and api_key are set
         if self.hostname == None:
@@ -100,7 +100,7 @@ class Uploader():
         if 'campaign' in config_data:
             self.campaign = config_data['campaign']
         if 'filename' in config_data:
-            self.target_filename = config_data['filename']
+            self.set_target_filename(config_data['filename'])
             
 
     def open_file_bz2(self):
@@ -130,10 +130,13 @@ class Uploader():
     def set_target_filename(self, name):
         """
         Set the name the file will have once uploaded to the server
-        
-        :param str name: the filename, without extension
+        If the filename does not end with the right extension, append it.
+
+        :param str name: the filename
         """
         
+        if not name.endswith(self.DATA_FILE_EXTENSION):
+            name = name + self.DATA_FILE_EXTENSION
         self.target_filename = name
 
     def set_campaign(self, campaign):
