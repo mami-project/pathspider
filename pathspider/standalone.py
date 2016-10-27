@@ -97,8 +97,6 @@ def run_standalone(args):
 
         if uploader:
             response=uploader.upload(verify=False)
-            print(response.text)
-            logger.info('PTO upload completed')
 
     except KeyboardInterrupt:
         logger.error("Received keyboard interrupt, dying now.")

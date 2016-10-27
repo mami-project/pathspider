@@ -4,6 +4,7 @@ import bz2
 import json
 import time
 import logging
+import hashlib
 
 class Uploader():
     """
@@ -184,15 +185,36 @@ class Uploader():
                 #port = self.port,
                 filename = self.target_filename)
         return url
-                                    
+    
+    def sha1(self):
+        """
+        Calculate the SHA1 hash of the local buffer file
+
+        :rtype: str
+        :returns: the SHA1 has
+        """
+        
+        buffer_size = 1024*1024 # read 1 MiB at the time
+        inputfile = open(self.local_filepath, 'rb')
+        sha1 = hashlib.sha1()
+
+        while True:
+            data = inputfile.read(buffer_size)
+            if not data:
+                break
+            sha1.update(data)
+
+        return sha1.hexdigest()
+        
+
 
     def upload(self, verify=True):
         """
         Upload the file to the PTO observatory
 
         :param bool verify: If False, SSL certifcate will not be verified
-        :rtype: requests.Response
-        :returns: The http response
+        :rtype: bool
+        :returns: True if upload was successfull, False otherwise
         """
         
         self.local_file_bz2.close()
@@ -204,9 +226,20 @@ class Uploader():
               ('meta', (meta_filename, self.get_metadata_json())) ]
         
         url = self.get_upload_url()
-        
-        return requests.post(url, files=files, headers=self.headers,
+        # This will load the entire file in to memory before sending.
+        # Just so you know.
+        response =  requests.post(url, files=files, headers=self.headers,
                 verify=verify)
+
+        if self.sha1() == response.text:
+            self.logger.info("Results successfully uploaded to PTO")
+            return True
+
+        else:
+            self.logger.error("Upload to PTO failed")
+            self.logger.error("Expected resonse: '{}'".format(self.sha1()))
+            self.logger.error("Received resonse: '{}'".format(response.text))
+            return False
 
 ## Just some debug tests, safe to ignore
 if __name__ == "__main__":
@@ -221,4 +254,3 @@ if __name__ == "__main__":
         u.add_line(str(i))
     u.set_campaign('testing')
 
-    print(u.upload(verify=False).text)
