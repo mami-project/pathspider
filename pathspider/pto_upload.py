@@ -93,7 +93,8 @@ class Uploader():
 
         try:
             config_data = json.loads(config_file.read())
-        except json.JSONDecodeError:
+        # TODO: catch the right exceptions here
+        except: # json.JSONDecodeError:
             self.logger.error('Config file is not properly JSON formated')
         finally:
             config_file.close()
