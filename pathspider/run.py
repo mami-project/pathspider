@@ -24,32 +24,34 @@ def handle_args(argv):
     parser = argparse.ArgumentParser(description=('Pathspider will spider the '
             'paths.'), formatter_class=SubcommandHelpFormatter)
     parser.add_argument('-s', '--standalone', action='store_true',
-        help='''run in standalone mode. this is the default mode (and currently 
-        the only supported mode). in the future, mplane will be supported as a 
+        help='''run in standalone mode. this is the default mode (and currently
+        the only supported mode). in the future, mplane will be supported as a
         mode of operation.''', default=True)
     parser.add_argument('-i', '--interface',
         help='''the interface to use for the observer''', default="eth0")
     parser.add_argument('-w', '--workers', type=int,
         help='''number of workers to use''', default=100)
     parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE',
-        help='''a file  containing a list of remote hosts to test, with any 
-        accompanying metadata expected by the pathspider test. this file should 
-        be formatted as a comma-seperated values file. Defaults to standard 
+        help='''a file  containing a list of remote hosts to test, with any
+        accompanying metadata expected by the pathspider test. this file should
+        be formatted as a comma-seperated values file. Defaults to standard
         input.''')
     parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',
-            help='''the file to output results data to. Defaults to 
+            help='''the file to output results data to. Defaults to
             standard output.''')
     parser.add_argument('-v', '--verbose', action='store_true',
         help='''log debug-level output.''')
-    parser.add_argument('--pto-config', metavar='PTO_CONFIG_FILE',
-        dest='pto_config_file',
+
+    parser.add_argument('--pto-config', dest='pto_config_file', default=None,
         help='''Path to JSON file containing PTO api-key and hostname''')
-    parser.add_argument('--pto-filename', metavar='PTO_FILENAME',
-        dest='pto_filename',
+    parser.add_argument('--pto-filename', dest='pto_filename', default=None,
         help='''How to name the file on the observatory''')
-    parser.add_argument('--pto-campaign', metavar='PTO_CAMPAIGN',
-        dest='pto_campaign',
+    parser.add_argument('--pto-campaign', dest='pto_campaign', default=None,
         help='What campaign to add the results to on the PTO')
+    parser.add_argument('--pto-hostname', dest='pto_hostname', default=None,
+        help='The hostname of the server running the PTO')
+    parser.add_argument('--pto-api-key', dest='pto_api_key', default=None,
+        help='The api key to use when connecting to the PTO')
 
 
     # Add plugins

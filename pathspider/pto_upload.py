@@ -26,13 +26,13 @@ class Uploader():
         Create a new uploader.
 
         An uploader represents a single file to be uploaden to the observatory.
-        
+
         :param str config_file: The path the a JSON formated config file
         :param str hostname: The hostname of the server running the observatory
         :param str api_key: The api-key to use to authenticate
         :param str campaign: The campaign the file belongs to.
                              Defaults to 'testing'
-        :param str filename: How to name the file on the server.  Defaults to a 
+        :param str filename: How to name the file on the server.  Defaults to a
                              complex, long but unique filename.
         """
 
@@ -90,7 +90,7 @@ class Uploader():
         except (FileNotFoundError, PermissionError):
             self.logger.error('Could not read config file')
             return
-        
+
         try:
             config_data = json.loads(config_file.read())
         except json.JSONDecodeError:
@@ -106,13 +106,13 @@ class Uploader():
             self.campaign = config_data['campaign']
         if 'filename' in config_data:
             self.set_target_filename(config_data['filename'])
-            
+
 
     def open_file_bz2(self):
         """
         Open the local buffer file witht he bz2 library
         """
-        
+
         # create and open the local buffer file
         random.seed()
         self.start_time = int(time.time())
@@ -166,7 +166,7 @@ class Uploader():
 
         :param str name: the filename
         """
-        
+
         if not name.endswith(self.DATA_FILE_EXTENSION):
             name = name + self.DATA_FILE_EXTENSION
         self.target_filename = name
@@ -177,7 +177,7 @@ class Uploader():
 
         :param str campaign: the name of the campaign
         """
-        
+
         self.campaign = campaign
 
     def get_metadata_json(self, stop_time=None):
@@ -197,8 +197,8 @@ class Uploader():
         if stop_time:
             metadata['stop_time'] = int(stop_time)
         else:
-            metadata['stop_time'] = int(time.time())    
-  
+            metadata['stop_time'] = int(time.time())
+
         return json.dumps(metadata)
 
     def get_upload_url(self):
@@ -208,7 +208,7 @@ class Uploader():
         :rtype: string
         :returns: the url to be used to upload the file
         """
-        
+
         # check if hostname and api_key are set
         if self.hostname == None:
             self.logger.error('Hostname not set, Uploader will _not_ upload')
@@ -222,7 +222,7 @@ class Uploader():
                 #port = self.port,
                 filename = self.target_filename)
         return url
-    
+
     def sha1(self):
         """
         Calculate the SHA1 hash of the local buffer file
@@ -230,7 +230,7 @@ class Uploader():
         :rtype: str
         :returns: the SHA1 has
         """
-        
+
         buffer_size = 1024*1024 # read 1 MiB at the time
         inputfile = open(self.local_filepath, 'rb')
         sha1 = hashlib.sha1()
@@ -282,13 +282,12 @@ class Uploader():
 ## Just some debug tests, safe to ignore
 if __name__ == "__main__":
     import mami_secrets
-    
+
     hostname = mami_secrets.PTO_HOSTNAME
     api_key = mami_secrets.PTO_API_KEY
-    
+
     u = Uploader(hostname, api_key)
 
     for i in range(100):
         u.add_line(str(i))
     u.set_campaign('testing')
-

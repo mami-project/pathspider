@@ -29,36 +29,50 @@ def job_feeder(inputfile, spider):
 
 def open_uploader(args):
     """
-    If a config file is supplied, create and return an uploader
-    
+    If a config file or an (hostname and api key) are supplied,
+    create and return an uploader. Else return None.
+
     :param Namespace args: the arguments supplied to the program
     :rtype: None or pto_upload.Uploader
     :returns: either None or an Uploader
     """
-    
-    if args.pto_config_file == None:
+
+    logger = logging.getLogger("patspider")
+
+    if (args.pto_config_file != None):
+        # if we have a config file, we always generate an Uploader
+        pass
+    elif (args.pto_hostname != None and args.pto_api_key == None):
+        logger.warning('I see that you supplied a PTO hostname'
+        'but no PTO api key, so I will not attempt to upload')
         return None
-    
+    elif (args.pto_hostname == None and args.pto_api_key != None):
+        logger.warning('I see that you supplied a PTO api key'
+        'but no PTO hostname, so I will not attempt to upload')
+        return None
+
     # args.pto_campaign and args.pto_filename default to None
     # so if they are not supplied, the Uploader will ignore them
     # if they are supplied, they can override values in the configfile
     uploader =  pto_upload.Uploader(
         config_file = args.pto_config_file,
         campaign = args.pto_campaign,
-        filename = args.pto_filename)
-    
-    logging.getLogger("patspider").info('Created uploader')
+        filename = args.pto_filename,
+        api_key = args.pto_api_key,
+        hostname = args.pto_hostname)
+
+    logger.info('Created uploader')
 
     return uploader
-        
+
 
 def run_standalone(args):
 
     logger = logging.getLogger("pathspider")
-    
+
     #set up the pto-uploader
     uploader = open_uploader(args)
-   
+
     try:
         if hasattr(args, "spider"):
             if interface_up(args.interface):
@@ -87,7 +101,7 @@ def run_standalone(args):
                 if result == SHUTDOWN_SENTINEL:
                     logger.info("output complete")
                     break
-                
+
                 result_line = json.dumps(result) + "\n"
                 outputfile.write(result_line)
                 if uploader: uploader.add_line(result_line)
