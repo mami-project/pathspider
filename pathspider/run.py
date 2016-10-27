@@ -41,6 +41,16 @@ def handle_args(argv):
             standard output.''')
     parser.add_argument('-v', '--verbose', action='store_true',
         help='''log debug-level output.''')
+    parser.add_argument('--pto-config', metavar='PTO_CONFIG_FILE',
+        dest='pto_config_file',
+        help='''Path to JSON file containing PTO api-key and hostname''')
+    parser.add_argument('--pto-filename', metavar='PTO_FILENAME',
+        dest='pto_filename',
+        help='''How to name the file on the observatory''')
+    parser.add_argument('--pto-campaign', metavar='PTO_CAMPAIGN',
+        dest='pto_campaign',
+        help='What campaign to add the results to on the PTO')
+
 
     # Add plugins
     subparsers = parser.add_subparsers(title="Plugins",

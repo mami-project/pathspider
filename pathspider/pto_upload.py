@@ -3,10 +3,6 @@ import random
 import bz2
 import json
 import time
-import mami_secrets
-
-server = mami_secrets.PTO_HOSTNAME
-api_key = mami_secrets.PTO_API_KEY
 
 class Uploader():
     """
@@ -143,11 +139,16 @@ class Uploader():
         return requests.post(url, files=files, headers=self.headers,
                 verify=verify)
 
-u = Uploader(server, api_key)
+if __name__ == "__main__":
+    import mami_secrets
+    
+    server = mami_secrets.PTO_HOSTNAME
+    api_key = mami_secrets.PTO_API_KEY
+    
+    u = Uploader(server, api_key)
 
-for i in range(100):
-    u.add_line(str(i))
-u.set_campaign('testing')
-u.set_target_filename('test11')
+    for i in range(100):
+        u.add_line(str(i))
+    u.set_campaign('testing')
 
-print(u.upload(verify=False).text)
+    print(u.upload(verify=False).text)
