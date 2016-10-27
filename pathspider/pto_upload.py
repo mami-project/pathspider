@@ -123,7 +123,9 @@ class Uploader():
         :param str line: the data to add
         """
         
-        self.local_file_bz2.write(line + '\n')
+        if line[-1] != '\n':
+            line = line + '\n'
+        self.local_file_bz2.write(line)
     
     def set_target_filename(self, name):
         """
