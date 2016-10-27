@@ -5,6 +5,7 @@ import json
 import time
 import logging
 import hashlib
+import os
 
 class Uploader():
     """
@@ -37,6 +38,7 @@ class Uploader():
 
         self.logger = logging.getLogger('uploader')
         self.open_file_bz2()
+        self.open = True
 
         # set defaults
         self.campaign = 'testing'
@@ -67,7 +69,10 @@ class Uploader():
             return
 
         self.headers = {'X-API-KEY': self.api_key}
-   
+
+    #def __del__(self):
+        #self.rm_local_file()
+
     def read_config_file(self, path):
         """
         Read out a JSON formated config file
@@ -116,17 +121,44 @@ class Uploader():
         self.local_filepath = "/tmp/{}".format(self.local_filename)
         self.local_file_bz2 = bz2.open(self.local_filepath, 'wt')
 
+    def close_file(self):
+        if self.open:
+            self.local_file_bz2.close()
+            self.open = False
+
+    def rm_local_file(self):
+        """
+        Remove the local buffer file
+        """
+
+        self.close_file()
+
+        try:
+            os.remove(self.local_filepath)
+        except FileNotFoundError:
+            # File does noet exist, so we are happy
+            pass
+        except PermissionError:
+            self.logger.error("Tried to delete local file, "
+            "but did not have sufficient permissions")
+
+
     def add_line(self, line):
         """
         Add an extra line of data to the file
-        
+
         :param str line: the data to add
         """
-        
+
+        if not self.open:
+            self.logger.warning("Trying to write to Uploader after it has been"
+            " closed. Data not saved.")
+            return
+
         if line[-1] != '\n':
             line = line + '\n'
         self.local_file_bz2.write(line)
-    
+
     def set_target_filename(self, name):
         """
         Set the name the file will have once uploaded to the server
@@ -209,9 +241,9 @@ class Uploader():
                 break
             sha1.update(data)
 
-        return sha1.hexdigest()
-        
+        inputfile.close()
 
+        return sha1.hexdigest()
 
     def upload(self, verify=True):
         """
@@ -221,15 +253,16 @@ class Uploader():
         :rtype: bool
         :returns: True if upload was successfull, False otherwise
         """
-        
-        self.local_file_bz2.close()
+
+        self.close_file()
+
         data_filename = self.target_filename
         meta_filename = self.target_filename + self.META_FILE_EXTENSION
 
         files = \
             [ ('data', (data_filename, open(self.local_filepath, 'rb'))),
               ('meta', (meta_filename, self.get_metadata_json())) ]
-        
+
         url = self.get_upload_url()
         # This will load the entire file in to memory before sending.
         # Just so you know.

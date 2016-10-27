@@ -96,7 +96,10 @@ def run_standalone(args):
                 spider.outqueue.task_done()
 
         if uploader:
-            response=uploader.upload(verify=False)
+            result = uploader.upload(verify=False)
+            # Do we want to do this? How bad is a couple of MiB in /tmp?
+            #if result == True:
+            #    uploader.rm_local_file()
 
     except KeyboardInterrupt:
         logger.error("Received keyboard interrupt, dying now.")
