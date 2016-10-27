@@ -97,7 +97,7 @@ class Uploader():
         if 'api_key' in config_data:
             self.api_key = config_data['api_key']
         if 'campaign' in config_data:
-            self.campaign = comfig_data['campaign']
+            self.campaign = config_data['campaign']
         if 'filename' in config_data:
             self.target_filename = config_data['filename']
             
