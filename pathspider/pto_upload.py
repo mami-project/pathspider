@@ -40,7 +40,7 @@ class Uploader():
 
         # set defaults
         self.campaign = 'testing'
-        self.filename = self.local_filename
+        self.target_filename = self.local_filename
         self.hostname = None
         self.api_key = None
 
