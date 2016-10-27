@@ -3,6 +3,7 @@ import random
 import bz2
 import json
 import time
+import logging
 
 class Uploader():
     """
@@ -17,21 +18,95 @@ class Uploader():
     DATA_FILE_EXTENSION = '.bz2'
     META_FILE_EXTENSION = '.meta'
 
-    def __init__(self, server, api_key, campaign=None, target_file_name=None):
+    def __init__(self, config_file=None, hostname=None, api_key=None,
+                        campaign=None, filename=None):
         """
         Create a new uploader.
 
         An uploader represents a single file to be uploaden to the observatory.
         
-        :param str server: The hostname of the server running the observatory
+        :param str config_file: The path the a JSON formated config file
+        :param str hostname: The hostname of the server running the observatory
         :param str api_key: The api-key to use to authenticate
-        :param str campaing: The campaign the file belongs to.
+        :param str campaign: The campaign the file belongs to.
                              Defaults to 'testing'
-        :param str target_file_name: How to name the file on the server.
-                                     Defaults to a complex, long but unique
-                                     filename.
+        :param str filename: How to name the file on the server.  Defaults to a 
+                             complex, long but unique filename.
         """
 
+        self.logger = logging.getLogger('uploader')
+        self.open_file_bz2()
+
+        # set defaults
+        self.campaign = 'testing'
+        self.filename = self.local_filename
+        self.hostname = None
+        self.api_key = None
+
+        # if we have a config file, read it first
+        if config_file:
+            self.read_config_file(config_file)
+
+        # if kwargs are supplied, override values from config file
+        if hostname:
+            self.hostname = hostname
+        if api_key:
+            self.api_key = api_key
+        if campaign:
+            self.campaign = campaign
+        if filename:
+            self.target_filename = filename
+
+        # check if hostname and api_key are set
+        if self.hostname == None:
+            self.logger.warning('Hostname not set, Uploader will _not_ upload')
+            return
+        if self.api_key == None:
+            self.logger.warning('Api_key not set, Uploader will _not_ upload')
+            return
+
+        self.headers = {'X-API-KEY': self.api_key}
+   
+    def read_config_file(self, path):
+        """
+        Read out a JSON formated config file
+
+        The config file can contain the following keys:
+        'hostname': the hostname of the server to connect to
+        'api_key': the api key to use for the connection
+        'campaign': the campaign to add the measurement to
+        'filename': how to name the uploaded file on the server
+
+        :param str path: the path to the config file
+        """
+        try:
+            config_file = open(path)
+        except (FileNotFoundError, PermissionError):
+            self.logger.error('Could not read config file')
+            return
+        
+        try:
+            config_data = json.loads(config_file.read())
+        except json.JSONDecodeError:
+            self.logger.error('Config file is not properly JSON formated')
+        finally:
+            config_file.close()
+
+        if 'hostname' in config_data:
+            self.hostname = config_data['hostname']
+        if 'api_key' in config_data:
+            self.api_key = config_data['api_key']
+        if 'campaign' in config_data:
+            self.campaign = comfig_data['campaign']
+        if 'filename' in config_data:
+            self.target_filename = config_data['filename']
+            
+
+    def open_file_bz2(self):
+        """
+        Open the local buffer file witht he bz2 library
+        """
+        
         # create and open the local buffer file
         random.seed()
         self.start_time = int(time.time())
@@ -39,20 +114,6 @@ class Uploader():
                 int(self.start_time), random.getrandbits(50))
         self.local_filepath = "/tmp/{}".format(self.local_filename)
         self.local_file_bz2 = bz2.open(self.local_filepath, 'wt')
-        
-        # store some info about the server
-        self.server = server
-        self.api_key = api_key
-        self.headers = {'X-API-KEY': api_key}
-
-        # and some information about the measurement
-        ## I recently found out that Python has  a ternary conditional operator
-        ## And I really wanted to use it somewhere.
-        self.campaign = campaign if campaign else 'testing'
-        ## I also did not know that this was possible,
-        ## so I also wanted to use it
-        self.target_filename = target_file_name or self.local_filename
-
 
     def add_line(self, line):
         """
@@ -109,11 +170,19 @@ class Uploader():
         :rtype: string
         :returns: the url to be used to upload the file
         """
+        
+        # check if hostname and api_key are set
+        if self.hostname == None:
+            self.logger.error('Hostname not set, Uploader will _not_ upload')
+            return
+        if self.api_key == None:
+            self.logger.error('Api_key not set, Uploader will _not_ upload')
+            return
 
         url = self.BASE_URL.format(
-                hostname = self.server,
+                hostname = self.hostname,
                 #port = self.port,
-                filename = self.target_filename + self.DATA_FILE_EXTENSION)
+                filename = self.target_filename)
         return url
                                     
 
@@ -127,7 +196,7 @@ class Uploader():
         """
         
         self.local_file_bz2.close()
-        data_filename = self.target_filename + self.DATA_FILE_EXTENSION
+        data_filename = self.target_filename
         meta_filename = self.target_filename + self.META_FILE_EXTENSION
 
         files = \
@@ -139,13 +208,14 @@ class Uploader():
         return requests.post(url, files=files, headers=self.headers,
                 verify=verify)
 
+## Just some debug tests, safe to ignore
 if __name__ == "__main__":
     import mami_secrets
     
-    server = mami_secrets.PTO_HOSTNAME
+    hostname = mami_secrets.PTO_HOSTNAME
     api_key = mami_secrets.PTO_API_KEY
     
-    u = Uploader(server, api_key)
+    u = Uploader(hostname, api_key)
 
     for i in range(100):
         u.add_line(str(i))

@@ -27,30 +27,38 @@ def job_feeder(inputfile, spider):
         spider.shutdown()
         logger.debug("job_feeder: stopped")
 
+def open_uploader(args):
+    """
+    If a config file is supplied, create and return an uploader
+    
+    :param Namespace args: the arguments supplied to the program
+    :rtype: None or pto_upload.Uploader
+    :returns: either None or an Uploader
+    """
+    
+    if args.pto_config_file == None:
+        return None
+    
+    # args.pto_campaign and args.pto_filename default to None
+    # so if they are not supplied, the Uploader will ignore them
+    # if they are supplied, they can override values in the configfile
+    uploader =  pto_upload.Uploader(
+        config_file = args.pto_config_file,
+        campaign = args.pto_campaign,
+        filename = args.pto_filename)
+    
+    logging.getLogger("patspider").info('Created uploader')
+
+    return uploader
+        
+
 def run_standalone(args):
-    do_pto_upload = False
 
     logger = logging.getLogger("pathspider")
     
-    # Read the pto configuration
-    if args.pto_config_file:
-        try:
-            conf_file = open(args.pto_config_file)
-            pto_config = json.loads(conf_file.read())
-        except FileNotFoundError:
-            logger.error('PTO config file does not exist')
-        except PermissionError:
-            logger.error('Insufficient permissions for PTO config file')
-        except json.JSONDecodeError:
-            logger.error('PTO config file is not formatted properly')
-        else:
-            if ('hostname' in pto_config) and ('api_key' in pto_config):
-                do_pto_upload = True
-            else:
-                logger.error('PTO config file is not complete')
-        finally:
-            conf_file.close()
-
+    #set up the pto-uploader
+    uploader = open_uploader(args)
+   
     try:
         if hasattr(args, "spider"):
             if interface_up(args.interface):
@@ -68,16 +76,6 @@ def run_standalone(args):
 
         spider.start()
 
-        # set up the Uploader to send the data to the observatory
-        if do_pto_upload:
-            logger.info("I will upload these results to your observatory")
-            pto_uploader = pto_upload.Uploader(pto_config['hostname'], 
-                                               pto_config['api_key'])
-            if args.pto_filename:
-                pto_uploader.set_target_filename(args.pto_filename)
-            if args.pto_campaign:
-                pto_uploader.set_campaign(args.pto_campaign)
-
         logger.debug("starting job feeder...")
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
 
@@ -92,13 +90,13 @@ def run_standalone(args):
                 
                 result_line = json.dumps(result) + "\n"
                 outputfile.write(result_line)
-                if do_pto_upload: pto_uploader.add_line(result_line)
+                if uploader: uploader.add_line(result_line)
 
                 logger.debug("wrote a result")
                 spider.outqueue.task_done()
 
-        if do_pto_upload:
-            response=pto_uploader.upload(verify=False)
+        if uploader:
+            response=uploader.upload(verify=False)
             print(response.text)
             logger.info('PTO upload completed')
 
