@@ -40,7 +40,8 @@ def open_uploader(args):
     logger = logging.getLogger("patspider")
 
     if (args.pto_config_file != None):
-        # if we have a config file, we always generate an Uploader
+        pass
+    elif (args.pto_hostname != None and args.pto_api_key != None):
         pass
     elif (args.pto_hostname != None and args.pto_api_key == None):
         logger.warning('I see that you supplied a PTO hostname'
@@ -50,6 +51,9 @@ def open_uploader(args):
         logger.warning('I see that you supplied a PTO api key'
         'but no PTO hostname, so I will not attempt to upload')
         return None
+    else:
+        return None
+
 
     # args.pto_campaign and args.pto_filename default to None
     # so if they are not supplied, the Uploader will ignore them
