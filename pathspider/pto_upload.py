@@ -269,13 +269,15 @@ class Uploader():
         response =  requests.post(url, files=files, headers=self.headers,
                 verify=verify)
 
-        if self.sha1() == response.text:
+        sha1 = self.sha1()
+        if sha1 == response.text:
             self.logger.info("Results successfully uploaded to PTO")
+            self.logger.info("SHA1: {}".format(sha1))
             return True
 
         else:
             self.logger.error("Upload to PTO failed")
-            self.logger.error("Expected resonse: '{}'".format(self.sha1()))
+            self.logger.info("SHA1: {}".format(sha1))
             self.logger.error("Received resonse: '{}'".format(response.text))
             return False
 
