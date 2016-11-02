@@ -1,4 +1,4 @@
-Uploading to a Path Transparancy observatory (PTO)
+Uploading to a Path Transparancy Observatory (PTO)
 ===================================================
 
 PATHspider has build in support to automaticaly upload measurement results to a Path Transparancy observatory (PTO).
