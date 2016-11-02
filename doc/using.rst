@@ -8,13 +8,14 @@ run PATHspider.
 
 .. code-block:: text
 
- # pathspider --help
  usage: pathspider [-h] [-s] [-i INTERFACE] [-w WORKERS] [--input INPUTFILE]
-                   [--output OUTPUTFILE] [-v]
+                   [--output OUTPUTFILE] [-v] [--pto-config PTO_CONFIG_FILE]
+                   [--pto-filename PTO_FILENAME] [--pto-campaign PTO_CAMPAIGN]
+                   [--pto-url PTO_URL] [--pto-api-key PTO_API_KEY]
                    PLUGIN ...
-
+ 
  Pathspider will spider the paths.
-
+ 
  optional arguments:
    -h, --help            show this help message and exit
    -s, --standalone      run in standalone mode. this is the default mode (and
@@ -31,16 +32,26 @@ run PATHspider.
    --output OUTPUTFILE   the file to output results data to. Defaults to
                          standard output.
    -v, --verbose         log debug-level output.
-
+   --pto-config PTO_CONFIG_FILE
+                         Path to JSON file containing PTO api-key and hostname
+   --pto-filename PTO_FILENAME
+                         How to name the file on the observatory
+   --pto-campaign PTO_CAMPAIGN
+                         What campaign to add the results to on the PTO
+   --pto-url PTO_URL     The base url of the pto HDFS filesystem. Up to (and
+                         including `/hdfs/`
+   --pto-api-key PTO_API_KEY
+                         The api key to use when connecting to the PTO
+ 
  Plugins:
    The following plugins are available for use:
-
-     dscp                DiffServ Codepoints
-     tls                 Transport Layer Security
+ 
      tfo                 TCP Fast Open
+     tls                 Transport Layer Security
      ecn                 Explicit Congestion Notification
+     dscp                DiffServ Codepoints
      dnsresolv           DNS resolution for hostnames to IPv4 and v6 addresses
-
+ 
  Spider safely!
 
 Quickstart Example
