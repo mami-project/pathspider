@@ -32,7 +32,9 @@ Table of Contents
    plugins
    resolver
    plugindev
+   pto_upload
    advanced
+   
 
 .. toctree::
    :hidden:
