@@ -48,8 +48,9 @@ def handle_args(argv):
         help='''How to name the file on the observatory''')
     parser.add_argument('--pto-campaign', dest='pto_campaign', default=None,
         help='What campaign to add the results to on the PTO')
-    parser.add_argument('--pto-hostname', dest='pto_hostname', default=None,
-        help='The hostname of the server running the PTO')
+    parser.add_argument('--pto-url', dest='pto_url', default=None,
+        help='The base url of the pto HDFS filesystem. Up to (and including '
+        '`/hdfs/`')
     parser.add_argument('--pto-api-key', dest='pto_api_key', default=None,
         help='The api key to use when connecting to the PTO')
 

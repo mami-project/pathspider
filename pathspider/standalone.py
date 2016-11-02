@@ -29,7 +29,7 @@ def job_feeder(inputfile, spider):
 
 def open_uploader(args):
     """
-    If a config file or an (hostname and api key) are supplied,
+    If a config file or an (url and api key) are supplied,
     create and return an uploader. Else return None.
 
     :param Namespace args: the arguments supplied to the program
@@ -41,15 +41,15 @@ def open_uploader(args):
 
     if (args.pto_config_file != None):
         pass
-    elif (args.pto_hostname != None and args.pto_api_key != None):
+    elif (args.pto_url != None and args.pto_api_key != None):
         pass
-    elif (args.pto_hostname != None and args.pto_api_key == None):
-        logger.warning('I see that you supplied a PTO hostname'
+    elif (args.pto_url != None and args.pto_api_key == None):
+        logger.warning('I see that you supplied a PTO url'
         'but no PTO api key, so I will not attempt to upload')
         return None
-    elif (args.pto_hostname == None and args.pto_api_key != None):
+    elif (args.pto_url == None and args.pto_api_key != None):
         logger.warning('I see that you supplied a PTO api key'
-        'but no PTO hostname, so I will not attempt to upload')
+        'but no PTO url, so I will not attempt to upload')
         return None
     else:
         return None
@@ -63,7 +63,7 @@ def open_uploader(args):
         campaign = args.pto_campaign,
         filename = args.pto_filename,
         api_key = args.pto_api_key,
-        hostname = args.pto_hostname)
+        url = args.pto_url)
 
     logger.info('Created uploader')
 

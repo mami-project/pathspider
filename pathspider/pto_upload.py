@@ -15,12 +15,12 @@ class Uploader():
     and then uploads that file to the observatory.
     """
 
-    BASE_URL = 'https://{hostname}/hdfs/up/{filename}'
+    BASE_URL = '{url}/up/{filename}'
     FORMAT = 'fjson-bz2'
     DATA_FILE_EXTENSION = '.bz2'
     META_FILE_EXTENSION = '.meta'
 
-    def __init__(self, config_file=None, hostname=None, api_key=None,
+    def __init__(self, config_file=None, url=None, api_key=None,
                         campaign=None, filename=None):
         """
         Create a new uploader.
@@ -28,7 +28,7 @@ class Uploader():
         An uploader represents a single file to be uploaden to the observatory.
 
         :param str config_file: The path the a JSON formated config file
-        :param str hostname: The hostname of the server running the observatory
+        :param str url: The url locating the HDFS filesystem
         :param str api_key: The api-key to use to authenticate
         :param str campaign: The campaign the file belongs to.
                              Defaults to 'testing'
@@ -43,7 +43,7 @@ class Uploader():
         # set defaults
         self.campaign = 'testing'
         self.set_target_filename(self.local_filename)
-        self.hostname = None
+        self.url = None
         self.api_key = None
 
         # if we have a config file, read it first
@@ -51,8 +51,8 @@ class Uploader():
             self.read_config_file(config_file)
 
         # if kwargs are supplied, override values from config file
-        if hostname:
-            self.hostname = hostname
+        if url:
+            self.url = url
         if api_key:
             self.api_key = api_key
         if campaign:
@@ -60,9 +60,9 @@ class Uploader():
         if filename:
             self.set_target_filename(filename)
 
-        # check if hostname and api_key are set
-        if self.hostname == None:
-            self.logger.warning('Hostname not set, Uploader will _not_ upload')
+        # check if url and api_key are set
+        if self.url == None:
+            self.logger.warning('PTO url not set, Uploader will _not_ upload')
             return
         if self.api_key == None:
             self.logger.warning('Api_key not set, Uploader will _not_ upload')
@@ -78,7 +78,7 @@ class Uploader():
         Read out a JSON formated config file
 
         The config file can contain the following keys:
-        'hostname': the hostname of the server to connect to
+        'url': a url pointing to the HDFS filesystem
         'api_key': the api key to use for the connection
         'campaign': the campaign to add the measurement to
         'filename': how to name the uploaded file on the server
@@ -98,8 +98,8 @@ class Uploader():
         finally:
             config_file.close()
 
-        if 'hostname' in config_data:
-            self.hostname = config_data['hostname']
+        if 'url' in config_data:
+            self.url = config_data['url']
         if 'api_key' in config_data:
             self.api_key = config_data['api_key']
         if 'campaign' in config_data:
@@ -209,16 +209,16 @@ class Uploader():
         :returns: the url to be used to upload the file
         """
 
-        # check if hostname and api_key are set
-        if self.hostname == None:
-            self.logger.error('Hostname not set, Uploader will _not_ upload')
+        # check if url and api_key are set
+        if self.url == None:
+            self.logger.error('PTO url not set, Uploader will _not_ upload')
             return
         if self.api_key == None:
             self.logger.error('Api_key not set, Uploader will _not_ upload')
             return
 
         url = self.BASE_URL.format(
-                hostname = self.hostname,
+                url = self.url,
                 #port = self.port,
                 filename = self.target_filename)
         return url
@@ -285,10 +285,10 @@ class Uploader():
 if __name__ == "__main__":
     import mami_secrets
 
-    hostname = mami_secrets.PTO_HOSTNAME
+    url = mami_secrets.PTO_URL
     api_key = mami_secrets.PTO_API_KEY
 
-    u = Uploader(hostname, api_key)
+    u = Uploader(url, api_key)
 
     for i in range(100):
         u.add_line(str(i))
