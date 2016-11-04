@@ -59,40 +59,57 @@ sections.
  import sys
  import collections
  import logging
- 
+
  from pathspider.base import SynchronizedSpider
  from pathspider.base import PluggableSpider
+ from pathspider.base import Conn
  from pathspider.base import NO_FLOW
- 
+
  from pathspider.observer import simple_observer
- 
- Connection = collections.namedtuple("Connection", ["host", "state"])
- SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                        "host", "config",
-                                                        "connstate"])
- 
+
+ SpiderRecord = collections.namedtuple("SpiderRecord",
+         ["ip", "rport", "port", "rank", "host", "config",
+         "connstate", "tstart", "tstop"])
+
  class Example(SynchronizedSpider, PluggableSpider):
- 
      """
      An example PATHspider plugin.
      """
- 
+
      def config_zero(self):
          logger = logging.getLogger("example")
          logger.debug("Configuration zero")
- 
+
      def config_one(self):
          logger = logging.getLogger("example")
          logger.debug("Configuration one")
- 
+
      def connect(self, job, pcs, config):
-         sock = tcp_connect(job)
-         return Connection(sock, 1)
- 
+         return self.tcp_connect(job)
+
      def post_connect(self, job, conn, pcs, config):
-         rec = SpiderRecord(job[0], job[1], job[2], config, True)
-         return rec
- 
+         job_ip, job_port, job_host, job_rank = job
+         tstop = str(datetime.utcnow())
+
+         if conn.state == Conn.OK:
+             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
+                                config, True, conn.tstart, tstop)
+         else:
+             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
+                                config, False, conn.tstart, tstop)
+
+         try:
+             conn.client.shutdown(socket.SHUT_RDWR)
+         except:
+             pass
+
+         try:
+             conn.client.close()
+         except:
+             pass
+
+          return rec
+
      def create_observer(self):
          logger = logging.getLogger("example")
          try:
@@ -100,7 +117,7 @@ sections.
          except:
              logger.error("Observer would not start")
              sys.exit(-1)
- 
+
      def merge(self, flow, res):
          if flow == NO_FLOW:
              flow = {"dip": res.ip,
@@ -109,14 +126,14 @@ sections.
                      "observed": False}
          else:
              flow['observed'] = True
- 
+
          self.outqueue.put(flow)
- 
+
      @staticmethod
      def register_args(subparsers):
          parser = subparsers.add_parser('example', help="Example starting point for development")
          parser.set_defaults(spider=Example)
- 
+
 
 You will need to provide implementations for each of these functions, which
 are explained next. We'll start with the connection logic.
