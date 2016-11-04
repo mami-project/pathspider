@@ -1,14 +1,14 @@
 PATHspider
 ==========
 
-Release: 1.0.0 / Codename: `Heteropoda venatoria <https://en.wikipedia.org/wiki/Heteropoda_venatoria>`_
+Release: 1.0.1 / Codename: `Heteropoda venatoria <https://en.wikipedia.org/wiki/Heteropoda_venatoria>`_
 
 |Documentation Status| |PyPI Status| |Citation Information|
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/pathspider/badge/?version=1.0.0
-   :target: http://pathspider.readthedocs.io/en/latest/?badge=1.0.0
-.. |PyPI Status| image:: https://img.shields.io/badge/pypi-v1.0.0-blue.svg
-   :target: https://pypi.python.org/pypi/pathspider/1.0.0
+.. |Documentation Status| image:: https://readthedocs.org/projects/pathspider/badge/?version=1.0.1
+   :target: http://pathspider.readthedocs.io/en/latest/?badge=1.0.1
+.. |PyPI Status| image:: https://img.shields.io/badge/pypi-v1.0.1-blue.svg
+   :target: https://pypi.python.org/pypi/pathspider/1.0.1
 .. |Citation Information| image:: https://pathspider.net/doi.svg
    :target: http://dx.doi.org/10.1145/2959424.2959441
 
