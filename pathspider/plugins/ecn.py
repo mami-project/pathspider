@@ -140,62 +140,51 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         dip = flow['dip']
 
-        # if we already have matching flow (with the other config), compare
-        # the two.
-        if dip in self.comparetab:
-            other_flow = self.comparetab.pop(dip)
+        # If the matching flow (with the other config), is not in the comparetab
+        # yet, put this flow in there.
+        if not (dip in self.comparetab):
+            self.comparetab[dip] = flow
+            return
 
-            flows = {}
+        # Otherwise, if we already have matching flow (with the other config),
+        # compare the two.
+        other_flow = self.comparetab.pop(dip)
 
-            if flow['config']:
-                flows['ecn'] = flow
-                flows['no_ecn'] = other_flow
-            else:
-                flows['ecn'] = other_flow
-                flows['no_ecn'] = flow
-            conditions = []
+        flows = {}
+        if flow['config']:
+            flows['ecn'] = flow
+            flows['no_ecn'] = other_flow
+        else:
+            flows['ecn'] = other_flow
+            flows['no_ecn'] = flow
+        conditions = []
 
-            # If we made a connection, we expect to always see at least a
-            # single packet in a flow. If this is not the case, no connection
-            # attempt was made, or we did not capture the flow. If this happened
-            # for either the zero or one config, we can deduce nothing about the
-            # host.
-            if not flows['ecn']['observed']:
-                    logger.info('Not generating output for {}, '
-                    'because ecn flow not observed'.format(dip))
-                    return
+        # We get some idea about start and stop times
+        tstart = min(flow['tstart'], other_flow['tstart'])
+        tstop = max(flow['tstop'], other_flow['tstop'])
 
-            if not flows['no_ecn']['observed']:
-                    logger.info('Not generating output for {}, '
-                    'because no_ecn flow not observed'.format(dip))
-                    return
+        ## FIRST, we check if we can connect with ECN enabled
+        # When we had a succesfull TCP handshake, flow['connstate']
+        # will be True.
 
-            # So at this point we _know_ that we have at least tried to connect.
+        # We could always connect
+        if flows['no_ecn']['connstate'] and flows['ecn']['connstate']:
+            conditions.append('ecn.connectivity.works')
+        # We could only connect without ECN
+        elif flows['no_ecn']['connstate'] and not flows['ecn']['connstate']:
+            conditions.append('ecn.connectivity.broken')
+        # We could only connect with ECN
+        elif not flows['no_ecn']['connstate'] and flows['ecn']['connstate']:
+            conditions.append('ecn.connectivity.transient')
+        # We could not connect
+        else:
+            conditions.append('ecn.connectivity.offline')
 
-            # We get some idea about start and stop times
-            tstart = min(flow['tstart'], other_flow['tstart'])
-            tstop = max(flow['tstop'], other_flow['tstop'])
+        ## SECOND, we check if we observed the ECN flow, to see if we can do
+        # some analysis on it
+        if  flows['ecn']['observed']:
 
-            ## FIRST, we check if we can connect with ECN enabled
-
-            # When we had a succesfull TCP handshake, flow['connstate']
-            # will be True.
-
-            # We could always connect
-            if flows['no_ecn']['connstate'] and flows['ecn']['connstate']:
-                conditions.append('ecn.connectivity.works')
-            # We could only connect without ECN
-            elif flows['no_ecn']['connstate'] and not flows['ecn']['connstate']:
-                conditions.append('ecn.connectivity.broken')
-            # We could only connect with ECN
-            elif not flows['no_ecn']['connstate'] and flows['ecn']['connstate']:
-                conditions.append('ecn.connectivity.transient')
-            # We could not connect
-            else:
-                conditions.append('ecn.connectivity.offline')
-
-
-            ## SECOND, we check if ECN was sucessfully negotiated
+            ## THIRD, we check if ECN was properly negotiated
             # If we did not capture the reverse syn package, we can say nothing
             # about the negotiation
             if flows['ecn']['rev_syn_flags'] == None:
@@ -208,7 +197,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 ecn_negotiated = False
                 conditions.append('ecn.not_negotiated')
 
-            ## THIRD, we check if we have seen the ECT or CE codepoints.
+            ## FOURTH, we check if we have seen the ECT or CE codepoints.
             # check ECT(0)
             if flows['ecn']['rev_ez']:
                 if ecn_negotiated:
@@ -228,28 +217,21 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 else:
                     conditions.append('ecn.ce.unwanted')
 
-            ## FOURTH, put the result on the outqueue
-
-            flow_tuple = (flows['no_ecn'], flows['ecn'])
-
-            self.outqueue.put({
-                'sip': flow['sip'],
-                'dip': dip,
-                'dp': flow['dp'],
-                'conditions': conditions,
-                'hostname': flow['host'],
-                'rank': flow['rank'],
-                'flow_results': flow_tuple,
-                'time': {
-                    'from': tstart,
-                    'to': tstop
-                }
-            })
-
-        # If the matching flow (with the other config), is not in the comparetab
-        # yet, put this flow in there.
-        else:
-            self.comparetab[dip] = flow
+        ## FIFTH, put the result on the outqueue
+        flow_tuple = (flows['no_ecn'], flows['ecn'])
+        self.outqueue.put({
+            'sip': flow['sip'],
+            'dip': dip,
+            'dp': flow['dp'],
+            'conditions': conditions,
+            'hostname': flow['host'],
+            'rank': flow['rank'],
+            'flow_results': flow_tuple,
+            'time': {
+                'from': tstart,
+                'to': tstop
+            }
+        })
 
     def merge(self, flow, res):
         """
