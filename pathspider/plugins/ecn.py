@@ -136,57 +136,101 @@ class ECN(SynchronizedSpider, PluggableSpider):
             sys.exit(-1)
 
     def combine_flows(self, flow):
+        logger = logging.getLogger('ecn')
+
         dip = flow['dip']
+
+        # if we already have matching flow (with the other config), compare
+        # the two.
         if dip in self.comparetab:
             other_flow = self.comparetab.pop(dip)
 
-            # first has always ecn off, while the second has ecn on
-            if other_flow['config']:
-                flows = (flow, other_flow)
+            flows = {}
+
+            if flow['config']:
+                flows['ecn'] = flow
+                flows['no_ecn'] = other_flow
             else:
-                flows = (other_flow, flow)
+                flows['ecn'] = other_flow
+                flows['no_ecn'] = flow
             conditions = []
 
-            # discard non-observed flows and flows with no syn observed
-            for f in flows:
-                if not (f['observed'] and f['rev_syn_flags'] != None):
+            # If we made a connection, we expect to always see at least a
+            # single packet in a flow. If this is not the case, no connection
+            # attempt was made, or we did not capture the flow. If this happened
+            # for either the zero or one config, we can deduce nothing about the
+            # host.
+            if not flows['ecn']['observed']:
+                    logger.info('Not generating output for {}, '
+                    'because ecn flow not observed'.format(dip))
                     return
 
+            if not flows['no_ecn']['observed']:
+                    logger.info('Not generating output for {}, '
+                    'because no_ecn flow not observed'.format(dip))
+                    return
+
+            # So at this point we _know_ that we have at least tried to connect.
+
+            # We get some idea about start and stop times
             tstart = min(flow['tstart'], other_flow['tstart'])
             tstop = max(flow['tstop'], other_flow['tstop'])
 
-            if flows[0]['connstate'] and flows[1]['connstate']:
-                cond_conn = 'ecn.connectivity.works'
-            elif flows[0]['connstate'] and not flows[1]['connstate']:
-                cond_conn = 'ecn.connectivity.broken'
-            elif not flows[0]['connstate'] and not flows[1]['connstate']:
-                cond_conn = 'ecn.connectivity.transient'
-            else:
-                cond_conn = 'ecn.connectivity.offline'
-            conditions.append(cond_conn)
+            ## FIRST, we check if we can connect with ECN enabled
 
-            if flows[1]['rev_syn_flags'] & TCP_SAEC == TCP_SAE:
-                negotiated = True
+            # When we had a succesfull TCP handshake, flow['connstate']
+            # will be True.
+
+            # We could always connect
+            if flows['no_ecn']['connstate'] and flows['ecn']['connstate']:
+                conditions.append('ecn.connectivity.works')
+            # We could only connect without ECN
+            elif flows['no_ecn']['connstate'] and not flows['ecn']['connstate']:
+                conditions.append('ecn.connectivity.broken')
+            # We could only connect with ECN
+            elif not flows['no_ecn']['connstate'] and flows['ecn']['connstate']:
+                conditions.append('ecn.connectivity.transient')
+            # We could not connect
+            else:
+                conditions.append('ecn.connectivity.offline')
+
+
+            ## SECOND, we check if ECN was sucessfully negotiated
+            # If we did not capture the reverse syn package, we can say nothing
+            # about the negotiation
+            if flows['ecn']['rev_syn_flags'] == None:
+                pass
+            # if the host has send a "ECN-setup SYN-ACK packet" (see RFC 3168)
+            elif flows['ecn']['rev_syn_flags'] & TCP_SAEC == TCP_SAE:
+                ecn_negotiated = True
                 conditions.append('ecn.negotiated')
             else:
-                negotiated = False
+                ecn_negotiated = False
                 conditions.append('ecn.not_negotiated')
 
-            if flows[1]['rev_ez']:
-                if negotiated:
+            ## THIRD, we check if we have seen the ECT or CE codepoints.
+            # check ECT(0)
+            if flows['ecn']['rev_ez']:
+                if ecn_negotiated:
                     conditions.append('ecn.ect_zero.seen')
                 else:
                     conditions.append('ecn.ect_zero.unwanted')
-            if flows[1]['rev_eo']:
-                if negotiated:
+            # check ECT(1)
+            if flows['ecn']['rev_eo']:
+                if ecn_negotiated:
                     conditions.append('ecn.ect_one.seen')
                 else:
                     conditions.append('ecn.ect_one.unwanted')
-            if flows[1]['rev_ce']:
-                if negotiated:
+            # check CE
+            if flows['ecn']['rev_ce']:
+                if ecn_negotiated:
                     conditions.append('ecn.ce.seen')
                 else:
                     conditions.append('ecn.ce.unwanted')
+
+            ## FOURTH, put the result on the outqueue
+
+            flow_tuple = (flows['no_ecn'], flows['ecn'])
 
             self.outqueue.put({
                 'sip': flow['sip'],
@@ -195,12 +239,15 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 'conditions': conditions,
                 'hostname': flow['host'],
                 'rank': flow['rank'],
-                'flow_results': flows,
+                'flow_results': flow_tuple,
                 'time': {
                     'from': tstart,
                     'to': tstop
                 }
             })
+
+        # If the matching flow (with the other config), is not in the comparetab
+        # yet, put this flow in there.
         else:
             self.comparetab[dip] = flow
 
