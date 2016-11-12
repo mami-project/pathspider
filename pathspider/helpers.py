@@ -46,8 +46,11 @@ def _get_content_length(header):
     return 0
 
 def http_get(sock, host, user_agent=HTTP_USER_AGENT):
-    sock.settimeout(HTTP_SOCKET_TIMEOUT)
     logger = logging.getLogger('http_get')
+
+    original_timeout = sock.gettimeout()
+    sock.settimeout(HTTP_SOCKET_TIMEOUT)
+
     request = HTTP_NEWLINE.join(HTTP_REQUEST[user_agent])
     request = request.format(hostname = host)
 
@@ -55,9 +58,11 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
         sock.send(bytes(request, 'ASCII'))
     except ConnectionResetError:
         logger.debug("Connection reset while sending request: " + host)
+        sock.settimeout(original_timeout)
         return ('', '')
     except socket.timeout:
         logger.debug("Timeout occured while sending request: " + host)
+        sock.settimeout(original_timeout)
         return ('', '')
 
     ## FIRST, get the header
@@ -70,13 +75,15 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
             new_char =  sock.recv(1).decode('ASCII')
         except ConnectionResetError:
             logger.debug("Connection reset while getting header: " + host)
+            sock.settimeout(original_timeout)
             return (header, '')
         except socket.timeout:
             logger.debug("Timeout occured while getting header: " + host)
-            print(header)
+            sock.settimeout(original_timeout)
             return (header, '')
         if new_char == '':
             logger.debug("Connection closed while getting header: " + host)
+            sock.settimeout(original_timeout)
             return (header, '')
 
         header = header + new_char
@@ -91,11 +98,14 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
         content = sock.recv(bytes_to_receive)
     except ConnectionResetError:
         logger.debug("Connection reset while getting content: " + host)
+        sock.settimeout(original_timeout)
         return (header, '')
     except socket.timeout:
         logger.debug("Timeout occured while getting content: " + host)
+        sock.settimeout(original_timeout)
         return (header, '')
 
+    sock.settimeout(original_timeout)
     return (header, content)
 
 if __name__ == "__main__":
