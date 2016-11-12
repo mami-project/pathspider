@@ -12,6 +12,7 @@ from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import Conn
 from pathspider.base import NO_FLOW
+from pathspider.helpers import http_get
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -91,14 +92,15 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
     def post_connect(self, job, conn, pcs, config):
         """
-        Close the socket gracefully.
+        Get webpage and close the socket gracefully.
         """
-
+        logger = logging.getLogger('ecn')
         job_ip, job_port, job_host, job_rank = job
 
         tstop = str(datetime.utcnow())
 
         if conn.state == Conn.OK:
+            http_get(conn.client, job_host)
             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
                                config, True, conn.tstart, tstop)
         else:
