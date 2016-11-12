@@ -36,13 +36,18 @@ def _detect_end_of_header(response):
     return False
 
 def _get_content_length(header):
+    logger=logging.getLogger('http_get')
     header = header.splitlines()
     for line in header:
         line = line.lower().strip()
-        if 'content-length' in line:
+        if 'content-length:' in line:
             name, content = line.split(':')
-            return int(content.strip())
-
+            try:
+                return int(content.strip())
+            except ValueError:
+                logger.debug(
+                    "Not able to parse content-length: {}".format(header))
+                break
     return 0
 
 def http_get(sock, host, user_agent=HTTP_USER_AGENT):
