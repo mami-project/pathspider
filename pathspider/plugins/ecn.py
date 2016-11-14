@@ -97,10 +97,12 @@ class ECN(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('ecn')
         job_ip, job_port, job_host, job_rank = job
 
+        if conn.state == Conn.OK:
+            http_get(conn.client, job_host)
+
         tstop = str(datetime.utcnow())
 
         if conn.state == Conn.OK:
-            http_get(conn.client, job_host)
             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
                                config, True, conn.tstart, tstop)
         else:
