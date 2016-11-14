@@ -102,6 +102,7 @@ Connection = collections.namedtuple("Connection",
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
+SEMAPHORE_TIMEOUT = 0.5
 
 SHUTDOWN_SENTINEL = "SHUTDOWN_SENTINEL"
 NO_RESULT = None
@@ -761,7 +762,11 @@ class SynchronizedSpider(Spider):
                     logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: # not worker_active, spin the semaphores
-                self.sem_config_zero.acquire()
+                while not self.sem_config_zero.acquire(
+                                                timeout = SEMAPHORE_TIMEOUT):
+                    with self.active_worker_lock:
+                        if self.active_worker_count <= 0:
+                            break
                 # self._worker_state[worker_number] = "shutdown_0"
                 time.sleep(QUEUE_SLEEP)
                 with self.active_worker_lock:
@@ -769,7 +774,11 @@ class SynchronizedSpider(Spider):
                         #self._worker_state[worker_number] = "shutdown_complete"
                         break
                 self.sem_config_one_rdy.release()
-                self.sem_config_one.acquire()
+                while not self.sem_config_one.acquire(
+                                                timeout = SEMAPHORE_TIMEOUT):
+                    with self.active_worker_lock:
+                        if self.active_worker_count <= 0:
+                            break
                 # self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
