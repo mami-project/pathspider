@@ -94,11 +94,11 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
     except ConnectionResetError:
         logger.debug("Connection reset while sending request: " + host)
         sock.settimeout(original_timeout)
-        return ('', '')
+        return ('', bytes())
     except socket.timeout:
         logger.debug("Timeout occured while sending request: " + host)
         sock.settimeout(original_timeout)
-        return ('', '')
+        return ('', bytes())
 
     ## FIRST, get the header
     header = ''
@@ -113,15 +113,15 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
         except ConnectionResetError:
             logger.debug("Connection reset while getting header: " + host)
             sock.settimeout(original_timeout)
-            return (header, '')
+            return (header, bytes())
         except socket.timeout:
             logger.debug("Timeout occured while getting header: " + host)
             sock.settimeout(original_timeout)
-            return (header, '')
+            return (header, bytes())
         if new_char == '':
             logger.debug("Connection closed while getting header: " + host)
             sock.settimeout(original_timeout)
-            return (header, '')
+            return (header, bytes())
 
         header = header + new_char
 
@@ -131,18 +131,18 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
     logger.debug("Retrieving {} bytes of content from {}".format(
             bytes_to_receive, host))
     if bytes_to_receive == 0:
-        return (header, '')
+        return (header, bytes())
 
     try:
         content = sock.recv(bytes_to_receive)
     except ConnectionResetError:
         logger.debug("Connection reset while getting content: " + host)
         sock.settimeout(original_timeout)
-        return (header, '')
+        return (header, bytes())
     except socket.timeout:
         logger.debug("Timeout occured while getting content: " + host)
         sock.settimeout(original_timeout)
-        return (header, '')
+        return (header, bytes())
 
     logger.debug("Done with retrieving content from {}".format(host))
     sock.settimeout(original_timeout)
