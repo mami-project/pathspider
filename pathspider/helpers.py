@@ -172,7 +172,7 @@ if __name__ == "__main__":
     s.settimeout(10)
     s.connect((HOST, PORT))
 
-    header, content = http_get(s, HOST)
+    header, content = http_request(s, HOST)
 
     print(header)
     print('--------------------')
