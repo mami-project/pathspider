@@ -7,7 +7,7 @@ HTTP_SOCKET_TIMEOUT = 10
 HTTP_NEWLINE = '\r\n'
 HTTP_USER_AGENT = 'firefox'
 HTTP_REQUEST = {
-    'curl' :    ['GET / HTTP/1.1',
+    'curl' :    ['{method} / HTTP/1.1',
                 'Host: {hostname}',
                 'User-Agent: curl/7.50.1',
                 'Acccept: */*',
@@ -15,7 +15,7 @@ HTTP_REQUEST = {
                 '',
                 ''
                 ],
-    'firefox' : ['GET / HTTP/1.1',
+    'firefox' : ['{method} / HTTP/1.1',
                 'Host: {hostname}',
                 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:45.0)'\
                 'Gecko/20100101 Firefox/45.0',
@@ -68,25 +68,32 @@ def _get_content_length(header):
                 break
     return 0
 
-def http_get(sock, host, user_agent=HTTP_USER_AGENT):
+def http_request(sock, host, method = 'GET', user_agent=HTTP_USER_AGENT):
     '''
-    Performs a http_get request and downloads response.
+    Performs a http GET of HEAD request and downloads response.
+
+    This functions assumes the socket to have an open connection.
+    If the request uses the HEAD method, the content field of the return tuple
+    will be an empty bytes object.
 
     :param socket.socket socket: the socket to perform the request over
     :param str host: hostname to place in the 'Host' header field of the request
     :param str user_agent: what user agent to immitate.
         Should be key of `HTTP_REQUEST`
+    :param str method: type of request to make. Should be 'GET' or 'HEAD'
     :rtype: tuple(str, bytes)
     :returns: The tuple (header, content)
     '''
 
-    logger = logging.getLogger('http_get')
+    assert method in ('GET', 'HEAD')
+
+    logger = logging.getLogger('http_request')
 
     original_timeout = sock.gettimeout()
     sock.settimeout(HTTP_SOCKET_TIMEOUT)
 
     request = HTTP_NEWLINE.join(HTTP_REQUEST[user_agent])
-    request = request.format(hostname = host)
+    request = request.format(method = method, hostname = host)
 
     logger.debug("Sending GET request to {}".format(host))
     try:
@@ -125,6 +132,10 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
 
         header = header + new_char
 
+    # The HEAD method does not need to fetch the content.
+    if method == 'HEAD':
+        logger.debug('Done with HEAD request to {}, returning'.format(host))
+        return (header, bytes())
 
     ## SECOND, get the content
     bytes_to_receive = _get_content_length(header)
