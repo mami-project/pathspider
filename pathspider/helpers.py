@@ -31,11 +31,29 @@ HTTP_REQUEST = {
 }
 
 def _detect_end_of_header(response):
+    '''
+    Returns true if the end of the header section of a HTTP resonse is detected
+
+    Checks if `response` ends in two consecutive newlines.
+    :param str response: the (partial) response from the server
+    :rtype: bool
+    :returns: true is the `response` ends in two consecutive newlines.
+    '''
     if response.endswith('\n'*2): return True
     if response.endswith('\r\n'*2): return True
     return False
 
 def _get_content_length(header):
+    '''
+    Returns the value of the 'Content-Length' field in a HTTP header.
+
+    returns 0 if the 'Content-Lenght' field was not present or could not
+    be decoded.
+    :param str header: a http header
+    :rtype: int
+    :returns: the value of the 'Content-Lenght' field
+    '''
+
     logger=logging.getLogger('http_get')
     header = header.splitlines()
     for line in header:
@@ -51,6 +69,17 @@ def _get_content_length(header):
     return 0
 
 def http_get(sock, host, user_agent=HTTP_USER_AGENT):
+    '''
+    Performs a http_get request and downloads response.
+
+    :param socket.socket socket: the socket to perform the request over
+    :param str host: hostname to place in the 'Host' header field of the request
+    :param str user_agent: what user agent to immitate.
+        Should be key of `HTTP_REQUEST`
+    :rtype: tuple(str, bytes)
+    :returns: The tuple (header, content)
+    '''
+
     logger = logging.getLogger('http_get')
 
     original_timeout = sock.gettimeout()
@@ -59,6 +88,7 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
     request = HTTP_NEWLINE.join(HTTP_REQUEST[user_agent])
     request = request.format(hostname = host)
 
+    logger.debug("Sending GET request to {}".format(host))
     try:
         sock.send(bytes(request, 'ASCII'))
     except ConnectionResetError:
@@ -73,6 +103,8 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
     ## FIRST, get the header
     header = ''
     counter = 0
+
+    logger.debug("Retrieving header from {}".format(host))
     while not _detect_end_of_header(header):
         counter = counter + 1
         #logger.info('Looping! {}'.format(counter))
@@ -93,9 +125,11 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
 
         header = header + new_char
 
+
     ## SECOND, get the content
     bytes_to_receive = _get_content_length(header)
-
+    logger.debug("Retrieving {} bytes of content from {}".format(
+            bytes_to_receive, host))
     if bytes_to_receive == 0:
         return (header, '')
 
@@ -110,9 +144,11 @@ def http_get(sock, host, user_agent=HTTP_USER_AGENT):
         sock.settimeout(original_timeout)
         return (header, '')
 
+    logger.debug("Done with retrieving content from {}".format(host))
     sock.settimeout(original_timeout)
     return (header, content)
 
+# Just some debugging stuff, you can probably ignore this.
 if __name__ == "__main__":
 
     logging.basicConfig()
