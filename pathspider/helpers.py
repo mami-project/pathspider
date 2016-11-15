@@ -110,7 +110,7 @@ class Http_Request():
         self.header = ''
         while not self._detect_end_of_header(self.header):
             try:
-                new_char = self.sock.recv(1).decode('ASCII')
+                new_char = self.sock.recv(1).decode('iso-8859-1')
             except ConnectionResetError:
                 self.logger.debug("Connection reset while getting header: {}"\
                     .format(self.host))
@@ -119,6 +119,12 @@ class Http_Request():
                 return (self.header, bytes(), False)
             except socket.timeout:
                 self.logger.debug("Timeout occured while getting header: {}"\
+                    .format(self.host))
+                self.sock.settimeout(self.original_timeout)
+                self.state = self.STATE_ERROR
+                return (self.header, bytes(), False)
+            except UnicodeDecodeError:
+                self.logger.debug("Error while decoding header: {}"\
                     .format(self.host))
                 self.sock.settimeout(self.original_timeout)
                 self.state = self.STATE_ERROR
