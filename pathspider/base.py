@@ -183,6 +183,11 @@ class Spider:
 
         self.conn_timeout = None
 
+        # For printing agregate information at shutdown
+        self.meta_info_lock = threading.Lock()
+        self.meta_info_strings = {}
+        self.meta_info_values = {}
+
     def config_zero(self):
         """
         Changes the global state or system configuration for the
@@ -541,6 +546,8 @@ class Spider:
             self.outqueue.join()
             logger.debug("all results retrieved")
 
+            self.log_meta_info_values()
+
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
 
@@ -609,6 +616,8 @@ class Spider:
         self.observer_process.join()
         logger.debug("observer joined")
 
+        self.log_meta_info_values()
+
         self.outqueue.put(SHUTDOWN_SENTINEL)
         logger.info("termination complete")
 
@@ -624,6 +633,20 @@ class Spider:
             return
 
         self.jobqueue.put(job)
+
+    def log_meta_info_values(self):
+        logger = logging.getLogger('pathspider')
+        with self.meta_info_lock:
+            for key in self.meta_info_values:
+                try:
+                    string = self.meta_info_strings[key]
+                except KeyError:
+                    logger.warning('Found meta_info_value without info string' \
+                    ' not printing entry for: {}'.format(key))
+                    continue
+
+                value = self.meta_info_values[key]
+                logger.info("{}: {}".format(string, value))
 
 
 class SynchronizedSpider(Spider):
