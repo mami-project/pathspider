@@ -21,8 +21,8 @@ import os
 sys.path.insert(0, os.path.abspath('..'))
 
 with open(os.path.abspath('../pathspider/VERSION'), encoding='utf-8') as version_file:
-    pathspider_version = version_file.read().strip()
-
+    exec(version_file.read())
+    pathspider_version = __version__
 
 # -- General configuration ------------------------------------------------
 

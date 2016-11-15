@@ -10,15 +10,15 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-with open(path.join(here, 'pathspider', 'VERSION'), encoding='utf-8') as version_file:
-    version = version_file.read().strip()
+with open(path.join(here, 'pathspider', 'version.py'), encoding='utf-8') as version_file:
+    exec(version_file.read())
 
 with open('requirements.txt') as f:
     install_requires = f.read().splitlines()
 
 setup(
     name='pathspider',
-    version=version,
+    version=__version__,
     description='A tool for measuring path transparency in the Internet',
     long_description=long_description,
     url='https://pathspider.net/',
