@@ -204,31 +204,22 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 pass
             # if the host has send a "ECN-setup SYN-ACK packet" (see RFC 3168)
             elif flows['ecn']['rev_syn_flags'] & TCP_SAEC == TCP_SAE:
-                ecn_negotiated = True
                 conditions.append('ecn.negotiated')
             else:
-                ecn_negotiated = False
                 conditions.append('ecn.not_negotiated')
 
             ## FOURTH, we check if we have seen the ECT or CE codepoints.
             # check ECT(0)
             if flows['ecn']['rev_ez']:
-                if ecn_negotiated:
                     conditions.append('ecn.ect_zero.seen')
-                else:
-                    conditions.append('ecn.ect_zero.unwanted')
+
             # check ECT(1)
             if flows['ecn']['rev_eo']:
-                if ecn_negotiated:
                     conditions.append('ecn.ect_one.seen')
-                else:
-                    conditions.append('ecn.ect_one.unwanted')
+
             # check CE
             if flows['ecn']['rev_ce']:
-                if ecn_negotiated:
                     conditions.append('ecn.ce.seen')
-                else:
-                    conditions.append('ecn.ce.unwanted')
 
         ## FIFTH, put the result on the outqueue
         flow_tuple = (flows['no_ecn'], flows['ecn'])
