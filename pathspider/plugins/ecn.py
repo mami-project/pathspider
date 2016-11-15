@@ -28,6 +28,13 @@ SpiderRecord = collections.namedtuple("SpiderRecord",
 
 USER_AGENT = "pathspider"
 
+CONN_SUCCES_INFO_STRING = "Number of succesfull HTTP requests"
+CONN_FAIL_INFO_STRING = "Number of failed HTTP requests"
+CONN_RATIO_INFO_STRING = "Ratio of succesfull HTTP requests"
+CONN_SUCCES_INFO_KEY = "ECN_HTTP_SUCCES_CNT"
+CONN_FAIL_INFO_KEY = "ECN_HTTP_FAIL_CNT"
+CONN_RATIO_INFO_KEY = "ECN_HTTP_SUCCES_RATIO"
+
 ## Chain functions
 
 def ecn_setup(rec, ip):
@@ -60,6 +67,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
                          args=args)
         self.conn_timeout = args.timeout
         self.comparetab = {}
+        self.init_meta_info()
 
     def config_zero(self):
         """
@@ -98,7 +106,8 @@ class ECN(SynchronizedSpider, PluggableSpider):
         job_ip, job_port, job_host, job_rank = job
 
         if conn.state == Conn.OK:
-            http_request(conn.client, job_host, method = 'HEAD')
+            result = http_request(conn.client, job_host, method = 'HEAD')
+            self.update_meta_info_after_http(result)
 
         tstop = str(datetime.utcnow())
 
@@ -265,6 +274,31 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         logger.debug("Result: " + str(flow))
         self.combine_flows(flow)
+
+    def init_meta_info(self):
+        self.meta_info_strings[CONN_SUCCES_INFO_KEY] = CONN_SUCCES_INFO_STRING
+        self.meta_info_strings[CONN_FAIL_INFO_KEY] = CONN_FAIL_INFO_STRING
+        self.meta_info_strings[CONN_RATIO_INFO_KEY] = CONN_RATIO_INFO_STRING
+        self.meta_info_values[CONN_SUCCES_INFO_KEY] = 0
+        self.meta_info_values[CONN_FAIL_INFO_KEY] = 0
+        self.meta_info_values[CONN_RATIO_INFO_KEY] = 0
+
+    def update_meta_info_after_http(self, result):
+        succes = result[2]
+        with self.meta_info_lock:
+            if succes:
+                self.meta_info_values[CONN_SUCCES_INFO_KEY] = \
+                    self.meta_info_values[CONN_SUCCES_INFO_KEY] + 1
+            else:
+                self.meta_info_values[CONN_FAIL_INFO_KEY] = \
+                    self.meta_info_values[CONN_FAIL_INFO_KEY] + 1
+
+            # at least one of the values will be non equal to zero, so no
+            # problem here
+            succes_rate =  self.meta_info_values[CONN_SUCCES_INFO_KEY] / \
+                        (self.meta_info_values[CONN_SUCCES_INFO_KEY] + \
+                        self.meta_info_values[CONN_FAIL_INFO_KEY])
+            self.meta_info_values[CONN_RATIO_INFO_KEY] = round(succes_rate, 3)
 
     @staticmethod
     def register_args(subparsers):

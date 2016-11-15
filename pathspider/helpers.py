@@ -74,15 +74,17 @@ def http_request(sock, host, method = 'GET', user_agent=HTTP_USER_AGENT):
 
     This functions assumes the socket to have an open connection.
     If the request uses the HEAD method, the content field of the return tuple
-    will be an empty bytes object.
+    will be an empty bytes object. When an exception occured, and the HTTP
+    response was not (completely) sucesfully fetched, the succes field of the
+    return tuple will be False. otherwise it will be True.
 
     :param socket.socket socket: the socket to perform the request over
     :param str host: hostname to place in the 'Host' header field of the request
     :param str user_agent: what user agent to immitate.
         Should be key of `HTTP_REQUEST`
     :param str method: type of request to make. Should be 'GET' or 'HEAD'
-    :rtype: tuple(str, bytes)
-    :returns: The tuple (header, content)
+    :rtype: tuple(str, bytes, bool)
+    :returns: The tuple (header, content, success)
     '''
 
     assert method in ('GET', 'HEAD')
@@ -101,11 +103,11 @@ def http_request(sock, host, method = 'GET', user_agent=HTTP_USER_AGENT):
     except ConnectionResetError:
         logger.debug("Connection reset while sending request: " + host)
         sock.settimeout(original_timeout)
-        return ('', bytes())
+        return ('', bytes(), False)
     except socket.timeout:
         logger.debug("Timeout occured while sending request: " + host)
         sock.settimeout(original_timeout)
-        return ('', bytes())
+        return ('', bytes(), False)
 
     ## FIRST, get the header
     header = ''
@@ -120,44 +122,44 @@ def http_request(sock, host, method = 'GET', user_agent=HTTP_USER_AGENT):
         except ConnectionResetError:
             logger.debug("Connection reset while getting header: " + host)
             sock.settimeout(original_timeout)
-            return (header, bytes())
+            return (header, bytes(), False)
         except socket.timeout:
             logger.debug("Timeout occured while getting header: " + host)
             sock.settimeout(original_timeout)
-            return (header, bytes())
+            return (header, bytes(), False)
         if new_char == '':
             logger.debug("Connection closed while getting header: " + host)
             sock.settimeout(original_timeout)
-            return (header, bytes())
+            return (header, bytes(), False)
 
         header = header + new_char
 
     # The HEAD method does not need to fetch the content.
     if method == 'HEAD':
         logger.debug('Done with HEAD request to {}, returning'.format(host))
-        return (header, bytes())
+        return (header, bytes(), True)
 
     ## SECOND, get the content
     bytes_to_receive = _get_content_length(header)
     logger.debug("Retrieving {} bytes of content from {}".format(
             bytes_to_receive, host))
     if bytes_to_receive == 0:
-        return (header, bytes())
+        return (header, bytes(), True)
 
     try:
         content = sock.recv(bytes_to_receive)
     except ConnectionResetError:
         logger.debug("Connection reset while getting content: " + host)
         sock.settimeout(original_timeout)
-        return (header, bytes())
+        return (header, bytes(), False)
     except socket.timeout:
         logger.debug("Timeout occured while getting content: " + host)
         sock.settimeout(original_timeout)
-        return (header, bytes())
+        return (header, bytes(), False)
 
     logger.debug("Done with retrieving content from {}".format(host))
     sock.settimeout(original_timeout)
-    return (header, content)
+    return (header, content, True)
 
 # Just some debugging stuff, you can probably ignore this.
 if __name__ == "__main__":
