@@ -8,7 +8,7 @@ class Http_Request():
     Class to perform a http GET of HEAD request and download the response.
 
     Note that many of the functions should be called in a particular order.
-    Namely: `make_request()` --> `retrieve_header()` --> `retrieve_content()`
+    Namely: `send_request()` --> `receive_header()` --> `receive_content()`
     `run()` is a wrapper that will perform all three of these functions.
     """
 
@@ -83,19 +83,19 @@ class Http_Request():
         :returns: the tuple (header, content, success)
         """
 
-        if not self.make_request():
+        if not self.send_request():
             return ('', bytes(), False)
 
-        if self.retrieve_header()[2] == False:
+        if self.receive_header()[2] == False:
             return ('', bytes(), False)
 
         if self.method == 'GET':
-            if self.retrieve_content()[2] == False:
+            if self.receive_content()[2] == False:
                 return (self.header, bytes(), False)
 
         return (self.header, self.content, True)
 
-    def make_request(self):
+    def send_request(self):
         """
         Send the HTTP request to the server over the socket
 
@@ -136,7 +136,7 @@ class Http_Request():
         self.state = self.STATE_REQUEST_MADE
         return True
 
-    def retrieve_header(self):
+    def receive_header(self):
         """
         Retrieve the HTTP response header from the server
 
@@ -191,7 +191,7 @@ class Http_Request():
         self.state = self.STATE_RETRIEVED_HEADER
         return (self.header, bytes(), True)
 
-    def retrieve_content(self):
+    def receive_content(self):
         """
         Retrieve the HTTP response content from the server
 
