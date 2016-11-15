@@ -7,6 +7,8 @@ import logging
 import hashlib
 import os
 
+import pathspider.version
+
 class Uploader():
     """
     Class used to upload data to the pto-observatory.
@@ -15,6 +17,7 @@ class Uploader():
     and then uploads that file to the observatory.
     """
 
+    TOOL_NAME = 'pathspider'
     BASE_URL = '{url}/up/{filename}'
     FORMAT = 'fjson-bz2'
     DATA_FILE_EXTENSION = '.bz2'
@@ -193,7 +196,10 @@ class Uploader():
 
         metadata = {'msmntCampaign': self.campaign,
                     'format': self.FORMAT,
-                    'start_time': self.start_time}
+                    'start_time': self.start_time,
+                    'tool_name': self.TOOL_NAME,
+                    'tool_version': pathspider.version.__version__
+                    }
         if stop_time:
             metadata['stop_time'] = int(stop_time)
         else:
