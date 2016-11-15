@@ -248,6 +248,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('ecn')
         if flow == NO_FLOW:
             flow = {
+                "sip": 'fixme' # FIXME
                 "dip": res.ip,
                 "sp": res.port,
                 "dp": res.rport,
