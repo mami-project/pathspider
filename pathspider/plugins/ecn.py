@@ -12,7 +12,7 @@ from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import Conn
 from pathspider.base import NO_FLOW
-from pathspider.helpers import http_request
+from pathspider.helpers import Http_Request
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -106,7 +106,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         job_ip, job_port, job_host, job_rank = job
 
         if conn.state == Conn.OK:
-            result = http_request(conn.client, job_host, method = 'HEAD')
+            result = Http_Request(conn.client, job_host, method = 'HEAD').run()
             self.update_meta_info_after_http(result)
 
         tstop = str(datetime.utcnow())
