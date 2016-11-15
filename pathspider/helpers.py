@@ -54,7 +54,7 @@ def _get_content_length(header):
     :returns: the value of the 'Content-Lenght' field
     '''
 
-    logger=logging.getLogger('http_get')
+    logger=logging.getLogger('http')
     header = header.splitlines()
     for line in header:
         line = line.lower().strip()
