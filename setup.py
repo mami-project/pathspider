@@ -10,6 +10,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+__version__ = None # make tests happy
 with open(path.join(here, 'pathspider', 'version.py'), encoding='utf-8') as version_file:
     exec(version_file.read())
 
