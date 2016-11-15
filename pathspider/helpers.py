@@ -4,6 +4,14 @@ import socket
 import logging
 
 class Http_Request():
+    """
+    Class to perform a http GET of HEAD request and download the response.
+
+    Note that many of the functions should be called in a particular order.
+    Namely: `make_request()` --> `retrieve_header()` --> `retrieve_content()`
+    `run()` is a wrapper that will perform all three of these functions.
+    """
+
     STATE_INIT = 1
     STATE_REQUEST_MADE = 2
     STATE_RETRIEVED_HEADER = 3
@@ -38,6 +46,19 @@ class Http_Request():
     }
 
     def __init__(self, sock, host, method = None, user_agent = None):
+        """
+        Create new class instance to perform a HTTP GET or HEAD request.
+
+        Each class instance can only be used to perform one HTTP GET or HEAD
+        request.
+
+        :param socket.socket socket: the socket to perform the request over
+        :param str host: hostname to place in the 'Host' header field of the request
+        :param str user_agent: what user agent to immitate.
+            Should be key of `Http_Request.HTTP_REQUEST`
+        :param str method: type of request to make. Should be 'GET' or 'HEAD'
+        """
+
         self.sock = sock
         self.host = host
         self.method = method if method else 'GET'
@@ -52,6 +73,16 @@ class Http_Request():
         assert self.user_agent in self.HTTP_REQUEST_PROTOTYPE
 
     def run(self):
+        """
+        Perform the HTTP request and retrieve the result.
+
+        Will return a tuple containing the response header, content and
+        success status.
+
+        :rtype: tuple(str, bytes, bool)
+        :returns: the tuple (header, content, success)
+        """
+
         if not self.make_request():
             return ('', bytes(), False)
 
@@ -65,6 +96,13 @@ class Http_Request():
         return (self.header, self.content, True)
 
     def make_request(self):
+        """
+        Send the HTTP request to the server over the socket
+
+        :rtype: bool
+        :returns: success status
+        """
+
         if self.state != self.STATE_INIT:
             self.logger.error(
                 "Attempt to make request when not in STATE_INIT: {}".format(
@@ -99,6 +137,15 @@ class Http_Request():
         return True
 
     def retrieve_header(self):
+        """
+        Retrieve the HTTP response header from the server
+
+        :rtype: tuple(str, bytes, bool)
+        :returns: the tuple (header, bytes(), status). Second value will always
+            be an empty bytes object.
+        """
+
+
         if self.state != self.STATE_REQUEST_MADE:
             self.logger.error(
                 "Attempt to get header when not in STATE_REQUEST_MADE: {}"\
@@ -145,6 +192,13 @@ class Http_Request():
         return (self.header, bytes(), True)
 
     def retrieve_content(self):
+        """
+        Retrieve the HTTP response content from the server
+
+        :rtype: tuple(str, bytes, bool)
+        :returns: the tuple (header, content, status).
+        """
+
         if self.state != self.STATE_RETRIEVED_HEADER:
             self.logger.error(
                 "Attempt to get content when not in STATE_RETRIEVED_HEADER: {}"\
@@ -199,21 +253,21 @@ class Http_Request():
 
     @staticmethod
     def _detect_end_of_header(response):
-        '''
+        """
         Returns true if the end of the header section of a HTTP resonse is detected
 
         Checks if `response` ends in two consecutive newlines.
         :param str response: the (partial) response from the server
         :rtype: bool
         :returns: true is the `response` ends in two consecutive newlines.
-        '''
+        """
         if response.endswith('\n'*2): return True
         if response.endswith('\r\n'*2): return True
         return False
 
     @staticmethod
     def _get_content_length(header):
-        '''
+        """
         Returns the value of the 'Content-Length' field in a HTTP header.
 
         returns 0 if the 'Content-Lenght' field was not present or could not
@@ -221,7 +275,7 @@ class Http_Request():
         :param str header: a http header
         :rtype: int
         :returns: the value of the 'Content-Lenght' field
-        '''
+        """
 
         logger=logging.getLogger('http')
         header = header.splitlines()
@@ -236,99 +290,6 @@ class Http_Request():
                         "Not able to parse content-length: {}".format(header))
                     break
         return 0
-
-# def http_request(sock, host, method = 'GET', user_agent=HTTP_USER_AGENT):
-#     '''
-#     Performs a http GET of HEAD request and downloads response.
-#
-#     This functions assumes the socket to have an open connection.
-#     If the request uses the HEAD method, the content field of the return tuple
-#     will be an empty bytes object. When an exception occured, and the HTTP
-#     response was not (completely) sucesfully fetched, the succes field of the
-#     return tuple will be False. otherwise it will be True.
-#
-#     :param socket.socket socket: the socket to perform the request over
-#     :param str host: hostname to place in the 'Host' header field of the request
-#     :param str user_agent: what user agent to immitate.
-#         Should be key of `HTTP_REQUEST`
-#     :param str method: type of request to make. Should be 'GET' or 'HEAD'
-#     :rtype: tuple(str, bytes, bool)
-#     :returns: The tuple (header, content, success)
-#     '''
-#
-#     assert method in ('GET', 'HEAD')
-#
-#     logger = logging.getLogger('http_request')
-#
-#     original_timeout = sock.gettimeout()
-#     sock.settimeout(HTTP_SOCKET_TIMEOUT)
-#
-#     request = HTTP_NEWLINE.join(HTTP_REQUEST[user_agent])
-#     request = request.format(method = method, hostname = host)
-#
-#     logger.debug("Sending GET request to {}".format(host))
-#     try:
-#         sock.send(bytes(request, 'ASCII'))
-#     except ConnectionResetError:
-#         logger.debug("Connection reset while sending request: " + host)
-#         sock.settimeout(original_timeout)
-#         return ('', bytes(), False)
-#     except socket.timeout:
-#         logger.debug("Timeout occured while sending request: " + host)
-#         sock.settimeout(original_timeout)
-#         return ('', bytes(), False)
-#
-#     ## FIRST, get the header
-#     header = ''
-#     counter = 0
-#
-#     logger.debug("Retrieving header from {}".format(host))
-#     while not _detect_end_of_header(header):
-#         counter = counter + 1
-#         #logger.info('Looping! {}'.format(counter))
-#         try:
-#             new_char =  sock.recv(1).decode('ASCII')
-#         except ConnectionResetError:
-#             logger.debug("Connection reset while getting header: " + host)
-#             sock.settimeout(original_timeout)
-#             return (header, bytes(), False)
-#         except socket.timeout:
-#             logger.debug("Timeout occured while getting header: " + host)
-#             sock.settimeout(original_timeout)
-#             return (header, bytes(), False)
-#         if new_char == '':
-#             logger.debug("Connection closed while getting header: " + host)
-#             sock.settimeout(original_timeout)
-#             return (header, bytes(), False)
-#
-#         header = header + new_char
-#
-#     # The HEAD method does not need to fetch the content.
-#     if method == 'HEAD':
-#         logger.debug('Done with HEAD request to {}, returning'.format(host))
-#         return (header, bytes(), True)
-#
-#     ## SECOND, get the content
-#     bytes_to_receive = _get_content_length(header)
-#     logger.debug("Retrieving {} bytes of content from {}".format(
-#             bytes_to_receive, host))
-#     if bytes_to_receive == 0:
-#         return (header, bytes(), True)
-#
-#     try:
-#         content = sock.recv(bytes_to_receive)
-#     except ConnectionResetError:
-#         logger.debug("Connection reset while getting content: " + host)
-#         sock.settimeout(original_timeout)
-#         return (header, bytes(), False)
-#     except socket.timeout:
-#         logger.debug("Timeout occured while getting content: " + host)
-#         sock.settimeout(original_timeout)
-#         return (header, bytes(), False)
-#
-#     logger.debug("Done with retrieving content from {}".format(host))
-#     sock.settimeout(original_timeout)
-#     return (header, content, True)
 
 # Just some debugging stuff, you can probably ignore this.
 if __name__ == "__main__":
