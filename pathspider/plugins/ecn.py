@@ -276,6 +276,12 @@ class ECN(SynchronizedSpider, PluggableSpider):
         self.combine_flows(flow)
 
     def init_meta_info(self):
+        '''
+        Initialises meta info variables of this spider.
+
+        Should be called at initialisation.
+        '''
+
         self.meta_info_strings[CONN_SUCCES_INFO_KEY] = CONN_SUCCES_INFO_STRING
         self.meta_info_strings[CONN_FAIL_INFO_KEY] = CONN_FAIL_INFO_STRING
         self.meta_info_strings[CONN_RATIO_INFO_KEY] = CONN_RATIO_INFO_STRING
@@ -284,6 +290,13 @@ class ECN(SynchronizedSpider, PluggableSpider):
         self.meta_info_values[CONN_RATIO_INFO_KEY] = 0
 
     def update_meta_info_after_http(self, result):
+        '''
+        Update the meta info variables of this spider after a HTTP request
+
+        :param result: A result as returned by the `http_request` method
+        :type result: tuple(str, bytes, bool)
+        '''
+
         succes = result[2]
         with self.meta_info_lock:
             if succes:

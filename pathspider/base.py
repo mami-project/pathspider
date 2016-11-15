@@ -183,7 +183,12 @@ class Spider:
 
         self.conn_timeout = None
 
-        # For printing agregate information at shutdown
+        # meta_info variables are for printing agregate information at shutdown
+        # Every variable should have a unique key that is present in both
+        # meta_info_strings and meta_info_values.
+        # It's entry in meta_info_strings should explain how the variable
+        # should be interpreted. The entry in mete_info_values should contain
+        # the actual value.
         self.meta_info_lock = threading.Lock()
         self.meta_info_strings = {}
         self.meta_info_values = {}
@@ -635,6 +640,11 @@ class Spider:
         self.jobqueue.put(job)
 
     def log_meta_info_values(self):
+        '''
+        Write the info strings and values of all meta_info variables to the
+        logger
+        '''
+
         logger = logging.getLogger('pathspider')
         with self.meta_info_lock:
             for key in self.meta_info_values:
