@@ -120,8 +120,8 @@ class Http_Request():
         self.logger.debug("Sending GET request to: {}".format(self.host))
         try:
             self.sock.send(bytes(self.request, 'ASCII'))
-        except ConnectionResetError:
-            self.logger.debug("Connection reset while sending request: {}"\
+        except ConnectionError:
+            self.logger.debug("Connection error while sending request: {}"\
                 .format(self.host))
             self.sock.settimeout(self.original_timeout)
             self.state = self.STATE_ERROR
@@ -158,8 +158,8 @@ class Http_Request():
         while not self._detect_end_of_header(self.header):
             try:
                 new_char = self.sock.recv(1).decode('iso-8859-1')
-            except ConnectionResetError:
-                self.logger.debug("Connection reset while getting header: {}"\
+            except ConnectionError:
+                self.logger.debug("Connection error while getting header: {}"\
                     .format(self.host))
                 self.sock.settimeout(self.original_timeout)
                 self.state = self.STATE_ERROR
@@ -223,8 +223,8 @@ class Http_Request():
 
         try:
             response = self.sock.recv(bytes_to_receive)
-        except ConnectionResetError:
-            self.logger.debug("Connection reset while getting content: {}"\
+        except ConnectionError:
+            self.logger.debug("Connection error while getting content: {}"\
                 .format(self.host))
             self.sock.settimeout(self.original_timeout)
             self.state = self.STATE_ERROR
