@@ -7,7 +7,7 @@ import logging
 import hashlib
 import os
 
-import pathspider.version
+from pathspider.base import __version__
 
 class Uploader():
     """
@@ -198,7 +198,7 @@ class Uploader():
                     'format': self.FORMAT,
                     'start_time': self.start_time,
                     'tool_name': self.TOOL_NAME,
-                    'tool_version': pathspider.version.__version__
+                    'tool_version': __version__
                     }
         if stop_time:
             metadata['stop_time'] = int(stop_time)

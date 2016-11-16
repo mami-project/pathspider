@@ -33,10 +33,15 @@ import collections
 import threading
 import multiprocessing as mp
 import queue
+import pkg_resources
 from datetime import datetime
 from enum import Enum
 
 from ipaddress import ip_address
+
+# get the version number
+__version__ = \
+    pkg_resources.resource_string(__name__, 'VERSION').decode('utf-8').strip()
 
 ###
 ### Utility Classes
