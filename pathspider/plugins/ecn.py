@@ -265,8 +265,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
         socket connection with the flow record.
         """
 
-        logging.getLogger('RMV_ME').info('res sip = {}'.format(res.sip))
-
         logger = logging.getLogger('ecn')
         if flow == NO_FLOW:
             flow = {
