@@ -54,11 +54,13 @@ def open_uploader(args):
     else:
         return None
 
+    spider_type = args.spider.__name__.lower()
 
     # args.pto_campaign and args.pto_filename default to None
     # so if they are not supplied, the Uploader will ignore them
     # if they are supplied, they can override values in the configfile
     uploader =  pto_upload.Uploader(
+        plugin = spider_type,
         config_file = args.pto_config_file,
         campaign = args.pto_campaign,
         filename = args.pto_filename,

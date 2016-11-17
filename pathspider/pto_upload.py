@@ -19,17 +19,18 @@ class Uploader():
 
     TOOL_NAME = 'pathspider'
     BASE_URL = '{url}/up/{filename}'
-    FORMAT = 'fjson-bz2'
+    FORMAT = 'ps-{plugin}-fjson-bz2'
     DATA_FILE_EXTENSION = '.bz2'
     META_FILE_EXTENSION = '.meta'
 
-    def __init__(self, config_file=None, url=None, api_key=None,
+    def __init__(self, plugin, config_file=None, url=None, api_key=None,
                         campaign=None, filename=None):
         """
         Create a new uploader.
 
         An uploader represents a single file to be uploaden to the observatory.
 
+        :param plugin str: the name of the used plugin
         :param str config_file: The path the a JSON formated config file
         :param str url: The url locating the HDFS filesystem
         :param str api_key: The api-key to use to authenticate
@@ -42,6 +43,8 @@ class Uploader():
         self.logger = logging.getLogger('uploader')
         self.open_file_bz2()
         self.open = True
+
+        self.plugin = plugin
 
         # set defaults
         self.campaign = 'testing'
@@ -195,7 +198,7 @@ class Uploader():
         """
 
         metadata = {'msmntCampaign': self.campaign,
-                    'format': self.FORMAT,
+                    'format': self.FORMAT.format(plugin=self.plugin),
                     'start_time': self.start_time,
                     'tool_name': self.TOOL_NAME,
                     'tool_version': __version__
