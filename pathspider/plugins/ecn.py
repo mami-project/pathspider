@@ -91,14 +91,28 @@ class ECN(SynchronizedSpider, PluggableSpider):
                               stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
 
-    def connect(self, job, pcs, config):
+    def pre_connect(self, job, job_variables):
+        job_variables['http_requests'] = [None, None]
+
+        return None
+
+    def connect(self, job, pcs, config, job_variables):
         """
         Performs a TCP connection.
         """
 
-        return self.tcp_connect(job)
+        job_ip, job_port, job_host, job_rank = job
 
-    def post_connect(self, job, conn, pcs, config):
+        conn = self.tcp_connect(job)
+
+        if conn.state == Conn.OK:
+            job_variables['http_requests'][config] = \
+                Http_Request(conn.client, job_host, method = 'HEAD')
+            job_variables['http_requests'][config].send_request()
+
+        return conn
+
+    def post_connect(self, job, conn, pcs, config, job_variables):
         """
         Get webpage and close the socket gracefully.
         """
@@ -106,7 +120,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         job_ip, job_port, job_host, job_rank = job
 
         if conn.state == Conn.OK:
-            result = Http_Request(conn.client, job_host, method = 'HEAD').run()
+            result = job_variables['http_requests'][config].receive_header()
             self.update_meta_info_after_http(result)
 
         tstop = str(datetime.utcnow())

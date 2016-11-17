@@ -766,9 +766,11 @@ class SynchronizedSpider(Spider):
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_zero_rdy.release()
                 else:
+                    job_variables = {}
+
                     # Hook for preconnection
                     # self._worker_state[worker_number] = "preconn"
-                    pcs = self.pre_connect(job)
+                    pcs = self.pre_connect(job, job_variables)
 
                     # Wait for configuration zero
                     # self._worker_state[worker_number] = "wait_0"
@@ -776,7 +778,7 @@ class SynchronizedSpider(Spider):
 
                     # Connect in configuration zero
                     # self._worker_state[worker_number] = "conn_0"
-                    conn0 = self.connect(job, pcs, 0)
+                    conn0 = self.connect(job, pcs, 0, job_variables)
 
                     # Wait for configuration one
                     # self._worker_state[worker_number] = "wait_1"
@@ -785,16 +787,16 @@ class SynchronizedSpider(Spider):
 
                     # Connect in configuration one
                     # self._worker_state[worker_number] = "conn_1"
-                    conn1 = self.connect(job, pcs, 1)
+                    conn1 = self.connect(job, pcs, 1, job_variables)
 
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
 
                     # Pass results on for merge
                     # self._worker_state[worker_number] = "postconn_0"
-                    self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
+                    self.resqueue.put(self.post_connect(job, conn0, pcs, 0, job_variables))
                     # self._worker_state[worker_number] = "postconn_1"
-                    self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
+                    self.resqueue.put(self.post_connect(job, conn1, pcs, 1, job_variables))
 
                     # self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
