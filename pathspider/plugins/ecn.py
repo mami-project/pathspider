@@ -22,8 +22,12 @@ from pathspider.observer.tcp import tcp_complete
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
 
+#SpiderRecord = collections.namedtuple("SpiderRecord",
+#        ["ip", "rport", "port", "rank", "host", "config",
+#        "connstate", "tstart", "tstop"])
+
 SpiderRecord = collections.namedtuple("SpiderRecord",
-        ["ip", "rport", "port", "rank", "host", "config",
+        ["sip", "dip", "sport", "dport",  "rank", "host", "config",
         "connstate", "tstart", "tstop"])
 
 USER_AGENT = "pathspider"
@@ -101,7 +105,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         Performs a TCP connection.
         """
 
-        job_ip, job_port, job_host, job_rank = job
+        job_dip, job_dport, job_host, job_rank = job
 
         conn = self.tcp_connect(job)
 
@@ -117,7 +121,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         Get webpage and close the socket gracefully.
         """
         logger = logging.getLogger('ecn')
-        job_ip, job_port, job_host, job_rank = job
+        job_dip, job_dport, job_host, job_rank = job
 
         if conn.state == Conn.OK:
             result = job_variables['http_requests'][config].receive_header()
@@ -125,12 +129,14 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         tstop = str(datetime.utcnow())
 
+        sip = conn.client.getsockname()[0]
+
         if conn.state == Conn.OK:
-            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
-                               config, True, conn.tstart, tstop)
+            rec = SpiderRecord(sip, job_dip, conn.port, job_dport, job_rank,
+                job_host, config, True, conn.tstart, tstop)
         else:
-            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
-                               config, False, conn.tstart, tstop)
+            rec = SpiderRecord(sip, job_dip, conn.port, job_dport, job_rank,
+                job_host,  config, False, conn.tstart, tstop)
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
@@ -259,13 +265,15 @@ class ECN(SynchronizedSpider, PluggableSpider):
         socket connection with the flow record.
         """
 
+        logging.getLogger('RMV_ME').info('res sip = {}'.format(res.sip))
+
         logger = logging.getLogger('ecn')
         if flow == NO_FLOW:
             flow = {
-                "sip": 'fixme', # FIXME
-                "dip": res.ip,
-                "sp": res.port,
-                "dp": res.rport,
+                "sip": res.sip,
+                "dip": res.dip,
+                "sp": res.sport,
+                "dp": res.dport,
                 "observed": False,
                 }
         else:

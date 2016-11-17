@@ -380,9 +380,9 @@ class Spider:
                         logger.debug("stopping result merging on sentinel")
                         continue
 
-                    reskey = (res.ip, res.port)
-                    logger.debug("got a result (" + str(res.ip) + ", " +
-                                 str(res.port) + ")")
+                    reskey = (res.dip, res.sport)
+                    logger.debug("got a result (" + str(res.dip) + ", " +
+                                 str(res.sport) + ")")
 
                     if reskey in self.flowtab:
                         logger.debug("merging result")
