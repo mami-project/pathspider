@@ -65,7 +65,8 @@ def open_uploader(args):
         campaign = args.pto_campaign,
         filename = args.pto_filename,
         api_key = args.pto_api_key,
-        url = args.pto_url)
+        url = args.pto_url,
+        location = args.pto_location)
 
     logger.info('Created uploader')
 

@@ -53,7 +53,8 @@ def handle_args(argv):
         '`/hdfs/`')
     parser.add_argument('--pto-api-key', dest='pto_api_key', default=None,
         help='The api key to use when connecting to the PTO')
-
+    parser.add_argument('--pto-location', dest='pto_location', default=None,
+        help='The location of this cloud instance to add to the PTO metadata')
 
     # Add plugins
     subparsers = parser.add_subparsers(title="Plugins",

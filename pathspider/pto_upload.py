@@ -24,7 +24,7 @@ class Uploader():
     META_FILE_EXTENSION = '.meta'
 
     def __init__(self, plugin, config_file=None, url=None, api_key=None,
-                        campaign=None, filename=None):
+                        campaign=None, filename=None, location=None):
         """
         Create a new uploader.
 
@@ -51,6 +51,7 @@ class Uploader():
         self.set_target_filename(self.local_filename)
         self.url = None
         self.api_key = None
+        self.cloud_location = None
 
         # if we have a config file, read it first
         if config_file:
@@ -65,6 +66,8 @@ class Uploader():
             self.campaign = campaign
         if filename:
             self.set_target_filename(filename)
+        if location:
+            self.cloud_location = location
 
         # check if url and api_key are set
         if self.url == None:
@@ -207,6 +210,9 @@ class Uploader():
             metadata['stop_time'] = int(stop_time)
         else:
             metadata['stop_time'] = int(time.time())
+
+        if self.cloud_location:
+            metadata['location'] = self.cloud_location
 
         return json.dumps(metadata)
 
