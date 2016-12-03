@@ -237,7 +237,7 @@ class Uploader():
         Calculate the SHA1 hash of the local buffer file
 
         :rtype: str
-        :returns: the SHA1 has
+        :returns: the SHA1 hash
         """
 
         buffer_size = 1024*1024 # read 1 MiB at the time
