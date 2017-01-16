@@ -206,7 +206,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         # with TFO
         if config == 1:
             # skip if config zero failed
-            if job[4]:
+            if job[-1]:
                 return TFOConnection(None, None, Conn.SKIPPED, 0, 0)
 
             # make a message
