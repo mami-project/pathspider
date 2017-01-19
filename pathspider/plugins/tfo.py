@@ -183,7 +183,7 @@ def message_for(job, phase):
     elif job[1] == 53:
         # DNS. Construct a question asking the server for its own address
         header = [0x0a75 + phase, 0x0100, 1, 0, 0, 0] # header: question, recursion OK
-        return struct.pack("6!H", *header) + encode_dns_question(job[2], 1, 1)
+        return struct.pack("!6H", *header) + encode_dns_question(job[2], 1, 1)
     else:
         # No idea. Empty payload.
         return b''
