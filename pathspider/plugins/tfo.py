@@ -3,6 +3,7 @@ import sys
 import logging
 import subprocess
 import traceback
+import struct 
 
 import socket
 import collections
