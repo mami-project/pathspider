@@ -166,7 +166,7 @@ def _tfopacket(rec, tcp, rev):
 
 def encode_dns_question(qname, qtype, qclass):
     out = bytearray()
-    for part in qname.split(".")
+    for part in qname.split("."):
         out.append(len(part))
         for b in bytes(part, "us-ascii"):
             out.append(b)
