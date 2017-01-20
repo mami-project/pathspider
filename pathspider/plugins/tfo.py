@@ -3,6 +3,7 @@ import sys
 import logging
 import subprocess
 import traceback
+import struct 
 
 import socket
 import collections
@@ -164,6 +165,28 @@ def _tfopacket(rec, tcp, rev):
 
 #     print("cookies: %u, nocookies: %u" % (cookies, nocookies))
 
+def encode_dns_question(qname, qtype, qclass):
+    out = bytearray()
+    for part in qname.split("."):
+        out.append(len(part))
+        for b in bytes(part, "us-ascii"):
+            out.append(b)
+    out.append(0)
+    return bytes(out)
+
+# given a job description, generate a message to send on the SYN with TFO
+def message_for(job, phase):
+    
+    if job[1] == 80 :
+        # Web. Get / for the named host
+        return bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
+    elif job[1] == 53:
+        # DNS. Construct a question asking the server for its own address
+        header = [0x0a75 + phase, 0x0100, 1, 0, 0, 0] # header: question, recursion OK
+        return struct.pack("!6H", *header) + encode_dns_question(job[2], 1, 1)
+    else:
+        # No idea. Empty payload.
+        return b''
 
 ## TFO main class
 class TFO(DesynchronizedSpider, PluggableSpider):
@@ -208,16 +231,12 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             # skip if config zero failed
             if job[-1]:
                 return TFOConnection(None, None, Conn.SKIPPED, 0, 0)
-
-            # make a message
-            message = bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
-
             # step one: request cookie
             try:
                 # pylint: disable=no-member
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.sendto(message_for(job,0), socket.MSG_FASTOPEN, (job[0], job[1]))
                 sock.close()
                 c0t = timer() - tt
             except:
@@ -227,7 +246,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             try:
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message, socket.MSG_FASTOPEN, (job[0], job[1])) # pylint: disable=no-member
+                sock.sendto(message_for(job,1), socket.MSG_FASTOPEN, (job[0], job[1])) # pylint: disable=no-member
                 c1t = timer() - tt
 
                 return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
