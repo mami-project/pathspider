@@ -43,8 +43,17 @@ def _flow4_ids(ip):
         return (base64.b64encode(fid), base64.b64encode(rid))
 
 def _flow6_ids(ip6):
-    # FIXME link ICMP by looking at payload
-    if ip6.proto == 6 or ip6.proto == 17 or ip6.proto == 132:
+    # Only import this when needed
+    import plt as libtrace
+
+    icmp6_with_payload = {1, 2, 3, 4}
+    quotation_fid = False
+    if ip6.proto == 58 and ip6.icmp6.type in icmp6_with_payload:
+        ip6 = libtrace.ip6(ip6.icmp6.data[8:]) # pylint: disable=no-member
+        quotation_fid = True
+ 
+    protos6_with_ports = {6, 17, 132, 136}
+    if ip6.proto in protos6_with_ports:
         # key includes ports
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7] + ip6.payload[0:4]
         rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[6:7] + ip6.payload[2:4] + ip6.payload[0:2]
@@ -204,7 +213,7 @@ class Observer:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
             if self._pkt.icmp6:
                 for fn in self._icmp6_chain:
-                    q = libtrace.ip(self._pkt.ip.icmp6.data[8:]) # pylint: disable=no-member
+                    q = libtrace.ip6(self._pkt.ip6.icmp6.data[8:]) # pylint: disable=no-member
                     keep_flow = keep_flow and fn(rec, self._pkt.ip6, q, rev=rev)
 
         # run transport header chains
