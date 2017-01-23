@@ -187,6 +187,9 @@ class Observer:
 
         keep_flow = True
 
+        # provide the packet timestamp to chain functions
+        rec['_current_pkt_ts'] = self._pkt.seconds
+
         # run IP header chains
         if self._pkt.ip:
             for fn in self._ip4_chain:
@@ -214,6 +217,9 @@ class Observer:
         else:
             for fn in self._l4_chain:
                 keep_flow = keep_flow and fn(rec, self._pkt, rev=rev)
+
+        # finished running chains, remove the current packet timestamp
+        rec.pop('_current_pkt_ts')
 
         # complete the flow if any chain function asked us to
         if not keep_flow:
