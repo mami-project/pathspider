@@ -33,15 +33,10 @@ import collections
 import threading
 import multiprocessing as mp
 import queue
-import pkg_resources
 from datetime import datetime
 from enum import Enum
 
 from ipaddress import ip_address
-
-# get the version number
-__version__ = \
-    pkg_resources.resource_string(__name__, 'VERSION').decode('utf-8').strip()
 
 ###
 ### Utility Classes
@@ -102,12 +97,10 @@ class Conn(Enum):
     TIMEOUT = 2
     SKIPPED = 3
 
-Connection = collections.namedtuple("Connection",
-        ["client", "port", "state", "tstart"])
+Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
-SEMAPHORE_TIMEOUT = 0.5
 
 SHUTDOWN_SENTINEL = "SHUTDOWN_SENTINEL"
 NO_RESULT = None
@@ -187,16 +180,6 @@ class Spider:
         self.exception = None
 
         self.conn_timeout = None
-
-        # meta_info variables are for printing agregate information at shutdown
-        # Every variable should have a unique key that is present in both
-        # meta_info_strings and meta_info_values.
-        # It's entry in meta_info_strings should explain how the variable
-        # should be interpreted. The entry in mete_info_values should contain
-        # the actual value.
-        self.meta_info_lock = threading.Lock()
-        self.meta_info_strings = {}
-        self.meta_info_values = {}
 
     def config_zero(self):
         """
@@ -327,12 +310,10 @@ class Spider:
 
             # if merge_cycles % 20 == 0:
             #     for wn in range(0, self.worker_count):
-            #         logger.debug("worker %3u: %s" % \
-            #         (wn, self._worker_state[wn]))
+            #         logger.debug("worker %3u: %s" % (wn, self._worker_state[wn]))
             # merge_cycles += 1
 
-            if merging_flows and \
-                    (self.flowqueue.qsize() >= self.resqueue.qsize()):
+            if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
                 try:
                     flow = self.flowqueue.get_nowait()
                 except queue.Empty:
@@ -398,8 +379,7 @@ class Spider:
         # Both shutdown markers received.
         # Call merge on all remaining entries in the results table
         # with null flows.
-        # Commented out for now;
-        #see https://github.com/mami-project/pathspider/issues/29
+        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29
         for res_item in self.restab.items():
             res = res_item[1]
             self.merge(NO_FLOW, res)
@@ -556,8 +536,6 @@ class Spider:
             self.outqueue.join()
             logger.debug("all results retrieved")
 
-            self.log_meta_info_values()
-
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
 
@@ -626,8 +604,6 @@ class Spider:
         self.observer_process.join()
         logger.debug("observer joined")
 
-        self.log_meta_info_values()
-
         self.outqueue.put(SHUTDOWN_SENTINEL)
         logger.info("termination complete")
 
@@ -643,25 +619,6 @@ class Spider:
             return
 
         self.jobqueue.put(job)
-
-    def log_meta_info_values(self):
-        '''
-        Write the info strings and values of all meta_info variables to the
-        logger
-        '''
-
-        logger = logging.getLogger('pathspider')
-        with self.meta_info_lock:
-            for key in self.meta_info_values:
-                try:
-                    string = self.meta_info_strings[key]
-                except KeyError:
-                    logger.warning('Found meta_info_value without info string' \
-                    ' not printing entry for: {}'.format(key))
-                    continue
-
-                value = self.meta_info_values[key]
-                logger.info("{}: {}".format(string, value))
 
 
 class SynchronizedSpider(Spider):
@@ -743,14 +700,12 @@ class SynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        logger.debug("shutting down worker "\
-                            +str(worker_number)+" on sentinel")
-                        #self._worker_state[worker_number] = "shutdown_sentinel"
+                        logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
+                        # self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            logger.debug(str(self.active_worker_count)+\
-                                " workers still active")
+                            logger.debug(str(self.active_worker_count)+" workers still active")
                         continue
 
                     logger.debug("got a job: "+repr(job))
@@ -800,23 +755,15 @@ class SynchronizedSpider(Spider):
                     logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: # not worker_active, spin the semaphores
-                while not self.sem_config_zero.acquire(
-                                                timeout = SEMAPHORE_TIMEOUT):
-                    with self.active_worker_lock:
-                        if self.active_worker_count <= 0:
-                            break
+                self.sem_config_zero.acquire()
                 # self._worker_state[worker_number] = "shutdown_0"
                 time.sleep(QUEUE_SLEEP)
                 with self.active_worker_lock:
                     if self.active_worker_count <= 0:
-                        #self._worker_state[worker_number] = "shutdown_complete"
+                        # self._worker_state[worker_number] = "shutdown_complete"
                         break
                 self.sem_config_one_rdy.release()
-                while not self.sem_config_one.acquire(
-                                                timeout = SEMAPHORE_TIMEOUT):
-                    with self.active_worker_lock:
-                        if self.active_worker_count <= 0:
-                            break
+                self.sem_config_one.acquire()
                 # self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
@@ -908,14 +855,12 @@ class DesynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        logger.debug("shutting down worker "\
-                            +str(worker_number)+" on sentinel")
-                        #self._worker_state[worker_number] = "shutdown_sentinel"
+                        logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
+                        # self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            logger.debug(str(self.active_worker_count)\
-                                +" workers still active")
+                            logger.debug(str(self.active_worker_count)+" workers still active")
                         continue
 
                     logger.debug("got a job: "+repr(job))

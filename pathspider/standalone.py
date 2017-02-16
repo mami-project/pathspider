@@ -1,11 +1,12 @@
+
 import csv
 import logging
 import json
 import sys
 import threading
 
-import pathspider.pto_upload as pto_upload
 from pathspider.base import SHUTDOWN_SENTINEL
+
 from pathspider.network import interface_up
 
 def job_feeder(inputfile, spider):
@@ -13,7 +14,7 @@ def job_feeder(inputfile, spider):
     with open(inputfile) as fp:
         logger.debug("job_feeder: started")
         reader = csv.reader(fp, delimiter=',', quotechar='"')
-        for line, row in enumerate(reader):
+        for row in reader:
             if len(row) >= 2:
                 # port numbers should be integers
                 try:
@@ -21,76 +22,19 @@ def job_feeder(inputfile, spider):
                 except ValueError:
                     logger.warning("Invalid port number in job! Skipping!")
                     continue
-
-                # if rank is missing, replace it with line number, 
-                # counting from one
-                if len(row) < 4:
-                    row.append(str(line+1))
-
                 spider.add_job(row)
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
         spider.shutdown()
         logger.debug("job_feeder: stopped")
 
-def open_uploader(args):
-    """
-    If a config file or an (url and api key) are supplied,
-    create and return an uploader. Else return None.
-
-    :param Namespace args: the arguments supplied to the program
-    :rtype: None or pto_upload.Uploader
-    :returns: either None or an Uploader
-    """
-
-    logger = logging.getLogger("patspider")
-
-    if (args.pto_config_file != None):
-        pass
-    elif (args.pto_url != None and args.pto_api_key != None):
-        pass
-    elif (args.pto_url != None and args.pto_api_key == None):
-        logger.warning('I see that you supplied a PTO url'
-        'but no PTO api key, so I will not attempt to upload')
-        return None
-    elif (args.pto_url == None and args.pto_api_key != None):
-        logger.warning('I see that you supplied a PTO api key'
-        'but no PTO url, so I will not attempt to upload')
-        return None
-    else:
-        return None
-
-    spider_type = args.spider.__name__.lower()
-
-    # args.pto_campaign and args.pto_filename default to None
-    # so if they are not supplied, the Uploader will ignore them
-    # if they are supplied, they can override values in the configfile
-    uploader =  pto_upload.Uploader(
-        plugin = spider_type,
-        config_file = args.pto_config_file,
-        campaign = args.pto_campaign,
-        filename = args.pto_filename,
-        api_key = args.pto_api_key,
-        url = args.pto_url,
-        location = args.pto_location)
-
-    logger.info('Created uploader')
-
-    return uploader
-
-
 def run_standalone(args):
-
     logger = logging.getLogger("pathspider")
-
-    #set up the pto-uploader
-    uploader = open_uploader(args)
 
     try:
         if hasattr(args, "spider"):
             if interface_up(args.interface):
-                spider = args.spider(args.workers,
-                        "int:" + args.interface, args)
+                spider = args.spider(args.workers, "int:" + args.interface, args)
             else:
                 logger.error("The chosen interface is not up! Cannot continue.")
                 sys.exit(1)
@@ -107,26 +51,15 @@ def run_standalone(args):
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
 
         with open(args.output, 'w') as outputfile:
-
             logger.info("opening output file "+args.output)
             while True:
                 result = spider.outqueue.get()
                 if result == SHUTDOWN_SENTINEL:
                     logger.info("output complete")
                     break
-
-                result_line = json.dumps(result) + "\n"
-                outputfile.write(result_line)
-                if uploader: uploader.add_line(result_line)
-
+                outputfile.write(json.dumps(result) + "\n")
                 logger.debug("wrote a result")
                 spider.outqueue.task_done()
-
-        if uploader:
-            result = uploader.upload(verify=False)
-            # Do we want to do this? How bad is a couple of MiB in /tmp?
-            #if result == True:
-            #    uploader.rm_local_file()
 
     except KeyboardInterrupt:
         logger.error("Received keyboard interrupt, dying now.")
