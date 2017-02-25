@@ -180,35 +180,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
         else:
             self.comparetab[dip] = flow
 
-    def merge(self, flow, res):
-        """
-        Merge flow records.
-
-        Includes the configuration and connection success or failure of the
-        socket connection with the flow record.
-        """
-
-        logger = logging.getLogger('ecn')
-        if flow == NO_FLOW:
-            flow = {
-                "dip": res.ip,
-                "sp": res.port,
-                "dp": res.rport,
-                "observed": False,
-                }
-        else:
-            flow['observed'] = True
-
-        flow['rank'] = res.rank
-        flow['host'] = res.host
-        flow['connstate'] = res.connstate
-        flow['config'] = res.config
-        flow['tstart'] = res.tstart
-        flow['tstop'] = res.tstop
-
-        logger.debug("Result: " + str(flow))
-        self.combine_flows(flow)
-
     @staticmethod
     def register_args(subparsers):
         parser = subparsers.add_parser('ecn', help="Explicit Congestion Notification")

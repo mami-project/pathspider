@@ -159,6 +159,7 @@ class Spider:
         self.flowqueue = mp.Queue(QUEUE_SIZE)
         self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
 
+        self.jobtab = {}
         self.restab = {}
         self.flowtab = {}
         self.flowreap = collections.deque()
@@ -361,9 +362,9 @@ class Spider:
                         logger.debug("stopping result merging on sentinel")
                         continue
 
-                    reskey = (res.ip, res.port)
-                    logger.debug("got a result (" + str(res.ip) + ", " +
-                                 str(res.port) + ")")
+                    reskey = (res['ip'], res['sp'])
+                    logger.debug("got a result (" + str(res['ip']) + ", " +
+                                 str(res['sp']) + ")")
 
                     if reskey in self.flowtab:
                         logger.debug("merging result")
@@ -404,7 +405,33 @@ class Spider:
         plugin.
         """
 
-        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
+        logger = logging.getLogger('pathspider')
+
+        if flow == NO_FLOW:
+            flow = {
+                "dip": res['ip'],
+                "sp": res['sp'],
+                "dp": res['dp'],
+                "observed": False,
+                }
+        else:
+            flow['observed'] = True
+
+        for key in res.keys():
+            if key in flow.keys():
+                if res[key] == flow[key]:
+                    continue
+                else:
+                    logger.warning("Dropping flow due to mismatch with "
+                                   "observations on key %s", key)
+                    return
+            flow[key] = res[key]
+
+        logger.debug("Result: " + str(flow))
+
+        self.outqueue.put(flow)
+
+        #self.combine_flows(flow)
 
     def exception_wrapper(self, target, *args, **kwargs):
         try:
@@ -750,9 +777,17 @@ class SynchronizedSpider(Spider):
 
                     # Pass results on for merge
                     # self._worker_state[worker_number] = "postconn_0"
-                    self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
+                    self.post_connect(job, conn0, pcs, 0)
+                    job['_spider'][0]['config'] = 0
+                    job['_spider'][0]['ip'] = job['ip']
+                    job['_spider'][0]['dp'] = job['port']
+                    self.resqueue.put(job['_spider'][0])
                     # self._worker_state[worker_number] = "postconn_1"
-                    self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
+                    self.post_connect(job, conn1, pcs, 1)
+                    job['_spider'][1]['config'] = 1
+                    job['_spider'][1]['ip'] = job['ip']
+                    job['_spider'][1]['dp'] = job['port']
+                    self.resqueue.put(job['_spider'][1])
 
                     # self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
@@ -870,6 +905,9 @@ class DesynchronizedSpider(Spider):
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
                 else:
+                    # Initialise results stub dict
+                    job['_spider'] = {}
+
                     # Hook for preconnection
                     # self._worker_state[worker_number] = "preconn"
                     pcs = self.pre_connect(job)
@@ -884,9 +922,17 @@ class DesynchronizedSpider(Spider):
 
                     # Pass results on for merge
                     # self._worker_state[worker_number] = "postconn_0"
-                    self.resqueue.put(self.post_connect(job, conn0, pcs, 0))
+                    self.post_connect(job, conn0, pcs, 0)
+                    job['_spider'][0]['config'] = 0
+                    job['_spider'][0]['ip'] = job['ip']
+                    job['_spider'][0]['dp'] = job['port']
+                    self.resqueue.put(job['_spider'][0])
                     # self._worker_state[worker_number] = "postconn_1"
-                    self.resqueue.put(self.post_connect(job, conn1, pcs, 1))
+                    self.post_connect(job, conn0, pcs, 1)
+                    job['_spider'][1]['config'] = 0
+                    job['_spider'][1]['ip'] = job['ip']
+                    job['_spider'][1]['dp'] = job['port']
+                    self.resqueue.put(job['_spider'][1])
 
                     # self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))

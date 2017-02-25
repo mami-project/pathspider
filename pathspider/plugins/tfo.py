@@ -205,13 +205,14 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         # regular TCP: add skip flag to job on timeout or error
         if config == 0:
             sock = socket.socket(af, socket.SOCK_STREAM)
-
+            job['_tfo_baseline_failed'] = True
             try:
                 tt = timer()
                 sock.settimeout(self.conn_timeout)
                 sock.connect((job['ip'], job['port']))
                 c0t = timer() - tt
 
+                job['_tfo_baseline_failed'] = False
                 return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
             except TimeoutError:
                 return TFOConnection(sock, sock.getsockname()[1], Conn.TIMEOUT, c0t, c1t)
@@ -221,7 +222,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         # with TFO
         if config == 1:
             # skip if config zero failed
-            if not job['_spider'][0]['connstate']:
+            if job['_tfo_baseline_failed']:
                 return TFOConnection(None, None, Conn.SKIPPED, 0, 0)
             # step one: request cookie
             try:
@@ -266,7 +267,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
 
         job['_spider'][config] = {
                                   'sp': conn.port,
-                                  'tstart': conn.tstart,
+                                  #'tstart': conn.tstart,
                                   'tstop': tstop,
                                   'connstate': conn.state == Conn.OK,
                                   'c0t': conn.c0t,
@@ -286,29 +287,6 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
             sys.exit(-1)
-
-    def merge(self, flow, res):
-        logger = logging.getLogger('tfo')
-        if flow == NO_FLOW:
-            flow = {
-                "dip": res.ip,
-                "sp": res.port,
-                "dp": res.rport,
-                "connstate": res.connstate,
-                "config": res.config,
-                "observed": False,
-                }
-        else:
-            flow['connstate'] = res.connstate
-            flow['host'] = res.host
-            flow['rank'] = res.rank
-            flow['config'] = res.config
-            flow['observed'] = True
-            flow['cookie0_time'] = res.c0t
-            flow['cookie1_time'] = res.c1t
-
-        logger.debug("Result: " + str(flow))
-        self.outqueue.put(flow)
 
     @staticmethod
     def register_args(subparsers):
