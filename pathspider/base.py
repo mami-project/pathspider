@@ -721,6 +721,9 @@ class SynchronizedSpider(Spider):
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_zero_rdy.release()
                 else:
+                    # Initialise results stub dict
+                    job['_spider'] = {}
+
                     # Hook for preconnection
                     # self._worker_state[worker_number] = "preconn"
                     pcs = self.pre_connect(job)
