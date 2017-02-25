@@ -36,7 +36,6 @@ run PATHspider.
    The following plugins are available for use:
 
      dscp                DiffServ Codepoints
-     tls                 Transport Layer Security
      tfo                 TCP Fast Open
      ecn                 Explicit Congestion Notification
      dnsresolv           DNS resolution for hostnames to IPv4 and v6 addresses

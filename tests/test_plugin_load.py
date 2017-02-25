@@ -3,7 +3,7 @@ import pathspider.run
 import pathspider.base
 
 def test_plugin_load():
-    expected_names = set(['TFO', 'ECN', 'TLS', 'DSCP'])
+    expected_names = set(['TFO', 'ECN', 'DSCP'])
     names = set()
 
     for plugin in pathspider.run.plugins:
