@@ -133,30 +133,6 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             traceback.print_exc()
             sys.exit(-1)
 
-    def merge(self, flow, res):
-        """
-        Merge flow records.
-
-        Includes the configuration and connection success or failure of the
-        socket connection with the flow record.
-        """
-
-        logger = logging.getLogger('dscp')
-        if flow == NO_FLOW:
-            flow = {"dip": res.ip,
-                    "sp": res.port,
-                    "dp": res.rport,
-                    "connstate": res.connstate,
-                    "config": res.config,
-                    "observed": False }
-        else:
-            flow['connstate'] = res.connstate
-            flow['config'] = res.config
-            flow['observed'] = True
-
-        logger.debug("Result: " + str(flow))
-        self.outqueue.put(flow)
-
     @staticmethod
     def register_args(subparsers):
         parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
