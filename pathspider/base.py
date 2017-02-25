@@ -781,14 +781,14 @@ class SynchronizedSpider(Spider):
 
         tstart = str(datetime.utcnow())
 
-        if ":" in job[0]:
+        if ":" in job['ip']:
             sock = socket.socket(socket.AF_INET6)
         else:
             sock = socket.socket(socket.AF_INET)
 
         try:
             sock.settimeout(self.conn_timeout)
-            sock.connect((job[0], job[1]))
+            sock.connect((job['ip'], job['port']))
 
             return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
         except TimeoutError:

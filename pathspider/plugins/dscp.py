@@ -112,9 +112,9 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         """
 
         if conn.state == Conn.OK:
-            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, True)
+            rec = SpiderRecord(job['ip'], job['port'], conn.port, job['domain'], config, True)
         else:
-            rec = SpiderRecord(job[0], job[1], conn.port, job[2], config, False)
+            rec = SpiderRecord(job['ip'], job['port'], conn.port, job['domain'], config, False)
 
         return rec
 
@@ -164,4 +164,4 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     def register_args(subparsers):
         parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
         parser.set_defaults(spider=DSCP)
-        parser.add_argument("--codepoint", type=int, choices=range(1,64), default='1', metavar="[0-63]", help="DSCP codepoint to send (Default: 0)")
+        parser.add_argument("--codepoint", type=int, choices=range(0,64), default='48', metavar="[0-63]", help="DSCP codepoint to send (Default: 48)")

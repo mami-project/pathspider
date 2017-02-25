@@ -177,13 +177,13 @@ def encode_dns_question(qname, qtype, qclass):
 # given a job description, generate a message to send on the SYN with TFO
 def message_for(job, phase):
     
-    if job[1] == 80 :
+    if job['port'] == 80 :
         # Web. Get / for the named host
-        return bytes("GET / HTTP/1.1\r\nhost: "+str(job[2])+"\r\n\r\n", "utf-8")
-    elif job[1] == 53:
+        return bytes("GET / HTTP/1.1\r\nhost: "+str(job['domain'])+"\r\n\r\n", "utf-8")
+    elif job['port'] == 53:
         # DNS. Construct a question asking the server for its own address
         header = [0x0a75 + phase, 0x0100, 1, 0, 0, 0] # header: question, recursion OK
-        return struct.pack("!6H", *header) + encode_dns_question(job[2], 1, 1)
+        return struct.pack("!6H", *header) + encode_dns_question(job['domain'], 1, 1)
     else:
         # No idea. Empty payload.
         return b''
@@ -198,7 +198,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
 
     def connect(self, job, pcs, config):
         # determine ip version
-        if job[0].count(':') >= 1:
+        if job['ip'].count(':') >= 1:
             af = socket.AF_INET6
         else:
             af = socket.AF_INET
@@ -214,29 +214,29 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             try:
                 tt = timer()
                 sock.settimeout(self.conn_timeout)
-                sock.connect((job[0], job[1]))
+                sock.connect((job['ip'], job['port']))
                 c0t = timer() - tt
 
-                job.append(False)
+                job['_tfo_baseline_failed'] = False
                 return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
             except TimeoutError:
-                job.append(True)
+                job['_tfo_baseline_failed'] = True
                 return TFOConnection(sock, sock.getsockname()[1], Conn.TIMEOUT, c0t, c1t)
             except OSError:
-                job.append(True)
+                job['_tfo_baseline_failed'] = True
                 return TFOConnection(sock, sock.getsockname()[1], Conn.FAILED, c0t, c1t)
 
         # with TFO
         if config == 1:
             # skip if config zero failed
-            if job[-1]:
+            if job['_tfo_baseline_failed']:
                 return TFOConnection(None, None, Conn.SKIPPED, 0, 0)
             # step one: request cookie
             try:
                 # pylint: disable=no-member
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message_for(job,0), socket.MSG_FASTOPEN, (job[0], job[1]))
+                sock.sendto(message_for(job,0), socket.MSG_FASTOPEN, (job['ip'], job['port']))
                 sock.close()
                 c0t = timer() - tt
             except:
@@ -246,7 +246,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             try:
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message_for(job,1), socket.MSG_FASTOPEN, (job[0], job[1])) # pylint: disable=no-member
+                sock.sendto(message_for(job,1), socket.MSG_FASTOPEN, (job['ip'], job['port'])) # pylint: disable=no-member
                 c1t = timer() - tt
 
                 return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
@@ -270,8 +270,8 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         except:
             pass
 
-        return TFOSpiderRecord(job[0], job[1], conn.port, job[2], config,
-                               conn.c0t, conn.c1t, conn.state == Conn.OK, job[3])
+        return TFOSpiderRecord(job['ip'], job['port'], conn.port, job['domain'], config,
+                               conn.c0t, conn.c1t, conn.state == Conn.OK, job['_tfo_baseline_failed'])
 
 
     def create_observer(self):
