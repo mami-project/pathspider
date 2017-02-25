@@ -11,24 +11,14 @@ from pathspider.network import interface_up
 
 def job_feeder(inputfile, spider):
     logger = logging.getLogger("feeder")
-    with open(inputfile) as fp:
+    with open(inputfile) as fh:
         logger.debug("job_feeder: started")
-        reader = csv.reader(fp, delimiter=',', quotechar='"')
-        for line, row in enumerate(reader):
-            if len(row) >= 2:
-                # port numbers should be integers
-                try:
-                    row[1] = int(row[1])
-                except ValueError:
-                    logger.warning("Invalid port number in job! Skipping!")
-                    continue
-
-                # if rank is missing, replace it with line number, 
-                # counting from one
-                if len(row) < 4:
-                    row.append(str(line+1))
-
-                spider.add_job(row)
+        for line in fh:
+            try:
+                job = json.loads(line)
+                spider.add_job(job)
+            except ValueError:
+                logger.warning("Unable to decode JSON for a job, skipping...")
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
         spider.shutdown()
