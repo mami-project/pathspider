@@ -3,9 +3,8 @@ import sys
 import logging
 import subprocess
 import traceback
-
 import socket
-import collections
+from datetime import datetime
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
@@ -21,10 +20,6 @@ from pathspider.observer.tcp import tcp_setup
 from pathspider.observer.tcp import tcp_handshake
 from pathspider.observer.tcp import tcp_complete
 from pathspider.observer.tcp import TCP_SYN
-
-SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "host", "config",
-                                                       "connstate"])
 
 ## Chain functions
 
@@ -111,12 +106,14 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         Create the SpiderRecord
         """
 
-        if conn.state == Conn.OK:
-            rec = SpiderRecord(job['ip'], job['port'], conn.port, job['domain'], config, True)
-        else:
-            rec = SpiderRecord(job['ip'], job['port'], conn.port, job['domain'], config, False)
+        tstop = str(datetime.utcnow())
 
-        return rec
+        job['_spider'][config] = {
+                                  'sp': conn.port,
+                                  'tstart': conn.tstart,
+                                  'tstop': tstop,
+                                  'connstate': conn.state == Conn.OK,
+                                 }
 
     def create_observer(self):
         """
