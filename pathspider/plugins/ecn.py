@@ -21,12 +21,6 @@ from pathspider.observer.tcp import tcp_complete
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
 
-SpiderRecord = collections.namedtuple("SpiderRecord", ["ip", "rport", "port",
-                                                       "rank", "host", "config",
-                                                       "connstate", "tstart", "tstop"])
-
-USER_AGENT = "pathspider"
-
 ## Chain functions
 
 def ecn_setup(rec, ip):
@@ -92,16 +86,14 @@ class ECN(SynchronizedSpider, PluggableSpider):
         Close the socket gracefully.
         """
 
-        job_ip, job_port, job_host, job_rank = job
-
         tstop = str(datetime.utcnow())
 
-        if conn.state == Conn.OK:
-            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
-                               config, True, conn.tstart, tstop)
-        else:
-            rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
-                               config, False, conn.tstart, tstop)
+        job['_spider'][config] = {
+                                  'sp': conn.port,
+                                  'tstart': conn.tstart,
+                                  'tstop': tstop,
+                                  'connstate': conn.state == Conn.OK,
+                                 }
 
         try:
             conn.client.shutdown(socket.SHUT_RDWR)
@@ -112,8 +104,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
             conn.client.close()
         except: # FIXME: What are we catching?
             pass
-
-        return rec
 
     def create_observer(self):
         """

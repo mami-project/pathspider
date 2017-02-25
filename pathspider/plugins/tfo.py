@@ -4,9 +4,9 @@ import logging
 import subprocess
 import traceback
 import struct 
-
 import socket
 import collections
+from datetime import datetime
 
 from pathspider.base import DesynchronizedSpider
 from pathspider.base import PluggableSpider
@@ -24,16 +24,11 @@ from pathspider.observer.tcp import tcp_complete
 
 from timeit import default_timer as timer
 
-TFOConnection = collections.namedtuple("TFOConnection", 
-                                       ["sock", "port", "state", 
-                                        "c0t", "c1t"])
-TFOSpiderRecord = collections.namedtuple("TFOSpiderRecord", 
-                                         ["ip", "rport", "port",
-                                          "host", "config",
-                                          "c0t", "c1t",
-                                          "connstate", "rank"])
-
 USER_AGENT = "pathspider"
+
+TFOConnection = collections.namedtuple("TFOConnection",
+                                       ["sock", "port", "state",
+                                        "c0t", "c1t"])
 
 ## Chain functions
 
@@ -217,19 +212,16 @@ class TFO(DesynchronizedSpider, PluggableSpider):
                 sock.connect((job['ip'], job['port']))
                 c0t = timer() - tt
 
-                job['_tfo_baseline_failed'] = False
                 return TFOConnection(sock, sock.getsockname()[1], Conn.OK, c0t, c1t)
             except TimeoutError:
-                job['_tfo_baseline_failed'] = True
                 return TFOConnection(sock, sock.getsockname()[1], Conn.TIMEOUT, c0t, c1t)
             except OSError:
-                job['_tfo_baseline_failed'] = True
                 return TFOConnection(sock, sock.getsockname()[1], Conn.FAILED, c0t, c1t)
 
         # with TFO
         if config == 1:
             # skip if config zero failed
-            if job['_tfo_baseline_failed']:
+            if not job['_spider'][0]['connstate']:
                 return TFOConnection(None, None, Conn.SKIPPED, 0, 0)
             # step one: request cookie
             try:
@@ -270,23 +262,30 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         except:
             pass
 
-        return TFOSpiderRecord(job['ip'], job['port'], conn.port, job['domain'], config,
-                               conn.c0t, conn.c1t, conn.state == Conn.OK, job['_tfo_baseline_failed'])
+        tstop = str(datetime.utcnow())
 
+        job['_spider'][config] = {
+                                  'sp': conn.port,
+                                  'tstart': conn.tstart,
+                                  'tstop': tstop,
+                                  'connstate': conn.state == Conn.OK,
+                                  'c0t': conn.c0t,
+                                  'c1t': conn.c1t,
+                                 }
 
     def create_observer(self):
         logger = logging.getLogger('tfo')
         logger.info("Creating observer")
-#        try:
-        return Observer(self.libtrace_uri,
+        try:
+            return Observer(self.libtrace_uri,
                             new_flow_chain=[basic_flow, tcp_setup, _tfosetup],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
                             tcp_chain=[tcp_handshake, tcp_complete, _tfopacket])
-#        except:
-#            logger.error("Observer not cooperating, abandon ship")
-#            traceback.print_exc()
-#            sys.exit(-1)
+        except:
+            logger.error("Observer not cooperating, abandon ship")
+            traceback.print_exc()
+            sys.exit(-1)
 
     def merge(self, flow, res):
         logger = logging.getLogger('tfo')
