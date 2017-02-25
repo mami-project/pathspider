@@ -15,41 +15,20 @@ class FakeSpider:
 def test_job_feeder_webtest():
     spider = FakeSpider()
 
-    expected_jobs = [['160.85.31.173', 80, 'mami-project.eu', '1'],
-                     ['139.133.210.32', 80, 'erg.abdn.ac.uk', '2'],
-                     ['2001:630:241:210:569f:35ff:fe0a:116a', 80, 'erg.abdn.ac.uk', '3'],
-                     ['129.132.52.158', 80, 'ecn.ethz.ch', '4'],
-                     ['2001:67c:10ec:36c2::61', 80, 'ecn.ethz.ch', '5'],
-                     ['139.133.1.4', 80, 'abdn.ac.uk', '6']]
+    expected_jobs = [{'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '888508', 'domain': 'smartcarsinc.com', 'ip': '12.54.244.146', 'info': {'Cached': '2017-02-24T10:25:14.82660325Z', 'ASN': 7018, 'CountryCode': 'US-VA', 'Prefix': '12.0.0.0/9'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '935244', 'domain': 'jesionowa-40.pl', 'ip': '148.251.67.142', 'info': {'Cached': '2017-02-24T10:25:09.67184801Z', 'ASN': 24940, 'CountryCode': 'DE', 'Prefix': '148.251.0.0/16'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '774975', 'domain': 'granjasantaisabel.com', 'ip': '62.149.128.151', 'info': {'Cached': '2017-02-24T10:25:09.206038319Z', 'ASN': 31034, 'CountryCode': 'IT', 'Prefix': '62.149.128.0/19'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '307350', 'domain': 'bestpartyweb.info', 'ip': '104.27.185.20', 'info': {'Cached': '2017-02-24T10:25:14.645460693Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.27.176.0/20'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '499521', 'domain': 'nationalgallery.sg', 'ip': '104.20.2.18', 'info': {'Cached': '2017-02-24T10:25:06.966867911Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.20.0.0/20'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '872557', 'domain': 'smglnc.blogspot.com', 'ip': '2a00:1450:4001:81e::2001', 'info': {'Cached': '2017-02-24T10:25:20.097217525Z', 'ASN': 15169, 'CountryCode': 'IE', 'Prefix': '2a00:1450:4001::/48'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '727500', 'domain': 'choisirunmedecin.com', 'ip': '144.76.61.23', 'info': {'Cached': '2017-02-24T10:25:09.688636273Z', 'ASN': 24940, 'CountryCode': 'DE', 'Prefix': '144.76.0.0/16'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '307350', 'domain': 'bestpartyweb.info', 'ip': '104.27.184.20', 'info': {'Cached': '2017-02-24T10:25:14.645460693Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.27.176.0/20'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '499521', 'domain': 'nationalgallery.sg', 'ip': '104.20.3.18', 'info': {'Cached': '2017-02-24T10:25:06.966867911Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.20.0.0/20'}}, {'port': 80, 'lookupType': 'host', 'lookupAttempts': 1, 'rank': '774975', 'domain': 'granjasantaisabel.com', 'ip': '62.149.128.74', 'info': {'Cached': '2017-02-24T10:25:09.206038319Z', 'ASN': 31034, 'CountryCode': 'IT', 'Prefix': '62.149.128.0/19'}}]
 
-    job_feeder("examples/webtest.csv", spider)
+    job_feeder("examples/webtest.ndjson", spider)
     assert spider.was_shutdown
+    with open("/tmp/jobs.txt", "w") as output:
+        output.write(repr(spider.jobs))
     assert spider.jobs == expected_jobs
 
 def test_job_feeder_webtest_newline():
     spider = FakeSpider()
 
-    expected_jobs = [['160.85.31.173', 80, 'mami-project.eu', '1'],
-                     ['139.133.210.32', 80, 'erg.abdn.ac.uk', '2'],
-                     ['2001:630:241:210:569f:35ff:fe0a:116a', 80, 'erg.abdn.ac.uk', '3'],
-                     ['129.132.52.158', 80, 'ecn.ethz.ch', '4'],
-                     ['2001:67c:10ec:36c2::61', 80, 'ecn.ethz.ch', '5'],
-                     ['139.133.1.4', 80, 'abdn.ac.uk', '6']]
+    expected_jobs = [{'lookupType': 'host', 'lookupAttempts': 1, 'rank': '888508', 'domain': 'smartcarsinc.com', 'ip': '12.54.244.146', 'info': {'Cached': '2017-02-24T10:25:14.82660325Z', 'ASN': 7018, 'CountryCode': 'US-VA', 'Prefix': '12.0.0.0/9'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '935244', 'domain': 'jesionowa-40.pl', 'ip': '148.251.67.142', 'info': {'Cached': '2017-02-24T10:25:09.67184801Z', 'ASN': 24940, 'CountryCode': 'DE', 'Prefix': '148.251.0.0/16'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '774975', 'domain': 'granjasantaisabel.com', 'ip': '62.149.128.151', 'info': {'Cached': '2017-02-24T10:25:09.206038319Z', 'ASN': 31034, 'CountryCode': 'IT', 'Prefix': '62.149.128.0/19'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '307350', 'domain': 'bestpartyweb.info', 'ip': '104.27.185.20', 'info': {'Cached': '2017-02-24T10:25:14.645460693Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.27.176.0/20'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '499521', 'domain': 'nationalgallery.sg', 'ip': '104.20.2.18', 'info': {'Cached': '2017-02-24T10:25:06.966867911Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.20.0.0/20'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '872557', 'domain': 'smglnc.blogspot.com', 'ip': '2a00:1450:4001:81e::2001', 'info': {'Cached': '2017-02-24T10:25:20.097217525Z', 'ASN': 15169, 'CountryCode': 'IE', 'Prefix': '2a00:1450:4001::/48'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '727500', 'domain': 'choisirunmedecin.com', 'ip': '144.76.61.23', 'info': {'Cached': '2017-02-24T10:25:09.688636273Z', 'ASN': 24940, 'CountryCode': 'DE', 'Prefix': '144.76.0.0/16'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '307350', 'domain': 'bestpartyweb.info', 'ip': '104.27.184.20', 'info': {'Cached': '2017-02-24T10:25:14.645460693Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.27.176.0/20'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '499521', 'domain': 'nationalgallery.sg', 'ip': '104.20.3.18', 'info': {'Cached': '2017-02-24T10:25:06.966867911Z', 'ASN': 13335, 'CountryCode': 'US-CA', 'Prefix': '104.20.0.0/20'}}, {'lookupType': 'host', 'lookupAttempts': 1, 'rank': '774975', 'domain': 'granjasantaisabel.com', 'ip': '62.149.128.74', 'info': {'Cached': '2017-02-24T10:25:09.206038319Z', 'ASN': 31034, 'CountryCode': 'IT', 'Prefix': '62.149.128.0/19'}}]
 
-    job_feeder("tests/testdata/webtest_newline.csv", spider)
-    assert spider.was_shutdown
-    assert spider.jobs == expected_jobs
-
-def test_job_feeder_webtest_badport():
-    spider = FakeSpider()
-
-    expected_jobs = [['160.85.31.173', 80, 'mami-project.eu', '1'],
-                     ['139.133.210.32', 80, 'erg.abdn.ac.uk', '2'],
-                     ['2001:630:241:210:569f:35ff:fe0a:116a', 80, 'erg.abdn.ac.uk', '3'],
-                     ['2001:67c:10ec:36c2::61', 80, 'ecn.ethz.ch', '5'],
-                     ['139.133.1.4', 80, 'abdn.ac.uk', '6']]
-
-    job_feeder("tests/testdata/webtest_badport.csv", spider)
+    job_feeder("tests/testdata/webtest_newline.ndjson", spider)
     assert spider.was_shutdown
     assert spider.jobs == expected_jobs
 
