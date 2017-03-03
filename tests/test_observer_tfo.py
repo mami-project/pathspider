@@ -43,17 +43,17 @@ def test_observer_tfo():
         if (f['sip'] == "2a03:b0c0:3:d0::1dfd:4001" and
             f['dip'] == "2a00:1450:4009:813::2009" and
             f['sp'] == 57469):
-            assert f['fwd_fin'] == True
-            assert f['fwd_rst'] == True
-            assert f['fwd_syn_flags'] == TCP_SYN
+            assert f['tcp_fin_fwd'] == True
+            assert f['tcp_rst_fwd'] == True
+            assert f['tcp_synflags_fwd'] == TCP_SYN
             assert f['oct_fwd'] == 397
             assert f['oct_rev'] == 1045
             assert f['pkt_fwd'] == 5
             assert f['pkt_rev'] == 4
             assert f['proto'] == 6
-            assert f['rev_fin'] == True
-            assert f['rev_rst'] == False
-            assert f['rev_syn_flags'] == TCP_SA
+            assert f['tcp_fin_rev'] == True
+            assert f['tcp_rst_rev'] == False
+            assert f['tcp_synflags_rev'] == TCP_SA
             assert f['tcp_connected'] == True
             assert f['tfo_ack'] == 4042009891
             assert f['tfo_ackclen'] == 0
@@ -66,17 +66,18 @@ def test_observer_tfo():
         if (f['sip'] == "2a03:b0c0:3:d0::1dfd:4001" and
             f['dip'] == "2a00:1450:4008:802::2003" and
             f['sp'] == 46802):
-            assert f['fwd_fin'] == True
-            assert f['fwd_rst'] == False
-            assert f['fwd_syn_flags'] == TCP_SYN
+            print(f)
+            assert f['tcp_fin_fwd'] == True
+            assert f['tcp_rst_fwd'] == False
+            assert f['tcp_synflags_fwd'] == TCP_SYN
             assert f['oct_fwd'] == 296
             assert f['oct_rev'] == 152
             assert f['pkt_fwd'] == 4
             assert f['pkt_rev'] == 2
             assert f['proto'] == 6
-            assert f['rev_fin'] == True
-            assert f['rev_rst'] == False
-            assert f['rev_syn_flags'] == TCP_SA
+            assert f['tcp_fin_rev'] == True
+            assert f['tcp_rst_rev'] == False
+            assert f['tcp_synflags_rev'] == TCP_SA
             assert f['tcp_connected'] == True
             assert f['tfo_ack'] == 0
             assert f['tfo_ackclen'] == 0

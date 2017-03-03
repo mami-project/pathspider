@@ -14,31 +14,30 @@ from pathspider.base import NO_FLOW
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
-from pathspider.observer.tcp import tcp_setup
-from pathspider.observer.tcp import tcp_handshake
-from pathspider.observer.tcp import tcp_complete
+from pathspider.observer.tcp import tcp_state_setup
+from pathspider.observer.tcp import tcp_state
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
 
 ## Chain functions
 
 def ecn_setup(rec, ip):
-    fields = ['fwd_ez', 'fwd_eo', 'fwd_ce', 'rev_ez', 'rev_eo', 'rev_ce']
+    fields = ['ecn_ect0_fwd', 'ecn_ect1_fwd', 'ecn_ce_fwd', 'ecn_ect0_rev', 'ecn_ect1_rev', 'ecn_ce_rev']
     for field in fields:
         rec[field] = False
     return True
 
 def ecn_code(rec, ip, rev):
-    EZ = 0x02
-    EO = 0x01
-    CE = 0x03
+    ECT_ZERO = 0x02
+    ECT_ONE = 0x01
+    ECT_CE = 0x03
 
-    if ip.traffic_class & CE == EZ:
-        rec['rev_ez' if rev else 'fwd_ez'] = True
-    if ip.traffic_class & CE == EO:
-        rec['rev_eo' if rev else 'fwd_eo'] = True
-    if ip.traffic_class & CE == CE:
-        rec['rev_ce' if rev else 'fwd_ce'] = True
+    if ip.traffic_class & ECT_CE == ECT_ZERO:
+        rec['ecn_ect0_rev' if rev else 'ecn_ect0_fwd'] = True
+    if ip.traffic_class & ECT_CE == ECT_ONE:
+        rec['ecn_ect1_rev' if rev else 'ecn_ect1_fwd'] = True
+    if ip.traffic_class & ECT_CE == ECT_CE:
+        rec['ecn_ce_rev' if rev else 'ecn_ce_fwd'] = True
 
     return True
 
@@ -108,10 +107,10 @@ class ECN(SynchronizedSpider, PluggableSpider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tcp_setup, ecn_setup],
+                            new_flow_chain=[basic_flow, tcp_state_setup, ecn_setup],
                             ip4_chain=[basic_count, ecn_code],
                             ip6_chain=[basic_count, ecn_code],
-                            tcp_chain=[tcp_handshake, tcp_complete])
+                            tcp_chain=[tcp_state])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
@@ -151,11 +150,11 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 negotiated = False
                 conditions.append('ecn.not_negotiated')
 
-            if flows[1]['rev_ez']:
+            if flows[1]['ecn_ect0_rev']:
                 conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
-            if flows[1]['rev_eo']:
+            if flows[1]['ecn_ect1_rev']:
                 conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
-            if flows[1]['rev_ce']:
+            if flows[1]['ecn_ce_rev']:
                 conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
 
             self.outqueue.put({

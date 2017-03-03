@@ -17,9 +17,8 @@ from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
-from pathspider.observer.tcp import tcp_setup
-from pathspider.observer.tcp import tcp_handshake
-from pathspider.observer.tcp import tcp_complete
+from pathspider.observer.tcp import tcp_state_setup
+from pathspider.observer.tcp import tcp_state
 
 from timeit import default_timer as timer
 
@@ -168,10 +167,10 @@ def encode_dns_question(qname, qtype, qclass):
 # given a job description, generate a message to send on the SYN with TFO
 def message_for(job, phase):
     
-    if job['port'] == 80 :
+    if job['dp'] == 80 :
         # Web. Get / for the named host
         return bytes("GET / HTTP/1.1\r\nhost: "+str(job['domain'])+"\r\n\r\n", "utf-8")
-    elif job['port'] == 53:
+    elif job['dp'] == 53:
         # DNS. Construct a question asking the server for its own address
         header = [0x0a75 + phase, 0x0100, 1, 0, 0, 0] # header: question, recursion OK
         return struct.pack("!6H", *header) + encode_dns_question(job['domain'], 1, 1)
@@ -189,12 +188,13 @@ class TFO(DesynchronizedSpider, PluggableSpider):
 
     def connect(self, job, config):
         # determine ip version
-        if job['ip'].count(':') >= 1:
+        if job['dip'].count(':') >= 1:
             af = socket.AF_INET6
         else:
             af = socket.AF_INET
 
-        rec = {'c0t': 0, 'c1t': 1}
+        # initialise default timers
+        rec = {'tfo_c0t': 0, 'tfo_c1t': 0}
 
         # regular TCP: add skip flag to job on timeout or error
         if config == 0:
@@ -203,29 +203,29 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             try:
                 tt = timer()
                 rec['client'].settimeout(self.conn_timeout)
-                rec['client'].connect((job['ip'], job['port']))
-                rec['c0t'] = timer() - tt
+                rec['client'].connect((job['dip'], job['dp']))
+                rec['tfo_c0t'] = timer() - tt
 
                 job['_tfo_baseline_failed'] = False
-                rec['state'] = CONN_OK
+                rec['spdr_state'] = CONN_OK
             except TimeoutError:
-                rec['state'] = CONN_TIMEOUT
+                rec['spdr_state'] = CONN_TIMEOUT
             except OSError:
-                rec['state'] = CONN_FAILED
+                rec['spdr_state'] = CONN_FAILED
 
         # with TFO
         if config == 1:
             # skip if config zero failed
             if job['_tfo_baseline_failed']:
-                return {'state': CONN_SKIPPED}
+                return {'spdr_state': CONN_SKIPPED}
             # step one: request cookie
             try:
                 # pylint: disable=no-member
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message_for(job,0), socket.MSG_FASTOPEN, (job['ip'], job['port']))
+                sock.sendto(message_for(job,0), socket.MSG_FASTOPEN, (job['dip'], job['dp']))
                 sock.close()
-                rec['c0t'] = timer() - tt
+                rec['tfo_c0t'] = timer() - tt
             except:
                 pass
 
@@ -233,14 +233,14 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             try:
                 tt = timer()
                 rec['client'] = socket.socket(af, socket.SOCK_STREAM)
-                rec['client'].sendto(message_for(job,1), socket.MSG_FASTOPEN, (job['ip'], job['port'])) # pylint: disable=no-member
-                rec['c1t'] = timer() - tt
+                rec['client'].sendto(message_for(job,1), socket.MSG_FASTOPEN, (job['dip'], job['dp'])) # pylint: disable=no-member
+                rec['tfo_c1t'] = timer() - tt
 
-                rec['state'] = CONN_OK
+                rec['spdr_state'] = CONN_OK
             except TimeoutError:
-                rec['state'] = CONN_TIMEOUT
+                rec['spdr_state'] = CONN_TIMEOUT
             except OSError:
-                rec['state'] = CONN_FAILED
+                rec['spdr_state'] = CONN_FAILED
 
         # Get source port from the socket
         rec['sp'] = rec['client'].getsockname()[1]
@@ -254,7 +254,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         # except:
         #     pass
 
-        if rec['state'] == CONN_SKIPPED:
+        if rec['spdr_state'] == CONN_SKIPPED:
             return
 
         try:
@@ -269,10 +269,10 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tcp_setup, _tfosetup],
+                            new_flow_chain=[basic_flow, tcp_state_setup, _tfosetup],
                             ip4_chain=[basic_count],
                             ip6_chain=[basic_count],
-                            tcp_chain=[tcp_handshake, tcp_complete, _tfopacket])
+                            tcp_chain=[tcp_state, _tfopacket])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()

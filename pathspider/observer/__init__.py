@@ -268,7 +268,7 @@ class Observer:
             #self._logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
-            rec = {'first': ip.seconds, '_idle_bin': 0}
+            rec = {'pkt_first': ip.seconds, '_idle_bin': 0}
             for fn in self._new_flow_chain:
                 if not fn(rec, ip):
                     # self._logger.debug("ignoring "+str(ffid))
@@ -284,11 +284,11 @@ class Observer:
             self._ct_flow += 1
 
         # update time and idle bin and return record
-        rec['last'] = ip.seconds
+        rec['pkt_last'] = ip.seconds
 
         # update idle bin if we're not expiring
         if active:
-            new_idle_bin = math.ceil((rec['last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
+            new_idle_bin = math.ceil((rec['pkt_last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
             
             if new_idle_bin > rec["_idle_bin"] :
 

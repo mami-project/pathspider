@@ -351,12 +351,12 @@ class Spider:
                         merging_results = False
                         logger.debug("stopping result merging on sentinel")
                         continue
-                    if 'state' in res.keys() and res['state'] == CONN_SKIPPED:
+                    if 'spdr_state' in res.keys() and res['spdr_state'] == CONN_SKIPPED:
                         # handle skipped results
                         continue
 
-                    reskey = (res['ip'], res['sp'])
-                    logger.debug("got a result (" + str(res['ip']) + ", " +
+                    reskey = (res['dip'], res['sp'])
+                    logger.debug("got a result (" + str(res['dip']) + ", " +
                                  str(res['sp']) + ")")
 
                     if reskey in self.flowtab:
@@ -402,7 +402,7 @@ class Spider:
 
         if flow == NO_FLOW:
             flow = {
-                "dip": res['ip'],
+                "dip": res['dip'],
                 "sp": res['sp'],
                 "dp": res['dp'],
                 "observed": False,
@@ -419,6 +419,12 @@ class Spider:
                                    "observations on key %s", key)
                     return
             flow[key] = res[key]
+
+        # Remove private keys - we need to make a copy of the keys as we
+        #                       modify the dict during the iteration
+        for key in [x for x in flow.keys()]:
+            if key.startswith("_"):
+                flow.pop(key)
 
         logger.debug("Result: " + str(flow))
 
@@ -754,7 +760,7 @@ class SynchronizedSpider(Spider):
                     # self._worker_state[worker_number] = "conn_0"
                     conn0_start = str(datetime.utcnow())
                     conn0 = self.connect(job, 0)
-                    conn0['tstart'] = conn0_start
+                    conn0['spdr_start'] = conn0_start
 
                     # Wait for configuration one
                     # self._worker_state[worker_number] = "wait_1"
@@ -765,7 +771,7 @@ class SynchronizedSpider(Spider):
                     # self._worker_state[worker_number] = "conn_1"
                     conn1_start = str(datetime.utcnow())
                     conn1 = self.connect(job, 1)
-                    conn1['tstart'] = conn1_start
+                    conn1['spdr_start'] = conn1_start
 
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
@@ -775,10 +781,10 @@ class SynchronizedSpider(Spider):
                     for conn in [conn0, conn1]:
                         # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
                         self.post_connect(job, conn, config)
-                        conn['tstop'] = str(datetime.utcnow())
+                        conn['spdr_stop'] = str(datetime.utcnow())
                         conn['config'] = config
-                        conn['ip'] = job['ip']
-                        conn['dp'] = job['port']
+                        conn['dip'] = job['dip']
+                        conn['dp'] = job['dp']
                         self.resqueue.put(conn)
                         config += 1
 
@@ -813,20 +819,20 @@ class SynchronizedSpider(Spider):
         if self.conn_timeout is None:
             raise RuntimeError("Plugin did not set TCP connect timeout.")
 
-        if ":" in job['ip']:
+        if ":" in job['dip']:
             sock = socket.socket(socket.AF_INET6)
         else:
             sock = socket.socket(socket.AF_INET)
 
         try:
             sock.settimeout(self.conn_timeout)
-            sock.connect((job['ip'], job['port']))
+            sock.connect((job['dip'], job['dp']))
 
-            return {"client": sock, "sp": sock.getsockname()[1], "state": CONN_OK}
+            return {'client': sock, 'sp': sock.getsockname()[1], 'spdr_state': CONN_OK}
         except TimeoutError:
-            return {"client": sock, "sp": sock.getsockname()[1], "state": CONN_TIMEOUT}
+            return {'client': sock, 'sp': sock.getsockname()[1], 'spdr_state': CONN_TIMEOUT}
         except OSError:
-            return {"client": sock, "sp": sock.getsockname()[1], "state": CONN_FAILED}
+            return {'client': sock, 'sp': sock.getsockname()[1], 'spdr_state': CONN_FAILED}
 
 
 class DesynchronizedSpider(Spider):
@@ -920,8 +926,8 @@ class DesynchronizedSpider(Spider):
                         # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
                         self.post_connect(job, conn, config)
                         conn['config'] = config
-                        conn['ip'] = job['ip']
-                        conn['dp'] = job['port']
+                        conn['dip'] = job['dip']
+                        conn['dp'] = job['dp']
                         self.resqueue.put(conn)
                         config += 1
 
