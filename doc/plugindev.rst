@@ -62,14 +62,9 @@ sections.
 
  from pathspider.base import SynchronizedSpider
  from pathspider.base import PluggableSpider
- from pathspider.base import Conn
- from pathspider.base import NO_FLOW
+ from pathspider.base import CONN_OK, CONN_TIMEOUT, CONN_FAILED
 
  from pathspider.observer import simple_observer
-
- SpiderRecord = collections.namedtuple("SpiderRecord",
-         ["ip", "rport", "port", "rank", "host", "config",
-         "connstate", "tstart", "tstop"])
 
  class Example(SynchronizedSpider, PluggableSpider):
      """
@@ -84,31 +79,22 @@ sections.
          logger = logging.getLogger("example")
          logger.debug("Configuration one")
 
-     def connect(self, job, pcs, config):
+     def connect(self, job, config):
          return self.tcp_connect(job)
 
-     def post_connect(self, job, conn, pcs, config):
-         job_ip, job_port, job_host, job_rank = job
-         tstop = str(datetime.utcnow())
-
-         if conn.state == Conn.OK:
-             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
-                                config, True, conn.tstart, tstop)
-         else:
-             rec = SpiderRecord(job_ip, job_port, conn.port, job_rank, job_host,
-                                config, False, conn.tstart, tstop)
-
+     def post_connect(self, job, rec, config):
          try:
-             conn.client.shutdown(socket.SHUT_RDWR)
+             rec['client'].shutdown(socket.SHUT_RDWR)
          except:
              pass
 
          try:
-             conn.client.close()
+             rec['client'].close()
          except:
              pass
 
-          return rec
+         # The client is no longer usable, don't leave it in the spider record
+         rec.pop('client')
 
      def create_observer(self):
          logger = logging.getLogger("example")
@@ -117,17 +103,6 @@ sections.
          except:
              logger.error("Observer would not start")
              sys.exit(-1)
-
-     def merge(self, flow, res):
-         if flow == NO_FLOW:
-             flow = {"dip": res.ip,
-                     "sp": res.port,
-                     "dp": res.rport,
-                     "observed": False}
-         else:
-             flow['observed'] = True
-
-         self.outqueue.put(flow)
 
      @staticmethod
      def register_args(subparsers):
@@ -257,8 +232,7 @@ Writing Observer Functions
 When you are ready to write functions for the observer, first identify which
 data should be stored in the flow record. This is a :class:`dict` that is made
 available for every call to an observer function for a particular flow and
-not shared across flows. Once the flow is completed, this is the record that
-will be returned to the merger.
+not shared across flows.
 
 The flow record should be initialised when a new flow has been identified. The
 functions in the ``new_flow_chain`` are called, in sequence, when a new flow
@@ -280,23 +254,7 @@ If a function returns False, as it has identified the end of the flow, the
 Observer will consider the flow to be finished and will pass it to be merged
 with the job record after a short delay. This might occur for TCP flows when
 both FIN packets have been seen using the
-:func:`pathspider.observer.tcp.tcp_complete` function.
-
-Merging
--------
-
-The merge function will be called for every job and given the job record and
-the observer record. The merge function is then to return the final record
-to be recorded in the dataset for the measurement run.
-
-.. warning:: It is possible for the Observer to return a NO_FLOW object in
-             some circumstances, where the flow has not been observed. Any
-             implementation must handle this gracefully.
-
-An example implementation of this method can be found in the ECN plugin:
-
-.. automethod:: pathspider.plugins.ecn.ECN.merge
-
+:func:`pathspider.observer.tcp.tcp_state` function.
 
 Running Your Plugin
 -------------------
