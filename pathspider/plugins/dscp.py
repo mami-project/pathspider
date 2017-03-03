@@ -126,6 +126,32 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             traceback.print_exc()
             sys.exit(-1)
 
+    def combine_flows(self, flows):
+        conditions = []
+
+        # discard non-observed flows
+        for f in flows:
+            if not (f['observed']):
+                return
+
+        baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd']) + '.'
+        test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd']) + '.'
+
+        if flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
+            cond_conn = test + 'connectivity.works'
+        elif flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
+            cond_conn = test + 'connectivity.broken'
+        elif not flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
+            cond_conn = test + 'connectivity.transient'
+        else:
+            cond_conn = test + 'connectivity.offline'
+        conditions.append(cond_conn)
+
+        conditions.append(test + 'replymark:' + str(flows[0]['dscp_mark_syn_rev']))
+        conditions.append(baseline + 'replymark:' + str(flows[1]['dscp_mark_syn_rev']))
+
+        return conditions
+
     @staticmethod
     def register_args(subparsers):
         parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
