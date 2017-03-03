@@ -33,6 +33,7 @@ import collections
 import threading
 import multiprocessing as mp
 import queue
+import uuid
 from datetime import datetime
 from enum import Enum
 
@@ -91,19 +92,15 @@ class SemaphoreN(threading.BoundedSemaphore):
         while self.acquire(blocking=False):
             pass
 
-class Conn(Enum):
-    OK = 0
-    FAILED = 1
-    TIMEOUT = 2
-    SKIPPED = 3
-
-Connection = collections.namedtuple("Connection", ["client", "port", "state", "tstart"])
+CONN_OK = 0
+CONN_FAILED = 1
+CONN_TIMEOUT = 2
+CONN_SKIPPED = 3
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
 SHUTDOWN_SENTINEL = "SHUTDOWN_SENTINEL"
-NO_RESULT = None
 NO_FLOW = None
 
 class Spider:
@@ -208,9 +205,8 @@ class Spider:
         """
         Performs pre-connection operations.
 
-        :param job: The job record.
+        :param job: The job record
         :type job: dict
-        :returns: dict -- Result of the pre-connection operation(s).
 
         The pre_connect function can be used to perform any operations that
         must be performed before each connection. It will be run only once
@@ -223,18 +219,18 @@ class Spider:
 
         pass
 
-    def connect(self, job, pcs, config):
+    def connect(self, job, config):
         """
         Performs the connection.
 
         :param job: The job record.
         :type job: dict
-        :param pcs: The result of the pre-connection operations(s).
-        :type pcs: dict
         :param config: The current state of the configurator (0 or 1).
         :type config: int
-        :returns: object -- Any result of the connect operation to be passed
-                            to :func:`pathspider.base.Spider.post_connect`.
+        :returns: dict -- The result of the connect operation to be passed
+                          to :func:`pathspider.base.Spider.post_connect`. This
+                          dict must contain the necessary keys for the merger
+                          to match the flow with the job and configuration.
 
         The connect function is used to perform the connection operation and
         is run for both the A and B test. This method is not implemented in
@@ -248,20 +244,17 @@ class Spider:
 
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
-    def post_connect(self, job, conn, pcs, config):
+    def post_connect(self, job, rec, config):
         """
         Performs post-connection operations.
 
         :param job: The job record.
         :type job: dict
-        :param conn: The result of the connection operation(s).
-        :type conn: object
-        :param pcs: The result of the pre-connection operations(s).
-        :type pcs: dict
+        :param rec: The result of the connection operation(s).
+        :type rec: dict
         :param config: The state of the configurator during
                        :func:`pathspider.base.Spider.connect`.
         :type config: int
-        :returns: dict -- Result of the pre-connection operation(s).
 
         The post_connect function can be used to perform any operations that
         must be performed after each connection. It will be run for both the
@@ -276,7 +269,7 @@ class Spider:
         function if they have not been already.
         """
 
-        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
+        pass
 
     def create_observer(self):
         """
@@ -354,12 +347,12 @@ class Spider:
                     time.sleep(QUEUE_SLEEP)
                     logger.debug("result queue is empty")
                 else:
-                    if res == NO_RESULT:
-                        # handle skipped results
-                        continue
                     if res == SHUTDOWN_SENTINEL:
                         merging_results = False
                         logger.debug("stopping result merging on sentinel")
+                        continue
+                    if 'state' in res.keys() and res['state'] == CONN_SKIPPED:
+                        # handle skipped results
                         continue
 
                     reskey = (res['ip'], res['sp'])
@@ -723,6 +716,7 @@ class SynchronizedSpider(Spider):
             if worker_active:
                 try:
                     job = self.jobqueue.get_nowait()
+                    jobId = uuid.uuid1().hex
 
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
@@ -748,12 +742,9 @@ class SynchronizedSpider(Spider):
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_zero_rdy.release()
                 else:
-                    # Initialise results stub dict
-                    job['_spider'] = {}
-
                     # Hook for preconnection
                     # self._worker_state[worker_number] = "preconn"
-                    pcs = self.pre_connect(job)
+                    self.pre_connect(job)
 
                     # Wait for configuration zero
                     # self._worker_state[worker_number] = "wait_0"
@@ -761,7 +752,9 @@ class SynchronizedSpider(Spider):
 
                     # Connect in configuration zero
                     # self._worker_state[worker_number] = "conn_0"
-                    conn0 = self.connect(job, pcs, 0)
+                    conn0_start = str(datetime.utcnow())
+                    conn0 = self.connect(job, 0)
+                    conn0['tstart'] = conn0_start
 
                     # Wait for configuration one
                     # self._worker_state[worker_number] = "wait_1"
@@ -770,24 +763,27 @@ class SynchronizedSpider(Spider):
 
                     # Connect in configuration one
                     # self._worker_state[worker_number] = "conn_1"
-                    conn1 = self.connect(job, pcs, 1)
+                    conn1_start = str(datetime.utcnow())
+                    conn1 = self.connect(job, 1)
+                    conn1['tstart'] = conn1_start
 
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
 
                     # Pass results on for merge
-                    # self._worker_state[worker_number] = "postconn_0"
-                    self.post_connect(job, conn0, pcs, 0)
-                    job['_spider'][0]['config'] = 0
-                    job['_spider'][0]['ip'] = job['ip']
-                    job['_spider'][0]['dp'] = job['port']
-                    self.resqueue.put(job['_spider'][0])
-                    # self._worker_state[worker_number] = "postconn_1"
-                    self.post_connect(job, conn1, pcs, 1)
-                    job['_spider'][1]['config'] = 1
-                    job['_spider'][1]['ip'] = job['ip']
-                    job['_spider'][1]['dp'] = job['port']
-                    self.resqueue.put(job['_spider'][1])
+                    config = 0
+                    for conn in [conn0, conn1]:
+                        # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
+                        self.post_connect(job, conn, config)
+                        conn['tstop'] = str(datetime.utcnow())
+                        conn['config'] = config
+                        conn['ip'] = job['ip']
+                        conn['dp'] = job['port']
+                        self.resqueue.put(conn)
+                        config += 1
+
+                    # Save job record for combiner
+                    self.jobtab[jobId] = job
 
                     # self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
@@ -817,8 +813,6 @@ class SynchronizedSpider(Spider):
         if self.conn_timeout is None:
             raise RuntimeError("Plugin did not set TCP connect timeout.")
 
-        tstart = str(datetime.utcnow())
-
         if ":" in job['ip']:
             sock = socket.socket(socket.AF_INET6)
         else:
@@ -828,11 +822,11 @@ class SynchronizedSpider(Spider):
             sock.settimeout(self.conn_timeout)
             sock.connect((job['ip'], job['port']))
 
-            return Connection(sock, sock.getsockname()[1], Conn.OK, tstart)
+            return {"client": sock, "sp": sock.getsockname()[1], "state": CONN_OK}
         except TimeoutError:
-            return Connection(sock, sock.getsockname()[1], Conn.TIMEOUT, tstart)
+            return {"client": sock, "sp": sock.getsockname()[1], "state": CONN_TIMEOUT}
         except OSError:
-            return Connection(sock, sock.getsockname()[1], Conn.FAILED, tstart)
+            return {"client": sock, "sp": sock.getsockname()[1], "state": CONN_FAILED}
 
 
 class DesynchronizedSpider(Spider):
@@ -914,25 +908,22 @@ class DesynchronizedSpider(Spider):
 
                     # Connect in configuration zero
                     # self._worker_state[worker_number] = "conn_0"
-                    conn0 = self.connect(job, pcs, 0)
+                    conn0 = self.connect(job, 0)
 
                     # Connect in configuration one
                     # self._worker_state[worker_number] = "conn_1"
-                    conn1 = self.connect(job, pcs, 1)
+                    conn1 = self.connect(job, 1)
 
                     # Pass results on for merge
-                    # self._worker_state[worker_number] = "postconn_0"
-                    self.post_connect(job, conn0, pcs, 0)
-                    job['_spider'][0]['config'] = 0
-                    job['_spider'][0]['ip'] = job['ip']
-                    job['_spider'][0]['dp'] = job['port']
-                    self.resqueue.put(job['_spider'][0])
-                    # self._worker_state[worker_number] = "postconn_1"
-                    self.post_connect(job, conn0, pcs, 1)
-                    job['_spider'][1]['config'] = 0
-                    job['_spider'][1]['ip'] = job['ip']
-                    job['_spider'][1]['dp'] = job['port']
-                    self.resqueue.put(job['_spider'][1])
+                    config = 0
+                    for conn in [conn0, conn1]:
+                        # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
+                        self.post_connect(job, conn, config)
+                        conn['config'] = config
+                        conn['ip'] = job['ip']
+                        conn['dp'] = job['port']
+                        self.resqueue.put(conn)
+                        config += 1
 
                     # self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
