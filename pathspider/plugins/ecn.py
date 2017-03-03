@@ -10,7 +10,6 @@ import collections
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
-from pathspider.base import Conn
 from pathspider.base import NO_FLOW
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
@@ -74,36 +73,31 @@ class ECN(SynchronizedSpider, PluggableSpider):
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
 
-    def connect(self, job, pcs, config):
+    def connect(self, job, config):
         """
         Performs a TCP connection.
         """
 
         return self.tcp_connect(job)
 
-    def post_connect(self, job, conn, pcs, config):
+    def post_connect(self, job, conn, config):
         """
         Close the socket gracefully.
         """
 
-        tstop = str(datetime.utcnow())
-
-        job['_spider'][config] = {
-                                  'sp': conn.port,
-                                  'tstart': conn.tstart,
-                                  'tstop': tstop,
-                                  'connstate': conn.state == Conn.OK,
-                                 }
+        conn['sp'] = conn['client'].getsockname()[1]
 
         try:
-            conn.client.shutdown(socket.SHUT_RDWR)
+            conn['client'].shutdown(socket.SHUT_RDWR)
         except: # FIXME: What are we catching?
             pass
 
         try:
-            conn.client.close()
+            conn['client'].close()
         except: # FIXME: What are we catching?
             pass
+
+        conn.pop('client')
 
     def create_observer(self):
         """
