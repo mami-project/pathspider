@@ -50,7 +50,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
                          libtrace_uri=libtrace_uri,
                          args=args)
         self.conn_timeout = args.timeout
-        self.comparetab = {}
 
     def config_zero(self):
         """
@@ -116,52 +115,36 @@ class ECN(SynchronizedSpider, PluggableSpider):
             traceback.print_exc()
             sys.exit(-1)
 
-    def combine_flows(self, flow):
-        dip = flow['dip']
-        if dip in self.comparetab:
-            other_flow = self.comparetab.pop(dip)
+    def combine_flows(self, flows):
+        conditions = []
 
-            # first has always ecn off, while the second has ecn on
-            flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
-            conditions = []
+        # discard non-observed flows and flows with no syn observed
+        for f in flows:
+            if not (f['observed'] and f['tcp_connected']):
+                return
 
-            # discard non-observed flows and flows with no syn observed
-            for f in flows:
-                if not (f['observed'] and f['tcp_connected']):
-                    return
-
-            start = min(flow['spdr_start'], other_flow['spdr_start'])
-            stop = max(flow['spdr_stop'], other_flow['spdr_stop'])
-
-            if flows[0]['spdr_state'] and flows[1]['spdr_state']:
-                cond_conn = 'ecn.connectivity.works'
-            elif flows[0]['spdr_state'] and not flows[1]['spdr_state']:
-                cond_conn = 'ecn.connectivity.broken'
-            elif not flows[0]['spdr_state'] and not flows[1]['spdr_state']:
-                cond_conn = 'ecn.connectivity.transient'
-            else:
-                cond_conn = 'ecn.connectivity.offline'
-            conditions.append(cond_conn)
-
-            if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
-                negotiated = True
-                conditions.append('ecn.negotiation.succeeded')
-            else:
-                negotiated = False
-                conditions.append('ecn.negotiation.failed')
-
-            conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
-            conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev'] else 'ecn.ipmark.ect1.not_seen')
-            conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev'] else 'ecn.ipmark.ce.not_seen')
-
-            job = self.jobtab.pop(flows[0]['jobId'])
-            job['conditions'] = conditions
-            job['flow_results'] = flows
-            job['time'] = {'from': start, 'to': stop}
-
-            self.outqueue.put(job)
+        if flows[0]['spdr_state'] and flows[1]['spdr_state']:
+            cond_conn = 'ecn.connectivity.works'
+        elif flows[0]['spdr_state'] and not flows[1]['spdr_state']:
+            cond_conn = 'ecn.connectivity.broken'
+        elif not flows[0]['spdr_state'] and not flows[1]['spdr_state']:
+            cond_conn = 'ecn.connectivity.transient'
         else:
-            self.comparetab[dip] = flow
+            cond_conn = 'ecn.connectivity.offline'
+        conditions.append(cond_conn)
+
+        if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
+            negotiated = True
+            conditions.append('ecn.negotiation.succeeded')
+        else:
+            negotiated = False
+            conditions.append('ecn.negotiation.failed')
+
+        conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
+        conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev'] else 'ecn.ipmark.ect1.not_seen')
+        conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev'] else 'ecn.ipmark.ce.not_seen')
+
+        return conditions
 
     @staticmethod
     def register_args(subparsers):
