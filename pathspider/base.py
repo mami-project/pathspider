@@ -157,6 +157,7 @@ class Spider:
         self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
 
         self.jobtab = {}
+        self.comparetab = {}
         self.restab = {}
         self.flowtab = {}
         self.flowreap = collections.deque()
@@ -428,9 +429,23 @@ class Spider:
 
         logger.debug("Result: " + str(flow))
 
-        self.outqueue.put(flow)
+        if flow['dip'] in self.comparetab:
+            other_flow = self.comparetab.pop(flow['dip'])
+            flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
+            start = min(flow['spdr_start'], other_flow['spdr_start'])
+            stop = max(flow['spdr_stop'], other_flow['spdr_stop'])
+            job = self.jobtab.pop(flow['jobId'])
+            job['flow_results'] = flows
+            job['time'] = {'from': start, 'to': stop}
+            job['conditions'] = self.combine_flows(flows)
+            if job['conditions'] == None:
+                job.pop('conditions')
+            self.outqueue.put(job)
+        else:
+            self.comparetab[flow['dip']] = flow
 
-        #self.combine_flows(flow)
+    def combine_flows(self, flows):
+        return None
 
     def exception_wrapper(self, target, *args, **kwargs):
         try:
@@ -776,6 +791,9 @@ class SynchronizedSpider(Spider):
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
 
+                    # Save job record for combiner
+                    self.jobtab[jobId] = job
+
                     # Pass results on for merge
                     config = 0
                     for conn in [conn0, conn1]:
@@ -785,11 +803,9 @@ class SynchronizedSpider(Spider):
                         conn['config'] = config
                         conn['dip'] = job['dip']
                         conn['dp'] = job['dp']
+                        conn['jobId'] = jobId
                         self.resqueue.put(conn)
                         config += 1
-
-                    # Save job record for combiner
-                    self.jobtab[jobId] = job
 
                     # self._worker_state[worker_number] = "done"
                     logger.debug("job complete: "+repr(job))
