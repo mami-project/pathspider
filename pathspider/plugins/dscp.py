@@ -8,8 +8,7 @@ from datetime import datetime
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
-from pathspider.base import Conn
-from pathspider.base import Connection
+from pathspider.base import CONN_OK
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -82,38 +81,26 @@ class DSCP(SynchronizedSpider, PluggableSpider):
                 '--set-dscp', str(self.args.codepoint)])
         logger.debug("Configurator enabled DSCP marking")
 
-    def connect(self, job, pcs, config):
+    def connect(self, job, config):
         """
         Performs a TCP connection.
         """
 
-        conn = self.tcp_connect(job)
-        sock = conn.client
+        rec = self.tcp_connect(job)
 
         try:
-            sock.shutdown(socket.SHUT_RDWR)
-            sock.close()
+            rec['client'].shutdown(socket.SHUT_RDWR)
+            rec['client'].close()
             # FIXME: This is intended to ensure the connection is done and
             # won't see futher packets after the next configuration, but the
             # observer functions could also be made more robust too.
         except:
             pass
 
-        return conn
+        rec['tstop'] = str(datetime.utcnow())
+        rec.pop('client')
 
-    def post_connect(self, job, conn, pcs, config):
-        """
-        Create the SpiderRecord
-        """
-
-        tstop = str(datetime.utcnow())
-
-        job['_spider'][config] = {
-                                  'sp': conn.port,
-                                  'tstart': conn.tstart,
-                                  'tstop': tstop,
-                                  'connstate': conn.state == Conn.OK,
-                                 }
+        return rec
 
     def create_observer(self):
         """
