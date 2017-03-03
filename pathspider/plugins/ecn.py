@@ -127,49 +127,39 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
             # discard non-observed flows and flows with no syn observed
             for f in flows:
-                if not (f['observed'] and f['rev_syn_flags'] != None):
+                if not (f['observed'] and f['tcp_connected']):
                     return
 
-            tstart = min(flow['tstart'], other_flow['tstart'])
-            tstop = max(flow['tstop'], other_flow['tstop'])
+            start = min(flow['spdr_start'], other_flow['spdr_start'])
+            stop = max(flow['spdr_stop'], other_flow['spdr_stop'])
 
-            if flows[0]['connstate'] and flows[1]['connstate']:
+            if flows[0]['spdr_state'] and flows[1]['spdr_state']:
                 cond_conn = 'ecn.connectivity.works'
-            elif flows[0]['connstate'] and not flows[1]['connstate']:
+            elif flows[0]['spdr_state'] and not flows[1]['spdr_state']:
                 cond_conn = 'ecn.connectivity.broken'
-            elif not flows[0]['connstate'] and not flows[1]['connstate']:
+            elif not flows[0]['spdr_state'] and not flows[1]['spdr_state']:
                 cond_conn = 'ecn.connectivity.transient'
             else:
                 cond_conn = 'ecn.connectivity.offline'
             conditions.append(cond_conn)
 
-            if flows[1]['rev_syn_flags'] & TCP_SAEC == TCP_SAE:
+            if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
                 negotiated = True
-                conditions.append('ecn.negotiated')
+                conditions.append('ecn.negotiation.succeeded')
             else:
                 negotiated = False
-                conditions.append('ecn.not_negotiated')
+                conditions.append('ecn.negotiation.failed')
 
-            if flows[1]['ecn_ect0_rev']:
-                conditions.append('ecn.ect_zero.seen' if negotiated else 'ecn.ect_zero.unwanted')
-            if flows[1]['ecn_ect1_rev']:
-                conditions.append('ecn.ect_one.seen' if negotiated else 'ecn.ect_one.unwanted')
-            if flows[1]['ecn_ce_rev']:
-                conditions.append('ecn.ce.seen' if negotiated else 'ecn.ce.unwanted')
+            conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
+            conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev'] else 'ecn.ipmark.ect1.not_seen')
+            conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev'] else 'ecn.ipmark.ce.not_seen')
 
-            self.outqueue.put({
-                'sip': flow['sip'],
-                'dip': dip,
-                'dp': flow['dp'],
-                'conditions': conditions,
-                'hostname': flow['host'],
-                'rank': flow['rank'],
-                'flow_results': flows,
-                'time': {
-                    'from': tstart,
-                    'to': tstop
-                }
-            })
+            job = self.jobtab.pop(flows[0]['jobId'])
+            job['conditions'] = conditions
+            job['flow_results'] = flows
+            job['time'] = {'from': start, 'to': stop}
+
+            self.outqueue.put(job)
         else:
             self.comparetab[dip] = flow
 
