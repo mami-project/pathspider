@@ -46,19 +46,19 @@ def test_observer_ecn():
     flow = flows[0]
     assert flow['sp'] == 46557
     assert flow['dp'] == 80
-    assert flow['fwd_syn_flags'] == TCP_SEC
-    assert flow['rev_syn_flags'] == TCP_SAE
+    assert flow['tcp_synflags_fwd'] == TCP_SEC
+    assert flow['tcp_synflags_rev'] == TCP_SAE
     assert flow['tcp_connected'] == True
-    assert flow['fwd_fin'] == True
-    assert flow['rev_fin'] == True
-    assert flow['fwd_rst'] == False
-    assert flow['rev_rst'] == False
-    assert flow['fwd_ez'] == True
-    assert flow['rev_ez'] == True
-    assert flow['fwd_eo'] == False
-    assert flow['rev_eo'] == False
-    assert flow['fwd_ce'] == False
-    assert flow['rev_ce'] == True
+    assert flow['tcp_fin_fwd'] == True
+    assert flow['tcp_fin_rev'] == True
+    assert flow['tcp_rst_fwd'] == False
+    assert flow['tcp_rst_rev'] == False
+    assert flow['ecn_ect0_fwd'] == True
+    assert flow['ecn_ect0_rev'] == True
+    assert flow['ecn_ect1_fwd'] == False
+    assert flow['ecn_ect1_rev'] == False
+    assert flow['ecn_ce_fwd'] == False
+    assert flow['ecn_ce_rev'] == True
 
 def test_observer_ecn_partial_flow():
     try:
@@ -88,9 +88,9 @@ def test_observer_ecn_partial_flow():
     assert len(flows) == 3
 
     for flow in flows:
-        assert flow['fwd_ez'] == False
-        assert flow['rev_ez'] == False
-        assert flow['fwd_eo'] == False
-        assert flow['rev_eo'] == False
-        assert flow['fwd_ce'] == False
-        assert flow['rev_ce'] == False
+        assert flow['ecn_ect0_fwd'] == False
+        assert flow['ecn_ect0_rev'] == False
+        assert flow['ecn_ect1_fwd'] == False
+        assert flow['ecn_ect1_rev'] == False
+        assert flow['ecn_ce_fwd'] == False
+        assert flow['ecn_ce_rev'] == False
