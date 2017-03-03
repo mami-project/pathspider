@@ -15,9 +15,8 @@ from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 
-from pathspider.observer.tcp import tcp_setup
-from pathspider.observer.tcp import tcp_handshake
-from pathspider.observer.tcp import tcp_complete
+from pathspider.observer.tcp import tcp_state_setup
+from pathspider.observer.tcp import tcp_state
 from pathspider.observer.tcp import TCP_SYN
 
 ## Chain functions
@@ -25,11 +24,11 @@ from pathspider.observer.tcp import TCP_SYN
 def dscp_setup(rec, ip):
     if ip.tcp:
         # we'll only care about these if it's TCP
-        rec['fwd_syn_dscp'] = None
-        rec['rev_syn_dscp'] = None
+        rec['dscp_mark_syn_fwd'] = None
+        rec['dscp_mark_syn_rev'] = None
 
-    rec['fwd_data_dscp'] = None
-    rec['rev_data_dscp'] = None
+    rec['dscp_mark_data_fwd'] = None
+    rec['dscp_mark_data_rev'] = None
     return True
 
 def dscp_extract(rec, ip, rev):
@@ -38,13 +37,13 @@ def dscp_extract(rec, ip, rev):
 
     if ip.tcp:
         if ip.tcp.flags & TCP_SYN == TCP_SYN:
-            rec['rev_syn_dscp' if rev else 'fwd_syn_dscp'] = dscp
+            rec['dscp_mark_syn_rev' if rev else 'dscp_mark_syn_fwd'] = dscp
             return True
         if ip.tcp.payload is None:
             return True
 
     # If not TCP or TCP with payload
-    data_key = 'rev_data_dscp' if rev else 'fwd_data_dscp'
+    data_key = 'dscp_mark_data_rev' if rev else 'dscp_mark_data_fwd'
     rec[data_key] = rec[data_key] or dscp
     return True
 
@@ -97,7 +96,6 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         except:
             pass
 
-        rec['tstop'] = str(datetime.utcnow())
         rec.pop('client')
 
         return rec
@@ -111,10 +109,10 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         logger.info("Creating observer")
         try:
             return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tcp_setup, dscp_setup],
+                            new_flow_chain=[basic_flow, tcp_state_setup, dscp_setup],
                             ip4_chain=[basic_count, dscp_extract],
                             ip6_chain=[basic_count, dscp_extract],
-                            tcp_chain=[tcp_handshake, tcp_complete])
+                            tcp_chain=[tcp_state])
         except:
             logger.error("Observer not cooperating, abandon ship")
             traceback.print_exc()
