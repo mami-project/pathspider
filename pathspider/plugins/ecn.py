@@ -11,6 +11,7 @@ import collections
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import NO_FLOW
+from pathspider.base import CONN_OK
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -123,11 +124,11 @@ class ECN(SynchronizedSpider, PluggableSpider):
             if not (f['observed'] and f['tcp_connected']):
                 return
 
-        if flows[0]['spdr_state'] and flows[1]['spdr_state']:
+        if flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
             cond_conn = 'ecn.connectivity.works'
-        elif flows[0]['spdr_state'] and not flows[1]['spdr_state']:
+        elif flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
             cond_conn = 'ecn.connectivity.broken'
-        elif not flows[0]['spdr_state'] and not flows[1]['spdr_state']:
+        elif not flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
             cond_conn = 'ecn.connectivity.transient'
         else:
             cond_conn = 'ecn.connectivity.offline'
