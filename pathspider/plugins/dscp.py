@@ -9,6 +9,7 @@ from datetime import datetime
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
+from pathspider.base import CONN_SKIPPED
 from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
@@ -72,11 +73,10 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         """
         Enables DSCP marking via iptables.
         """
-
         logger = logging.getLogger('dscp')
         for iptables in ['iptables', 'ip6tables']:
             subprocess.check_call([iptables, '-t', 'mangle', '-A', 'OUTPUT',
-                '-p', 'tcp', '-m', 'tcp', '--dport', '80', '-j', 'DSCP',
+                '-p', 'tcp', '-m', 'tcp', '--dport', str(self.args.tcp_port), '-j', 'DSCP',
                 '--set-dscp', str(self.args.codepoint)])
         logger.debug("Configurator enabled DSCP marking")
 
@@ -84,6 +84,14 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         """
         Performs a TCP connection.
         """
+        logger = logging.getLogger('dscp')
+
+        if 'dp' in job.keys():
+            if job['dp'] != self.args.tcp_port:
+                logger.warning("Unable to process job due to destination port mismatch: " + str(job))
+                return {'spdr_state': CONN_SKIPPED}
+        else:
+            job['dp'] = self.args.tcp_port
 
         rec = self.tcp_connect(job)
 
@@ -123,3 +131,4 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
         parser.set_defaults(spider=DSCP)
         parser.add_argument("--codepoint", type=int, choices=range(0,64), default='48', metavar="[0-63]", help="DSCP codepoint to send (Default: 48)")
+        parser.add_argument("--tcp-port", type=int, choices=range(1,65535), default='80', metavar="[1-65535]", help="Destination TCP port to connect to (Default: 80)")
