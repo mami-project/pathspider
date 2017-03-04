@@ -97,6 +97,9 @@ CONN_FAILED = 1
 CONN_TIMEOUT = 2
 CONN_SKIPPED = 3
 
+PORT_FAILED = 0
+PORT_FAILED_AGAIN = -1
+
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
 
@@ -359,6 +362,10 @@ class Spider:
                     reskey = (res['dip'], res['sp'])
                     logger.debug("got a result (" + str(res['dip']) + ", " +
                                  str(res['sp']) + ")")
+
+                    if reskey in self.restab and res['sp'] == PORT_FAILED:
+                        # both connections failed, but need to be distinguished
+                        reskey = (res['dip'], PORT_FAILED_AGAIN)
 
                     if reskey in self.flowtab:
                         logger.debug("merging result")
