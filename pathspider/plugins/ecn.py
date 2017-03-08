@@ -135,6 +135,8 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
             conditions.append('ecn.negotiation.succeeded')
+        if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAEC:
+            conditions.append('ecn.negotiation.reflected')
         else:
             conditions.append('ecn.negotiation.failed')
 
