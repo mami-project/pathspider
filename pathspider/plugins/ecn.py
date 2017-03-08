@@ -125,20 +125,17 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 return
 
         if flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
-            cond_conn = 'ecn.connectivity.works'
+            conditions.append('ecn.connectivity.works')
         elif flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
-            cond_conn = 'ecn.connectivity.broken'
+            conditions.append('ecn.connectivity.broken')
         elif not flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
-            cond_conn = 'ecn.connectivity.transient'
+            conditions.append('ecn.connectivity.transient')
         else:
-            cond_conn = 'ecn.connectivity.offline'
-        conditions.append(cond_conn)
+            conditions.append('ecn.connectivity.offline')
 
         if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
-            negotiated = True
             conditions.append('ecn.negotiation.succeeded')
         else:
-            negotiated = False
             conditions.append('ecn.negotiation.failed')
 
         conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
