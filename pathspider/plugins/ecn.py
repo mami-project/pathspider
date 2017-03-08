@@ -119,11 +119,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
     def combine_flows(self, flows):
         conditions = []
 
-        # discard non-observed flows and flows with no syn observed
-        for f in flows:
-            if not (f['observed'] and f['tcp_connected']):
-                return
-
         if flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
             conditions.append('ecn.connectivity.works')
         elif flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
@@ -133,16 +128,17 @@ class ECN(SynchronizedSpider, PluggableSpider):
         else:
             conditions.append('ecn.connectivity.offline')
 
-        if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
-            conditions.append('ecn.negotiation.succeeded')
-        if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAEC:
-            conditions.append('ecn.negotiation.reflected')
-        else:
-            conditions.append('ecn.negotiation.failed')
+        if flows[1]['observed'] and flows[1]['tcp_connected']:
+            if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
+                conditions.append('ecn.negotiation.succeeded')
+            elif flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAEC:
+                conditions.append('ecn.negotiation.reflected')
+            else:
+                conditions.append('ecn.negotiation.failed')
 
-        conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
-        conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev'] else 'ecn.ipmark.ect1.not_seen')
-        conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev'] else 'ecn.ipmark.ce.not_seen')
+            conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
+            conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev'] else 'ecn.ipmark.ect1.not_seen')
+            conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev'] else 'ecn.ipmark.ce.not_seen')
 
         return conditions
 
