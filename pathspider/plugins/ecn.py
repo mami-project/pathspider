@@ -128,7 +128,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
             conditions.append('ecn.connectivity.works')
         elif flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
             conditions.append('ecn.connectivity.broken')
-        elif not flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
+        elif not flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
             conditions.append('ecn.connectivity.transient')
         else:
             conditions.append('ecn.connectivity.offline')
