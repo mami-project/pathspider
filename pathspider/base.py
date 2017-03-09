@@ -113,7 +113,7 @@ class Spider:
 
     """
 
-    def __init__(self, worker_count, libtrace_uri, args):
+    def __init__(self, worker_count, libtrace_uri, args, server_mode):
         """
         The initialisation of a pathspider plugin.
 
@@ -143,6 +143,8 @@ class Spider:
         self.running = False
         self.stopping = False
         self.terminating = False
+
+        self.server_mode = server_mode
 
         self.worker_count = worker_count
         self.active_worker_count = 0
@@ -319,9 +321,11 @@ class Spider:
                         merging_flows = False
                         continue
 
-                    flowkey = (flow['dip'], flow['sp'])
-                    logger.debug("got a flow (" + str(flow['sip']) + ", " +
-                                 str(flow['sp']) + ")")
+                    if self.server_mode:
+                        flowkey = (flow['sip'], flow['sp'])
+                    else:
+                        flowkey = (flow['dip'], flow['sp'])
+                    logger.debug("got a flow (" + repr(flowkey) + ")")
 
                     if flowkey in self.restab:
                         logger.debug("merging flow")
@@ -356,13 +360,15 @@ class Spider:
                         # handle skipped results
                         continue
 
-                    reskey = (res['dip'], res['sp'])
-                    logger.debug("got a result (" + str(res['dip']) + ", " +
-                                 str(res['sp']) + ")")
+                    if self.server_mode:
+                        reskey = (res['sip'], res['sp'])
+                    else:
+                        reskey = (res['dip'], res['sp'])
+                    logger.debug("got a result (" + repr(reskey) + ")")
 
                     if reskey in self.restab and res['sp'] == PORT_FAILED:
                         # both connections failed, but need to be distinguished
-                        reskey = (res['dip'], PORT_FAILED_AGAIN)
+                        reskey = (reskey[0], PORT_FAILED_AGAIN)
 
                     if reskey in self.flowtab:
                         logger.debug("merging result")
@@ -406,12 +412,7 @@ class Spider:
         logger = logging.getLogger('pathspider')
 
         if flow == NO_FLOW:
-            flow = {
-                "dip": res['dip'],
-                "sp": res['sp'],
-                "dp": res['dp'],
-                "observed": False,
-                }
+            flow = {'observed': False}
         else:
             flow['observed'] = True
 
@@ -433,8 +434,8 @@ class Spider:
 
         logger.debug("Result: " + str(flow))
 
-        if flow['dip'] in self.comparetab:
-            other_flow = self.comparetab.pop(flow['dip'])
+        if flow['jobId'] in self.comparetab:
+            other_flow = self.comparetab.pop(flow['jobId'])
             flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
             start = min(flow['spdr_start'], other_flow['spdr_start'])
             stop = max(flow['spdr_stop'], other_flow['spdr_stop'])
@@ -446,7 +447,7 @@ class Spider:
                 job.pop('conditions')
             self.outqueue.put(job)
         else:
-            self.comparetab[flow['dip']] = flow
+            self.comparetab[flow['jobId']] = flow
 
     def combine_flows(self, flows):
         return None
@@ -668,8 +669,8 @@ class Spider:
 
 class SynchronizedSpider(Spider):
 
-    def __init__(self, worker_count, libtrace_uri, args):
-        super().__init__(worker_count, libtrace_uri, args)
+    def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
+        super().__init__(worker_count, libtrace_uri, args, server_mode)
 
         # create semaphores for synchronizing configurations
         self.sem_config_zero = SemaphoreN(worker_count)
@@ -805,8 +806,10 @@ class SynchronizedSpider(Spider):
                         self.post_connect(job, conn, config)
                         conn['spdr_stop'] = str(datetime.utcnow())
                         conn['config'] = config
-                        conn['dip'] = job['dip']
-                        conn['dp'] = job['dp']
+                        if self.server_mode:
+                            conn['sip'] = job['sip']
+                        else:
+                            conn['dip'] = job['dip']
                         conn['jobId'] = jobId
                         self.resqueue.put(conn)
                         config += 1
@@ -857,8 +860,8 @@ class SynchronizedSpider(Spider):
 
 class DesynchronizedSpider(Spider):
 
-    def __init__(self, worker_count, libtrace_uri, args):
-        super().__init__(worker_count, libtrace_uri, args)
+    def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
+        super().__init__(worker_count, libtrace_uri, args, server_mode)
 
     def config_zero(self):
         pass
