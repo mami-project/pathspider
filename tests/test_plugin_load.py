@@ -1,9 +1,17 @@
 
+import nose
+
 import pathspider.run
 import pathspider.base
 
 def test_plugin_load():
-    expected_names = set(['TFO', 'ECN', 'DSCP'])
+    try:
+        # attempt to load dependencies of plugins
+        import pldns
+    except ImportError:
+        raise nose.SkipTest
+
+    expected_names = set(['TFO', 'ECN', 'DSCP', 'UDPZero'])
     names = set()
 
     for plugin in pathspider.run.plugins:
