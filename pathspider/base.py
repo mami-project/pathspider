@@ -912,6 +912,7 @@ class DesynchronizedSpider(Spider):
             if worker_active:
                 try:
                     job = self.jobqueue.get_nowait()
+                    jobId = uuid.uuid1().hex
 
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
@@ -928,29 +929,35 @@ class DesynchronizedSpider(Spider):
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
                 else:
-                    # Initialise results stub dict
-                    job['_spider'] = {}
-
                     # Hook for preconnection
                     # self._worker_state[worker_number] = "preconn"
                     pcs = self.pre_connect(job)
 
                     # Connect in configuration zero
                     # self._worker_state[worker_number] = "conn_0"
+                    conn0_start = str(datetime.utcnow())
                     conn0 = self.connect(job, 0)
+                    conn0['spdr_start'] = conn0_start
 
                     # Connect in configuration one
                     # self._worker_state[worker_number] = "conn_1"
+                    conn1_start = str(datetime.utcnow())
                     conn1 = self.connect(job, 1)
+                    conn1['spdr_start'] = conn1_start
+
+                    # Save job record for combiner
+                    self.jobtab[jobId] = job
 
                     # Pass results on for merge
                     config = 0
                     for conn in [conn0, conn1]:
                         # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
                         self.post_connect(job, conn, config)
+                        conn['spdr_stop'] = str(datetime.utcnow())
                         conn['config'] = config
                         conn['dip'] = job['dip']
                         conn['dp'] = job['dp']
+                        conn['jobId'] = jobId
                         self.resqueue.put(conn)
                         config += 1
 
