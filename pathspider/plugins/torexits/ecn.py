@@ -97,7 +97,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
             if stream.status == 'NEW':
                 self.controller.attach_stream(stream.id, circuit_id)
 
-        self.controller.add_event_listener(attach_stream, stem.control.EventType.STREAM)
+        self.controller.add_event_listener(attach_stream, stem.control.EventType.STREAM) # pylint: disable=E1101
     
         try:
             check_page = self._make_request(job)
