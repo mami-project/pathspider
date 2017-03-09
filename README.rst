@@ -1,12 +1,14 @@
 PATHspider
 ==========
 
-|Build Status| |Coverage Status| |Documentation Status| |PyPI Status| |Citation Information|
+|Build Status| |Coverage Status| |Code Health| |Documentation Status| |PyPI Status| |Citation Information|
 
 .. |Build Status| image:: https://img.shields.io/jenkins/s/https/jenkins.erg.abdn.ac.uk/pathspider.svg
    :target: https://jenkins.erg.abdn.ac.uk/job/pathspider/
 .. |Coverage Status| image:: https://coveralls.io/repos/github/mami-project/pathspider/badge.svg?branch=master
    :target: https://coveralls.io/github/mami-project/pathspider?branch=master
+.. |Code Health| image:: https://landscape.io/github/mami-project/pathspider/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/mami-project/pathspider/master
 .. |Documentation Status| image:: https://readthedocs.org/projects/pathspider/badge/?version=latest
    :target: http://pathspider.readthedocs.io/en/latest/?badge=latest
 .. |PyPI Status| image:: https://img.shields.io/pypi/v/pathspider.svg
