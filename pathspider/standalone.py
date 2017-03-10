@@ -11,6 +11,7 @@ from pathspider.network import interface_up
 
 def job_feeder(inputfile, spider):
     logger = logging.getLogger("feeder")
+    seen_targets = set()
     with open(inputfile) as fh:
         logger.debug("job_feeder: started")
         for line in fh:
@@ -23,6 +24,10 @@ def job_feeder(inputfile, spider):
                     else:
                         logger.warning("Skipping job due to lack of a target. 'dip' key not present.")
                         continue
+                if job['dip'] in seen_targets:
+                    logger.warning("This target has already had a job submitted, skipping.")
+                    continue
+                seen_targets.add(job['dip'])
                 if 'dp' not in job.keys():
                     if 'port' in job.keys():
                         job['dp'] = job.pop('port')
