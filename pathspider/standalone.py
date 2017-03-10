@@ -20,9 +20,6 @@ def job_feeder(inputfile, spider):
                     if 'ip' in job.keys():
                         job['dip'] = job.pop('ip')
                         logger.warning("Job specified 'ip' not 'dip'. This is deprecated and will fail in future PATHspider releases.")
-                    else:
-                        logger.warning("Skipping job due to lack of a target. 'dip' key not present.")
-                        continue
                 if 'dp' not in job.keys():
                     if 'port' in job.keys():
                         job['dp'] = job.pop('port')
