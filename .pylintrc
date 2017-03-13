@@ -1,2 +1,5 @@
+[MESSAGES CONTROL]
+disable=C0103
+
 [typecheck]
 generated-members=pycurl.*
