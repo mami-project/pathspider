@@ -97,7 +97,7 @@ def _tfosetup(rec, _):
 
     return True
 
-def _tfopacket(rec, tcp, rev):
+def _tfopacket(rec, tcp, _):
     # Shortcut non-SYN
     if not tcp.syn_flag:
         return True
