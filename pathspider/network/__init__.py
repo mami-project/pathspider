@@ -4,7 +4,7 @@ from pyroute2 import IPDB # pylint: disable=no-name-in-module
 def interface_up(ifname):
     with IPDB() as ipdb:
         for i in set(ipdb.interfaces.values()):
-            if i.ifname == ifname and interface.operstate == 'UP':
+            if i.ifname == ifname and i.operstate == 'UP':
                 return True
         return False
     
