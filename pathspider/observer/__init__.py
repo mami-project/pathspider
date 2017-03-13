@@ -166,7 +166,7 @@ class Observer:
 
         # see if someone told us to stop
         if self._interrupted():
-            return False      
+            return False
 
         # see if we're done iterating
         if not self._trace.read_packet(self._pkt):
@@ -266,7 +266,7 @@ class Observer:
             (fid, rec, active) = (rfid, self._active[rfid], True)
             #self._logger.debug("found reverse flow for "+str(rfid))
         elif rfid in self._expiring:
-            (fid, rec, active) =  (rfid, self._expiring[rfid], False)
+            (fid, rec, active) = (rfid, self._expiring[rfid], False)
             #self._logger.debug("found expiring reverse flow for "+str(rfid))
         else:
             # nowhere to be found. new flow.
@@ -291,8 +291,8 @@ class Observer:
         # update idle bin if we're not expiring
         if active:
             new_idle_bin = math.ceil((rec['pkt_last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
-            
-            if new_idle_bin > rec["_idle_bin"] :
+
+            if new_idle_bin > rec["_idle_bin"]:
 
                 if rec['_idle_bin'] in self._idle_bins:
                     self._idle_bins[rec['_idle_bin']] -= set((fid,))
@@ -303,7 +303,7 @@ class Observer:
 
                 rec['_idle_bin'] = new_idle_bin
 
-        return (fid, rec, bool(fid == rfid)) 
+        return (fid, rec, bool(fid == rfid))
 
     def _flow_complete(self, fid):
         """
@@ -317,7 +317,7 @@ class Observer:
         rec = self._active[fid]
         self._idle_bins[rec['_idle_bin']] -= set((fid,))
 
-        del(rec['_idle_bin'])
+        del rec['_idle_bin']
 
         # move record to expiring table
         self._expiring[fid] = rec
@@ -329,7 +329,7 @@ class Observer:
 
         if expiry_bin in self._expiry_bins:
             self._expiry_bins[expiry_bin] |= set((fid,))
-        else: 
+        else:
             self._expiry_bins[expiry_bin] = set((fid,))
 
     def _emit_flow(self, rec):
@@ -361,7 +361,7 @@ class Observer:
                 if len(self._idle_bins[bint]) > 0:
                     for fid in self._idle_bins[bint].copy():
                         self._flow_complete(fid)
-                del(self._idle_bins[bint])
+                del self._idle_bins[bint]
 
             # process expiry
             if bint in self._expiry_bins:
@@ -369,7 +369,7 @@ class Observer:
                     for fid in self._expiry_bins[bint].copy():
                         self._emit_flow(self._expiring[fid])
                         del self._expiring[fid]
-                del(self._expiry_bins[bint])
+                del self._expiry_bins[bint]
 
         self._ptq = next_ptq
 
@@ -435,12 +435,13 @@ class Observer:
 
         # log observer info on shutdown
         self._logger.info(
-                ("processed %u packets "+
-                "(%u dropped, %u short, %u non-ip) "+
-                "into %u flows (%u ignored)",
-                    self._ct_pkt, self._trace.pkt_drops(),
-                    self._ct_shortkey, self._ct_nonip,
-                    self._ct_flow, self._ct_ignored))
+            ("processed %u packets "
+             "(%u dropped, %u short, %u non-ip) "
+             "into %u flows (%u ignored)"),
+            self._ct_pkt, self._trace.pkt_drops(),
+            self._ct_shortkey, self._ct_nonip,
+            self._ct_flow, self._ct_ignored
+        )
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 
@@ -489,4 +490,3 @@ def simple_observer(lturi):
                     new_flow_chain=[basic_flow],
                     ip4_chain=[basic_count],
                     ip6_chain=[basic_count])
-

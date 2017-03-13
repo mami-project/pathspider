@@ -419,7 +419,7 @@ class Spider:
                     continue
                 else:
                     self.__logger.warning("Dropping flow due to mismatch with "
-                                   "observations on key %s", key)
+                                          "observations on key %s", key)
                     return
             flow[key] = res[key]
 

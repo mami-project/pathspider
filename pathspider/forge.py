@@ -22,12 +22,12 @@ class ForgeSpider(DesynchronizedSpider):
         self.src6 = ipv6_address(self.libtrace_uri[4:])
 
         self.chains = {
-                       'new_flow_chain': [basic_flow],
-                       'ip4_chain': [basic_count],
-                       'ip6_chain': [basic_count],
-                       'tcp_chain': [],
-                       'udp_chain': [],
-                      }
+            'new_flow_chain': [basic_flow],
+            'ip4_chain': [basic_count],
+            'ip6_chain': [basic_count],
+            'tcp_chain': [],
+            'udp_chain': [],
+        }
         extra_chains = self.add_chains()
         for ck in extra_chains.keys():
             if ck in self.chains.keys():
