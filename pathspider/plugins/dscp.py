@@ -74,8 +74,9 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('dscp')
         for iptables in ['iptables', 'ip6tables']:
             subprocess.check_call([iptables, '-t', 'mangle', '-A', 'OUTPUT',
-                '-p', 'tcp', '-m', 'tcp', '--dport', str(self.args.tcp_port), '-j', 'DSCP',
-                '--set-dscp', str(self.args.codepoint)])
+                                   '-p', 'tcp', '-m', 'tcp', '--dport',
+                                   str(self.args.tcp_port), '-j', 'DSCP',
+                                   '--set-dscp', str(self.args.codepoint)])
         logger.debug("Configurator enabled DSCP marking")
 
     def connect(self, job, config):
@@ -86,7 +87,8 @@ class DSCP(SynchronizedSpider, PluggableSpider):
 
         if 'dp' in job.keys():
             if job['dp'] != self.args.tcp_port:
-                logger.warning("Unable to process job due to destination port mismatch: " + str(job))
+                logger.warning("Unable to process job due to destination port mismatch: %r",
+                               job)
                 return {'spdr_state': CONN_SKIPPED}
         else:
             job['dp'] = self.args.tcp_port
@@ -129,7 +131,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
 
         # discard non-observed flows
         for f in flows:
-            if not (f['observed']):
+            if not f['observed']:
                 return
 
         baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd']) + '.'
@@ -154,5 +156,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     def register_args(subparsers):
         parser = subparsers.add_parser('dscp', help='DiffServ Codepoints')
         parser.set_defaults(spider=DSCP)
-        parser.add_argument("--codepoint", type=int, choices=range(0,64), default='48', metavar="[0-63]", help="DSCP codepoint to send (Default: 48)")
-        parser.add_argument("--tcp-port", type=int, choices=range(1,65535), default='80', metavar="[1-65535]", help="Destination TCP port to connect to (Default: 80)")
+        parser.add_argument("--codepoint", type=int, choices=range(0, 64), default='48',
+                            metavar="[0-63]", help="DSCP codepoint to send (Default: 48)")
+        parser.add_argument("--tcp-port", type=int, choices=range(1, 65535), default='80',
+                            metavar="[1-65535]", help="Destination TCP port to connect to (Default: 80)")

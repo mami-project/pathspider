@@ -20,7 +20,15 @@ from pathspider.observer.tcp import TCP_SAEC
 ## Chain functions
 
 def ecn_setup(rec, _):
-    fields = ['ecn_ect0_fwd', 'ecn_ect1_fwd', 'ecn_ce_fwd', 'ecn_ect0_rev', 'ecn_ect1_rev', 'ecn_ce_rev']
+    fields = [
+        'ecn_ect0_fwd',
+        'ecn_ect1_fwd',
+        'ecn_ce_fwd',
+        'ecn_ect0_rev',
+        'ecn_ect1_rev',
+        'ecn_ce_rev'
+    ]
+
     for field in fields:
         rec[field] = False
     return True
@@ -133,9 +141,12 @@ class ECN(SynchronizedSpider, PluggableSpider):
             else:
                 conditions.append('ecn.negotiation.failed')
 
-            conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev'] else 'ecn.ipmark.ect0.not_seen')
-            conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev'] else 'ecn.ipmark.ect1.not_seen')
-            conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev'] else 'ecn.ipmark.ce.not_seen')
+            conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev']
+                              else 'ecn.ipmark.ect0.not_seen')
+            conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev']
+                              else 'ecn.ipmark.ect1.not_seen')
+            conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev']
+                              else 'ecn.ipmark.ce.not_seen')
 
         return conditions
 
