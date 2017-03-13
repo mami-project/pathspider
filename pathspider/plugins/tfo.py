@@ -8,7 +8,6 @@ import socket
 from pathspider.base import DesynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK, CONN_FAILED, CONN_TIMEOUT, CONN_SKIPPED
-from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
