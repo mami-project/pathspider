@@ -79,8 +79,8 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
     :meth:`csv_gen` does not return entire records, instead it extracts
            one particular field from a record.
 
-    :param \*args: Arguments passed to :meth:`csv.reader`.
-    :param \*\*kwargs: Keyword arguments passed to :meth:`csv.reader`.
+    :param \\*args: Arguments passed to :meth:`csv.reader`.
+    :param \\*\\*kwargs: Keyword arguments passed to :meth:`csv.reader`.
     :returns: One field from each record on each call to :meth:`next()`.
     '''
     logger = logging.getLogger('dnsresolv')
