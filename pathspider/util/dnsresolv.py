@@ -17,7 +17,6 @@ import queue
 import threading
 import datetime
 import logging
-import random
 
 TIMEOUT = None  #: The timeout for DNS resolution.
 SLEEP = None  #: Time to sleep before each resolution, for crude rate-limiting.
