@@ -13,7 +13,7 @@ TCP_SEC = (TCP_SYN | TCP_ECE | TCP_CWR)
 TCP_SAEC = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
-def tcp_state_setup(rec, ip):
+def tcp_state_setup(rec, ip): # pylint: disable=W0613
     rec['tcp_synflags_fwd'] = None
     rec['tcp_synflags_rev'] = None
 
@@ -33,9 +33,9 @@ def tcp_state(rec, tcp, rev):
     # TODO: This test could perhaps be improved upon.
     # This test is intended to catch the completion of the 3WHS.
     if (not rec['tcp_connected'] and rev == 0 and
-        rec['tcp_synflags_fwd'] is not None and
-        rec['tcp_synflags_rev'] is not None and
-        tcp.ack_flag):
+            rec['tcp_synflags_fwd'] is not None and
+            rec['tcp_synflags_rev'] is not None and
+            tcp.ack_flag):
         rec['tcp_connected'] = True
 
     if tcp.fin_flag and rev:
@@ -49,4 +49,3 @@ def tcp_state(rec, tcp, rev):
 
     return not ((rec['tcp_fin_fwd'] and rec['tcp_fin_rev']) or
                 rec['tcp_rst_fwd'] or rec['tcp_rst_rev'])
-
