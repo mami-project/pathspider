@@ -201,7 +201,7 @@ class Spider:
     def configurator(self):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
 
-    def worker(self):
+    def worker(self, worker_number):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
 
     def pre_connect(self, job):
@@ -449,7 +449,7 @@ class Spider:
         else:
             self.comparetab[flow['jobId']] = flow
 
-    def combine_flows(self, flows):
+    def combine_flows(self, _):
         return None
 
     def exception_wrapper(self, target, *args, **kwargs):
@@ -558,7 +558,7 @@ class Spider:
             self.stopping = True
 
             # Put a bunch of shutdown signals in the job queue
-            for i in range(self.worker_count * 2):
+            for _ in range(self.worker_count * 2):
                 self.jobqueue.put(SHUTDOWN_SENTINEL)
 
             # Wait for worker threads to shut down
@@ -931,7 +931,7 @@ class DesynchronizedSpider(Spider):
                 else:
                     # Hook for preconnection
                     # self._worker_state[worker_number] = "preconn"
-                    pcs = self.pre_connect(job)
+                    self.pre_connect(job)
 
                     # Connect in configuration zero
                     # self._worker_state[worker_number] = "conn_0"
