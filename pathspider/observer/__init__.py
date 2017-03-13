@@ -84,10 +84,10 @@ class Observer:
         :type ip4_chain: array(function)
         :param ip6_chain: Array of functions to pass IPv6 headers to.
         :type ip6_chain: array(function)
-	:param icmp4_chain: Array of functions to pass IPv4 headers containing
+        :param icmp4_chain: Array of functions to pass IPv4 headers containing
                             ICMPv4 headers to.
         :type icmp4_chain: array(function)
-	:param icmp6_chain: Array of functions to pass IPv6 headers containing
+        :param icmp6_chain: Array of functions to pass IPv6 headers containing
                             ICMPv6 headers to.
         :type icmp6_chain: array(function)
         :param tcp_chain: Array of functions to pass TCP headers to.
