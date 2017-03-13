@@ -292,6 +292,78 @@ class Spider:
 
         raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
+    def _key(self, obj):
+        if self.server_mode:
+            objkey = (obj['sip'], obj['sp'])
+        else:
+            objkey = (obj['dip'], obj['sp'])
+        return objkey
+
+    def _merge_flows(self):
+        try:
+            flow = self.flowqueue.get_nowait()
+        except queue.Empty:
+            time.sleep(QUEUE_SLEEP)
+        else:
+            if flow == SHUTDOWN_SENTINEL:
+                logger.debug("stopping flow merging on sentinel")
+                merging_flows = False
+                continue
+
+            flowkey = self._key(flow)
+            logger.debug("got a flow (" + repr(flowkey) + ")")
+
+            if flowkey in self.restab:
+                logger.debug("merging flow")
+                self.merge(flow, self.restab[flowkey])
+                del self.restab[flowkey]
+            elif flowkey in self.flowtab:
+                logger.debug("won't merge duplicate flow")
+            else:
+                # Create a new flow
+                self.flowtab[flowkey] = flow
+
+                # And reap the oldest, if the reap queue is full
+                self.flowreap.append(flowkey)
+                if len(self.flowreap) > self.flowreap_size:
+                    try:
+                        del self.flowtab[self.flowreap.popleft()]
+                    except KeyError:
+                        pass
+
+    def _merge_results(self):
+        try:
+            res = self.resqueue.get_nowait()
+        except queue.Empty:
+            time.sleep(QUEUE_SLEEP)
+            logger.debug("result queue is empty")
+        else:
+            if res == SHUTDOWN_SENTINEL:
+                merging_results = False
+                logger.debug("stopping result merging on sentinel")
+                continue
+            if 'spdr_state' in res.keys() and res['spdr_state'] == CONN_SKIPPED:
+                # handle skipped results
+                continue
+
+            reskey = self._key(res)
+            logger.debug("got a result (" + repr(reskey) + ")")
+
+            if reskey in self.restab and res['sp'] == PORT_FAILED:
+                # both connections failed, but need to be distinguished
+                reskey = (reskey[0], PORT_FAILED_AGAIN)
+
+            if reskey in self.flowtab:
+                logger.debug("merging result")
+                self.merge(self.flowtab[reskey], res)
+                del self.flowtab[reskey]
+            elif reskey in self.restab:
+                logger.debug("won't merge duplicate result")
+            else:
+                self.restab[reskey] = res
+
+            self.resqueue.task_done()
+
     def merger(self):
         """
         Thread to merge results from the workers and the observer.
@@ -301,90 +373,14 @@ class Spider:
         merging_flows = True
         merging_results = True
 
-        # merge_cycles = 0
-
         while self.running and (merging_results or merging_flows):
 
-            # if merge_cycles % 20 == 0:
-            #     for wn in range(0, self.worker_count):
-            #         logger.debug("worker %3u: %s" % (wn, self._worker_state[wn]))
-            # merge_cycles += 1
-
             if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
-                try:
-                    flow = self.flowqueue.get_nowait()
-                except queue.Empty:
-                    time.sleep(QUEUE_SLEEP)
-                else:
-                    if flow == SHUTDOWN_SENTINEL:
-                        logger.debug("stopping flow merging on sentinel")
-                        merging_flows = False
-                        continue
-
-                    if self.server_mode:
-                        flowkey = (flow['sip'], flow['sp'])
-                    else:
-                        flowkey = (flow['dip'], flow['sp'])
-                    logger.debug("got a flow (" + repr(flowkey) + ")")
-
-                    if flowkey in self.restab:
-                        logger.debug("merging flow")
-                        self.merge(flow, self.restab[flowkey])
-                        del self.restab[flowkey]
-                    elif flowkey in self.flowtab:
-                        logger.debug("won't merge duplicate flow")
-                    else:
-                        # Create a new flow
-                        self.flowtab[flowkey] = flow
-
-                        # And reap the oldest, if the reap queue is full
-                        self.flowreap.append(flowkey)
-                        if len(self.flowreap) > self.flowreap_size:
-                            try:
-                                del self.flowtab[self.flowreap.popleft()]
-                            except KeyError:
-                                pass
+                self._merge_flows()
 
             elif merging_results:
-                try:
-                    res = self.resqueue.get_nowait()
-                except queue.Empty:
-                    time.sleep(QUEUE_SLEEP)
-                    logger.debug("result queue is empty")
-                else:
-                    if res == SHUTDOWN_SENTINEL:
-                        merging_results = False
-                        logger.debug("stopping result merging on sentinel")
-                        continue
-                    if 'spdr_state' in res.keys() and res['spdr_state'] == CONN_SKIPPED:
-                        # handle skipped results
-                        continue
+                self._merge_results()
 
-                    if self.server_mode:
-                        reskey = (res['sip'], res['sp'])
-                    else:
-                        reskey = (res['dip'], res['sp'])
-                    logger.debug("got a result (" + repr(reskey) + ")")
-
-                    if reskey in self.restab and res['sp'] == PORT_FAILED:
-                        # both connections failed, but need to be distinguished
-                        reskey = (reskey[0], PORT_FAILED_AGAIN)
-
-                    if reskey in self.flowtab:
-                        logger.debug("merging result")
-                        self.merge(self.flowtab[reskey], res)
-                        del self.flowtab[reskey]
-                    elif reskey in self.restab:
-                        logger.debug("won't merge duplicate result")
-                    else:
-                        self.restab[reskey] = res
-
-                    self.resqueue.task_done()
-
-        # Both shutdown markers received.
-        # Call merge on all remaining entries in the results table
-        # with null flows.
-        # Commented out for now; see https://github.com/mami-project/pathspider/issues/29
         for res_item in self.restab.items():
             res = res_item[1]
             self.merge(NO_FLOW, res)
