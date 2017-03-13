@@ -182,6 +182,8 @@ class Spider:
 
         self.conn_timeout = None
 
+        self.__logger = logging.getLogger('pathspider')
+
     def config_zero(self):
         """
         Changes the global state or system configuration for the
@@ -304,21 +306,21 @@ class Spider:
             flow = self.flowqueue.get_nowait()
         except queue.Empty:
             time.sleep(QUEUE_SLEEP)
+            return True
         else:
             if flow == SHUTDOWN_SENTINEL:
-                logger.debug("stopping flow merging on sentinel")
-                merging_flows = False
-                continue
+                self.__logger.debug("stopping flow merging on sentinel")
+                return False
 
             flowkey = self._key(flow)
-            logger.debug("got a flow (" + repr(flowkey) + ")")
+            self.__logger.debug("got a flow (" + repr(flowkey) + ")")
 
             if flowkey in self.restab:
-                logger.debug("merging flow")
+                self.__logger.debug("merging flow")
                 self.merge(flow, self.restab[flowkey])
                 del self.restab[flowkey]
             elif flowkey in self.flowtab:
-                logger.debug("won't merge duplicate flow")
+                self.__logger.debug("won't merge duplicate flow")
             else:
                 # Create a new flow
                 self.flowtab[flowkey] = flow
@@ -330,56 +332,57 @@ class Spider:
                         del self.flowtab[self.flowreap.popleft()]
                     except KeyError:
                         pass
+            return True
 
     def _merge_results(self):
         try:
             res = self.resqueue.get_nowait()
         except queue.Empty:
             time.sleep(QUEUE_SLEEP)
-            logger.debug("result queue is empty")
+            self.__logger.debug("result queue is empty")
+            return True
         else:
             if res == SHUTDOWN_SENTINEL:
-                merging_results = False
-                logger.debug("stopping result merging on sentinel")
-                continue
+                self.__logger.debug("stopping result merging on sentinel")
+                return False
             if 'spdr_state' in res.keys() and res['spdr_state'] == CONN_SKIPPED:
                 # handle skipped results
-                continue
+                return True
 
             reskey = self._key(res)
-            logger.debug("got a result (" + repr(reskey) + ")")
+            self.__logger.debug("got a result (" + repr(reskey) + ")")
 
             if reskey in self.restab and res['sp'] == PORT_FAILED:
                 # both connections failed, but need to be distinguished
                 reskey = (reskey[0], PORT_FAILED_AGAIN)
 
             if reskey in self.flowtab:
-                logger.debug("merging result")
+                self.__logger.debug("merging result")
                 self.merge(self.flowtab[reskey], res)
                 del self.flowtab[reskey]
             elif reskey in self.restab:
-                logger.debug("won't merge duplicate result")
+                self.__logger.debug("won't merge duplicate result")
             else:
                 self.restab[reskey] = res
 
             self.resqueue.task_done()
+            return True
 
     def merger(self):
         """
         Thread to merge results from the workers and the observer.
         """
 
-        logger = logging.getLogger('pathspider')
         merging_flows = True
         merging_results = True
 
         while self.running and (merging_results or merging_flows):
 
             if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
-                self._merge_flows()
+                merging_flows = self._merge_flows()
 
             elif merging_results:
-                self._merge_results()
+                merging_results = self._merge_results()
 
         for res_item in self.restab.items():
             res = res_item[1]
@@ -405,8 +408,6 @@ class Spider:
         plugin.
         """
 
-        logger = logging.getLogger('pathspider')
-
         if flow == NO_FLOW:
             flow = {'observed': False}
         else:
@@ -417,7 +418,7 @@ class Spider:
                 if res[key] == flow[key]:
                     continue
                 else:
-                    logger.warning("Dropping flow due to mismatch with "
+                    self.__logger.warning("Dropping flow due to mismatch with "
                                    "observations on key %s", key)
                     return
             flow[key] = res[key]
@@ -428,7 +429,7 @@ class Spider:
             if key.startswith("_"):
                 flow.pop(key)
 
-        logger.debug("Result: " + str(flow))
+        self.__logger.debug("Result: " + str(flow))
 
         if flow['jobId'] in self.comparetab:
             other_flow = self.comparetab.pop(flow['jobId'])
@@ -453,8 +454,8 @@ class Spider:
             target(*args, **kwargs)
         except:
             #FIXME: What exceptions do we expect?
-            logger = logging.getLogger('pathspider')
-            logger.exception("exception occurred. terminating.")
+            self.__logger = logging.getLogger('pathspider')
+            self.__logger.exception("exception occurred. terminating.")
             if self.exception is None:
                 self.exception = sys.exc_info()[1]
 
@@ -479,12 +480,11 @@ class Spider:
         plugin.
         """
 
-        logger = logging.getLogger('pathspider')
         if self.activated == False:
-            logger.exception("tried to run plugin without activating first")
+            self.__logger.exception("tried to run plugin without activating first")
             sys.exit(1)
 
-        logger.info("starting pathspider")
+        self.__logger.info("starting pathspider")
 
         with self.lock:
             # set the running flag
@@ -500,7 +500,7 @@ class Spider:
                 name='observer',
                 daemon=True)
             self.observer_process.start()
-            logger.debug("observer forked")
+            self.__logger.debug("observer forked")
 
             # now start up ecnspider, backwards
             self.merger_thread = threading.Thread(
@@ -509,7 +509,7 @@ class Spider:
                 name="merger",
                 daemon=True)
             self.merger_thread.start()
-            logger.debug("merger up")
+            self.__logger.debug("merger up")
 
             self.configurator_thread = threading.Thread(
                 args=(self.configurator,),
@@ -517,14 +517,7 @@ class Spider:
                 name="configurator",
                 daemon=True)
             self.configurator_thread.start()
-            logger.debug("configurator up")
-
-            # threading.Thread(
-            #     target = self.worker_status_reporter,
-            #     name = "status_reporter",
-            #     daemon = True).start()
-            # logger.debug("status reporter up")
-
+            self.__logger.debug("configurator up")
             self.worker_threads = []
             with self.active_worker_lock:
                 self.active_worker_count = self.worker_count
@@ -536,7 +529,7 @@ class Spider:
                     daemon=True)
                 self.worker_threads.append(worker_thread)
                 worker_thread.start()
-            logger.debug("workers up")
+            self.__logger.debug("workers up")
 
     def shutdown(self):
         """
@@ -545,9 +538,8 @@ class Spider:
         and all available results are merged.
 
         """
-        logger = logging.getLogger('pathspider')
 
-        logger.info("beginning shutdown")
+        self.__logger.info("beginning shutdown")
 
         with self.lock:
             # Set stopping flag
@@ -560,23 +552,23 @@ class Spider:
             # Wait for worker threads to shut down
             for worker in self.worker_threads:
                 if threading.current_thread() != worker:
-                    logger.debug("joining worker: " + repr(worker))
+                    self.__logger.debug("joining worker: " + repr(worker))
                     worker.join()
-            logger.debug("all workers joined")
+            self.__logger.debug("all workers joined")
 
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
             self.observer_process.join()
-            logger.debug("observer shutdown")
+            self.__logger.debug("observer shutdown")
 
             # Tell merger to shut down
             self.resqueue.put(SHUTDOWN_SENTINEL)
             self.merger_thread.join()
-            logger.debug("merger shutdown")
+            self.__logger.debug("merger shutdown")
 
             # Wait for merged results to be written
             self.outqueue.join()
-            logger.debug("all results retrieved")
+            self.__logger.debug("all results retrieved")
 
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
@@ -590,7 +582,7 @@ class Spider:
 
             self.stopping = False
 
-        logger.info("shutdown complete")
+        self.__logger.info("shutdown complete")
 
     def terminate(self):
         """
@@ -598,8 +590,7 @@ class Spider:
         without any regard to completeness of results.
 
         """
-        logger = logging.getLogger('pathspider')
-        logger.info("terminating pathspider")
+        self.__logger.info("terminating pathspider")
 
         # tell threads to stop
         self.stopping = True
@@ -630,24 +621,24 @@ class Spider:
         # Join remaining threads
         for worker in self.worker_threads:
             if threading.current_thread() != worker:
-                logger.debug("joining worker: " + repr(worker))
+                self.__logger.debug("joining worker: " + repr(worker))
                 worker.join()
-        logger.debug("all workers joined")
+        self.__logger.debug("all workers joined")
 
         if self.configurator_thread and \
                 (threading.current_thread() != self.configurator_thread):
             self.configurator_thread.join()
-            logger.debug("configurator joined")
+            self.__logger.debug("configurator joined")
 
         if threading.current_thread() != self.merger_thread:
             self.merger_thread.join()
-            logger.debug("merger joined")
+            self.__logger.debug("merger joined")
 
         self.observer_process.join()
-        logger.debug("observer joined")
+        self.__logger.debug("observer joined")
 
         self.outqueue.put(SHUTDOWN_SENTINEL)
-        logger.info("termination complete")
+        self.__logger.info("termination complete")
 
     def add_job(self, job):
         """
@@ -667,6 +658,7 @@ class SynchronizedSpider(Spider):
 
     def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
         super().__init__(worker_count, libtrace_uri, args, server_mode)
+        self.__logger = logging.getLogger('sync')
 
         # create semaphores for synchronizing configurations
         self.sem_config_zero = SemaphoreN(worker_count)
@@ -683,17 +675,16 @@ class SynchronizedSpider(Spider):
         Thread which synchronizes on a set of semaphores and alternates
         between two system states.
         """
-        logger = logging.getLogger('pathspider')
 
         while self.running:
-            logger.debug("setting config zero")
+            self.__logger.debug("setting config zero")
             self.config_zero()
-            logger.debug("config zero active")
+            self.__logger.debug("config zero active")
             self.sem_config_zero.release_n(self.worker_count)
             self.sem_config_one_rdy.acquire_n(self.worker_count)
-            logger.debug("setting config one")
+            self.__logger.debug("setting config one")
             self.config_one()
-            logger.debug("config one active")
+            self.__logger.debug("config one active")
             self.sem_config_one.release_n(self.worker_count)
             self.sem_config_zero_rdy.acquire_n(self.worker_count)
 
@@ -731,7 +722,6 @@ class SynchronizedSpider(Spider):
         terminate as this indicates that all the jobs have now been processed.
         """
 
-        logger = logging.getLogger('pathspider')
         worker_active = True
 
         while self.running:
@@ -743,15 +733,15 @@ class SynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
+                        self.__logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
                         # self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            logger.debug(str(self.active_worker_count)+" workers still active")
+                            self.__logger.debug(str(self.active_worker_count)+" workers still active")
                         continue
 
-                    logger.debug("got a job: "+repr(job))
+                    self.__logger.debug("got a job: "+repr(job))
                 except queue.Empty:
                     #logger.debug("no job available, sleeping")
                     # spin the semaphores
@@ -811,7 +801,7 @@ class SynchronizedSpider(Spider):
                         config += 1
 
                     # self._worker_state[worker_number] = "done"
-                    logger.debug("job complete: "+repr(job))
+                    self.__logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: # not worker_active, spin the semaphores
                 self.sem_config_zero.acquire()
@@ -858,6 +848,7 @@ class DesynchronizedSpider(Spider):
 
     def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
         super().__init__(worker_count, libtrace_uri, args, server_mode)
+        self.__logger = logging.getLogger('desync')
 
     def config_zero(self):
         pass
@@ -870,8 +861,7 @@ class DesynchronizedSpider(Spider):
         Since there is no need for a configurator thread in a
         desynchronized spider, this thread is a no-op
         """
-        logger = logging.getLogger('pathspider')
-        logger.info("configurations are not synchronized")
+        self.__logger.info("configurations are not synchronized")
 
     def worker(self, worker_number):
         """
@@ -901,7 +891,6 @@ class DesynchronizedSpider(Spider):
         terminate as this indicates that all the jobs have now been processed.
         """
 
-        logger = logging.getLogger('pathspider')
         worker_active = True
 
         while self.running:
@@ -913,15 +902,15 @@ class DesynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
+                        self.__logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
                         # self._worker_state[worker_number] = "shutdown_sentinel"
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            logger.debug(str(self.active_worker_count)+" workers still active")
+                            self.__logger.debug(str(self.active_worker_count)+" workers still active")
                         continue
 
-                    logger.debug("got a job: "+repr(job))
+                    self.__logger.debug("got a job: "+repr(job))
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
                 else:
@@ -958,7 +947,7 @@ class DesynchronizedSpider(Spider):
                         config += 1
 
                     # self._worker_state[worker_number] = "done"
-                    logger.debug("job complete: "+repr(job))
+                    self.__logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             elif not self.stopping:
                 time.sleep(QUEUE_SLEEP)
