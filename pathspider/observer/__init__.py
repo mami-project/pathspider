@@ -1,16 +1,8 @@
 import collections
 import logging
 import base64
-import heapq
 import queue
 import math
-
-import multiprocessing as mp
-
-# these three for debugging
-import sys
-import pdb
-import traceback
 
 from pathspider.base import SHUTDOWN_SENTINEL
 
@@ -432,7 +424,7 @@ class Observer:
 
         # Run main loop until last packet seen
         # then flush active flows and run again
-        for i in range(2):
+        for _ in range(2):
             while True:
                 f = self._next_flow()
                 if f:
@@ -445,7 +437,7 @@ class Observer:
         self._logger.info(
                 ("processed %u packets "+
                 "(%u dropped, %u short, %u non-ip) "+
-                "into %u flows (%u ignored)") % (
+                "into %u flows (%u ignored)",
                     self._ct_pkt, self._trace.pkt_drops(),
                     self._ct_shortkey, self._ct_nonip,
                     self._ct_flow, self._ct_ignored))

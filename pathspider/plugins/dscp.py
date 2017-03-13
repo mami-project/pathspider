@@ -4,13 +4,11 @@ import logging
 import subprocess
 import traceback
 import socket
-from datetime import datetime
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_SKIPPED
-from pathspider.base import NO_FLOW
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow

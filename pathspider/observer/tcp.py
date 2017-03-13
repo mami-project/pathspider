@@ -13,7 +13,7 @@ TCP_SEC = ( TCP_SYN | TCP_ECE | TCP_CWR )
 TCP_SAEC = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
-def tcp_state_setup(rec, ip):
+def tcp_state_setup(rec, _):
     rec['tcp_synflags_fwd'] = None
     rec['tcp_synflags_rev'] = None
 

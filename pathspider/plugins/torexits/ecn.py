@@ -5,8 +5,6 @@ import subprocess
 import traceback
 import io
 import json
-import socket
-from datetime import datetime
 
 import pycurl
 
@@ -15,9 +13,9 @@ import stem.control
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
-from pathspider.base import NO_FLOW
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_FAILED
+
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
@@ -25,9 +23,10 @@ from pathspider.observer.tcp import tcp_state_setup
 from pathspider.observer.tcp import tcp_state
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SEC
-from pathspider.observer.tcp import TCP_SAEC
+
 from pathspider.plugins.ecn import ecn_setup
 from pathspider.plugins.ecn import ecn_code
+
 from pathspider.network import ipv4_address
 
 class ECN(SynchronizedSpider, PluggableSpider):
@@ -68,7 +67,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         job['dp'] = self.args.www_port
         job['dip'] = self.ipv4_address
 
-    def _make_request(self, job):
+    def _make_request(self):
         output = io.BytesIO()
         
         query = pycurl.Curl()
@@ -100,7 +99,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         self.controller.add_event_listener(attach_stream, stem.control.EventType.STREAM) # pylint: disable=E1101
     
         try:
-            check_page = self._make_request(job)
+            check_page = self._make_request()
     
             result = json.loads(check_page)
 

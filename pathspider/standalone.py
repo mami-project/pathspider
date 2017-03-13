@@ -1,5 +1,4 @@
 
-import csv
 import logging
 import json
 import sys

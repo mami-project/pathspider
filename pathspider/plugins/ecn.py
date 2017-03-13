@@ -3,14 +3,11 @@ import sys
 import logging
 import subprocess
 import traceback
-from datetime import datetime
 
 import socket
-import collections
 
 from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
-from pathspider.base import NO_FLOW
 from pathspider.base import CONN_OK
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
@@ -22,7 +19,7 @@ from pathspider.observer.tcp import TCP_SAEC
 
 ## Chain functions
 
-def ecn_setup(rec, ip):
+def ecn_setup(rec, _):
     fields = ['ecn_ect0_fwd', 'ecn_ect1_fwd', 'ecn_ce_fwd', 'ecn_ect0_rev', 'ecn_ect1_rev', 'ecn_ce_rev']
     for field in fields:
         rec[field] = False

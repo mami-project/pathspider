@@ -1,5 +1,5 @@
 
-def dns_response_setup(rec, ip):
+def dns_response_setup(rec, _):
     rec['dns_response_valid'] = False
 
     return True

@@ -1,12 +1,9 @@
 
 import sys
 import logging
-import subprocess
 import traceback
 import struct 
 import socket
-import collections
-from datetime import datetime
 
 from pathspider.base import DesynchronizedSpider
 from pathspider.base import PluggableSpider
@@ -90,7 +87,7 @@ def _tfocookie(tcp):
     else:
         return (None, None)
 
-def _tfosetup(rec, ip):
+def _tfosetup(rec, _):
     rec['tfo_synkind'] = 0
     rec['tfo_ackkind'] = 0
     rec['tfo_synclen'] = 0
@@ -155,7 +152,7 @@ def _tfopacket(rec, tcp, rev):
 
 #     print("cookies: %u, nocookies: %u" % (cookies, nocookies))
 
-def encode_dns_question(qname, qtype, qclass):
+def encode_dns_question(qname, _qtype, _qclass):
     out = bytearray()
     for part in qname.split("."):
         out.append(len(part))

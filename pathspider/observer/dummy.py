@@ -1,6 +1,4 @@
 
-import queue
-
 from pathspider.observer import SHUTDOWN_SENTINEL
 
 class Observer:

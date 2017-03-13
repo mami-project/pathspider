@@ -16,8 +16,6 @@ import csv
 import queue
 import threading
 import datetime
-import argparse
-from time import sleep
 import logging
 import random
 
@@ -95,7 +93,7 @@ def csv_gen(skip=0, count=0, *args, **kwargs):
         yield row
         c += 1
         if c % 1000 == 0:
-            logger.info('Parsed {} records so far.'.format(c))
+            logger.info('Parsed %d records so far.', c)
         if count != 0 and c >= count:
             break
 
@@ -107,9 +105,7 @@ def resolution_worker(iq, oq, only_first=False):
 
         # Shutdown and cascade
         if entry is None:
-            # ad a random value, so you can see that the prompt is still moving
-            logger.debug("Resolution worker shutting down {}"
-                .format(random.random()))
+            logger.debug("Resolution worker shutting down")
             iq.task_done()
             break
  
@@ -117,7 +113,7 @@ def resolution_worker(iq, oq, only_first=False):
             rank = entry[0]
             domain = entry[1]
         except IndexError: 
-            logger.error("Badly formated input line: {}".format(entry))
+            logger.error("Badly formated input line: %s", entry)
             iq.task_done()
             continue
 
@@ -306,8 +302,8 @@ def main(args):
                 current_rate = float(1000) / (tt - tl).total_seconds()
                 average_rate = float(dc+1) / (tt - t0).total_seconds()
                 tl = tt
-                logstring = 'Enqueued {num_dom:>6} domains. '
-                'Rate: {cur:9.2f} Hz. Average rate: {avg:9.2f} Hz.'
+                logstring = ('Enqueued {num_dom:>6} domains. '
+                             'Rate: {cur:9.2f} Hz. Average rate: {avg:9.2f} Hz.')
                 logger.info(logstring.format(num_dom=dc+1, cur=current_rate,
                         avg=average_rate))
 
@@ -328,8 +324,8 @@ def main(args):
     time = t1 - t0
     average_rate = float(dc+1) / time.total_seconds()
     logger.info('Resolution completed.')
-    logstring = 'Resolved {num_dom} domains. Total time: {time}. Average rate: '
-    '{avg:.2f} domains per second.'
+    logstring = ('Resolved {num_dom} domains. Total time: {time}. Average rate: '
+                 '{avg:.2f} domains per second.')
     logger.info(logstring.format(num_dom=dc+1, time=time, avg=average_rate))
 
 def register_args(subparsers):
