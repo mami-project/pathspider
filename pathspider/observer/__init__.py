@@ -65,14 +65,14 @@ class Observer:
     """
 
     def __init__(self, lturi,
-                 new_flow_chain=[],
-                 ip4_chain=[],
-                 ip6_chain=[],
-                 icmp4_chain=[],
-                 icmp6_chain=[],
-                 tcp_chain=[],
-                 udp_chain=[],
-                 l4_chain=[],
+                 new_flow_chain=None,
+                 ip4_chain=None,
+                 ip6_chain=None,
+                 icmp4_chain=None,
+                 icmp6_chain=None,
+                 tcp_chain=None,
+                 udp_chain=None,
+                 l4_chain=None,
                  idle_timeout=30,
                  expiry_timeout=5):
         """
@@ -99,6 +99,16 @@ class Observer:
         :type l4_chain: array(function)
         :see also: :ref:`Observer Documentation <observer>`
         """
+
+        # Initialise chains that weren't passed as arguments
+        new_flow_chain = new_flow_chain if new_flow_chain is not None else []
+        ip4_chain = ip4_chain if ip4_chain is not None else []
+        ip6_chain = ip6_chain if ip6_chain is not None else []
+        icmp4_chain = icmp4_chain if icmp4_chain is not None else []
+        icmp6_chain = icmp6_chain if icmp6_chain is not None else []
+        tcp_chain = tcp_chain if tcp_chain is not None else []
+        udp_chain = udp_chain if udp_chain is not None else []
+        l4_chain = l4_chain if l4_chain is not None else []
 
         # Only import this when needed
         import plt as libtrace
