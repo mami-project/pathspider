@@ -21,7 +21,6 @@ from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
 from pathspider.observer.tcp import tcp_state_setup
 from pathspider.observer.tcp import tcp_state
-from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SEC
 
 from pathspider.plugins.ecn import ecn_setup
