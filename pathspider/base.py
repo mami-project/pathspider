@@ -139,7 +139,6 @@ class Spider:
 
         self.args = args
 
-        self.activated = True
         self.running = False
         self.stopping = False
         self.terminating = False
@@ -154,7 +153,6 @@ class Spider:
 
         self.jobqueue = queue.Queue(QUEUE_SIZE)
         self.resqueue = queue.Queue(QUEUE_SIZE)
-
         self.flowqueue = mp.Queue(QUEUE_SIZE)
         self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
 
@@ -174,8 +172,6 @@ class Spider:
         self.merger_thread = None
 
         self.observer_process = None
-
-        # self._worker_state = [ "not_started" ] * self.worker_count
 
         self.lock = threading.Lock()
         self.exception = None
@@ -440,14 +436,14 @@ class Spider:
             job['flow_results'] = flows
             job['time'] = {'from': start, 'to': stop}
             job['conditions'] = self.combine_flows(flows)
-            if job['conditions'] == None:
+            if job['conditions'] is not None:
                 job.pop('conditions')
             self.outqueue.put(job)
         else:
             self.comparetab[flow['jobId']] = flow
 
-    def combine_flows(self, _):
-        return None
+    def combine_flows(self, flows):
+        pass
 
     def exception_wrapper(self, target, *args, **kwargs):
         try:
@@ -463,15 +459,10 @@ class Spider:
 
     def start(self):
         """
-        This function starts a PATHspider plugin.
+        This function starts a PATHspider plugin by:
 
-        In order to run, the plugin must have first been activated by calling
-        its :func:`activate` method. This function causes the following to
-        happen:
-
-         * Set the running flag
-         * Create an :class:`pathspider.observer.Observer` and start its
-           process
+         * Setting the running flag
+         * Create and start an observer
          * Start the merger thread
          * Start the configurator thread
          * Start the worker threads
@@ -479,10 +470,6 @@ class Spider:
         The number of worker threads to start was given when activating the
         plugin.
         """
-
-        if self.activated == False:
-            self.__logger.exception("tried to run plugin without activating first")
-            sys.exit(1)
 
         self.__logger.info("starting pathspider")
 
@@ -733,12 +720,13 @@ class SynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        self.__logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        # self._worker_state[worker_number] = "shutdown_sentinel"
+                        self.__logger.debug("shutting down worker %d on sentinel",
+                                            worker_number)
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            self.__logger.debug(str(self.active_worker_count)+" workers still active")
+                            self.__logger.debug("%d workers still active",
+                                                self.active_worker_count)
                         continue
 
                     self.__logger.debug("got a job: "+repr(job))
@@ -746,35 +734,28 @@ class SynchronizedSpider(Spider):
                     #logger.debug("no job available, sleeping")
                     # spin the semaphores
                     self.sem_config_zero.acquire()
-                    # self._worker_state[worker_number] = "sleep_0"
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
-                    # self._worker_state[worker_number] = "sleep_1"
                     time.sleep(QUEUE_SLEEP)
                     self.sem_config_zero_rdy.release()
                 else:
                     # Hook for preconnection
-                    # self._worker_state[worker_number] = "preconn"
                     self.pre_connect(job)
 
                     # Wait for configuration zero
-                    # self._worker_state[worker_number] = "wait_0"
                     self.sem_config_zero.acquire()
 
                     # Connect in configuration zero
-                    # self._worker_state[worker_number] = "conn_0"
                     conn0_start = str(datetime.utcnow())
                     conn0 = self.connect(job, 0)
                     conn0['spdr_start'] = conn0_start
 
                     # Wait for configuration one
-                    # self._worker_state[worker_number] = "wait_1"
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
 
                     # Connect in configuration one
-                    # self._worker_state[worker_number] = "conn_1"
                     conn1_start = str(datetime.utcnow())
                     conn1 = self.connect(job, 1)
                     conn1['spdr_start'] = conn1_start
@@ -788,7 +769,6 @@ class SynchronizedSpider(Spider):
                     # Pass results on for merge
                     config = 0
                     for conn in [conn0, conn1]:
-                        # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
                         self.post_connect(job, conn, config)
                         conn['spdr_stop'] = str(datetime.utcnow())
                         conn['config'] = config
@@ -800,20 +780,16 @@ class SynchronizedSpider(Spider):
                         self.resqueue.put(conn)
                         config += 1
 
-                    # self._worker_state[worker_number] = "done"
                     self.__logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             else: # not worker_active, spin the semaphores
                 self.sem_config_zero.acquire()
-                # self._worker_state[worker_number] = "shutdown_0"
                 time.sleep(QUEUE_SLEEP)
                 with self.active_worker_lock:
                     if self.active_worker_count <= 0:
-                        # self._worker_state[worker_number] = "shutdown_complete"
                         break
                 self.sem_config_one_rdy.release()
                 self.sem_config_one.acquire()
-                # self._worker_state[worker_number] = "shutdown_1"
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
 
@@ -902,12 +878,13 @@ class DesynchronizedSpider(Spider):
                     # Break on shutdown sentinel
                     if job == SHUTDOWN_SENTINEL:
                         self.jobqueue.task_done()
-                        self.__logger.debug("shutting down worker "+str(worker_number)+" on sentinel")
-                        # self._worker_state[worker_number] = "shutdown_sentinel"
+                        self.__logger.debug("shutting down worker %d on sentinel",
+                                            worker_number)
                         worker_active = False
                         with self.active_worker_lock:
                             self.active_worker_count -= 1
-                            self.__logger.debug(str(self.active_worker_count)+" workers still active")
+                            self.__logger.debug("%d workers still active",
+                                                self.active_worker_count)
                         continue
 
                     self.__logger.debug("got a job: "+repr(job))
@@ -915,17 +892,14 @@ class DesynchronizedSpider(Spider):
                     time.sleep(QUEUE_SLEEP)
                 else:
                     # Hook for preconnection
-                    # self._worker_state[worker_number] = "preconn"
                     self.pre_connect(job)
 
                     # Connect in configuration zero
-                    # self._worker_state[worker_number] = "conn_0"
                     conn0_start = str(datetime.utcnow())
                     conn0 = self.connect(job, 0)
                     conn0['spdr_start'] = conn0_start
 
                     # Connect in configuration one
-                    # self._worker_state[worker_number] = "conn_1"
                     conn1_start = str(datetime.utcnow())
                     conn1 = self.connect(job, 1)
                     conn1['spdr_start'] = conn1_start
@@ -936,7 +910,6 @@ class DesynchronizedSpider(Spider):
                     # Pass results on for merge
                     config = 0
                     for conn in [conn0, conn1]:
-                        # self._worker_state[worker_number] = "postconn_" + str(conn['config'])
                         self.post_connect(job, conn, config)
                         conn['spdr_stop'] = str(datetime.utcnow())
                         conn['config'] = config
@@ -946,13 +919,11 @@ class DesynchronizedSpider(Spider):
                         self.resqueue.put(conn)
                         config += 1
 
-                    # self._worker_state[worker_number] = "done"
                     self.__logger.debug("job complete: "+repr(job))
                     self.jobqueue.task_done()
             elif not self.stopping:
                 time.sleep(QUEUE_SLEEP)
             else:
-                # self._worker_state[worker_number] = "shutdown_complete"
                 break
 
 class PluggableSpider:

@@ -7,7 +7,7 @@ def interface_up(ifname):
             if i.ifname == ifname and i.operstate == 'UP':
                 return True
         return False
-    
+
 def ipv4_address(ifname):
     with IPDB() as ipdb:
         addrset = [x[0] for x in ipdb.interfaces[ifname].ipaddr if '.' in x[0]]
@@ -17,7 +17,8 @@ def ipv4_address(ifname):
 
 def ipv6_address(ifname):
     with IPDB() as ipdb:
-        addrset = [x[0] for x in ipdb.interfaces[ifname].ipaddr if ':' in x[0] and not x[0].startswith('fe')]
+        addrset = [x[0] for x in ipdb.interfaces[ifname].ipaddr
+                   if ':' in x[0] and not x[0].startswith('fe')]
         if len(addrset) > 0:
             # Should return the first IPv6 address of the interface...if there are any
             return addrset[0]
