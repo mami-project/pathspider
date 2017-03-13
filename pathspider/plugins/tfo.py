@@ -151,7 +151,7 @@ def _tfopacket(rec, tcp, rev):
 
 #     print("cookies: %u, nocookies: %u" % (cookies, nocookies))
 
-def encode_dns_question(qname, _qtype, _qclass):
+def encode_dns_question(qname):
     out = bytearray()
     for part in qname.split("."):
         out.append(len(part))
@@ -169,7 +169,7 @@ def message_for(job, phase):
     elif job['dp'] == 53:
         # DNS. Construct a question asking the server for its own address
         header = [0x0a75 + phase, 0x0100, 1, 0, 0, 0] # header: question, recursion OK
-        return struct.pack("!6H", *header) + encode_dns_question(job['domain'], 1, 1)
+        return struct.pack("!6H", *header) + encode_dns_question(job['domain'])
     else:
         # No idea. Empty payload.
         return b''
