@@ -1,8 +1,6 @@
 
-import sys
 import logging
 import subprocess
-import traceback
 
 import socket
 
