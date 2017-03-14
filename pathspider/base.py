@@ -218,6 +218,12 @@ class Spider:
 
         pass
 
+    def _connect_wrapper(self, job, config):
+        start = str(datetime.utcnow())
+        conn = self.connect(job, config)
+        conn['spdr_start'] = start
+        return conn
+
     def connect(self, job, config):
         """
         Performs the connection.
