@@ -8,9 +8,8 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer import basic_flow
-from pathspider.observer.tcp import tcp_state_setup
-from pathspider.observer.tcp import tcp_state
+from pathspider.observer import BasicChain
+from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SYN
 from pathspider.observer.tcp import TCP_ACK
 
@@ -25,8 +24,7 @@ def test_observer_tcp():
     logging.getLogger().setLevel(logging.INFO)
 
     o = Observer(lturi,
-                 new_flow_chain=[basic_flow, tcp_state_setup],
-                 tcp_chain=[tcp_state])
+                 chains=[BasicChain, TCPChain])
     q = queue.Queue()
     t = threading.Thread(target=o.run_flow_enqueuer,
                          args=(q,),

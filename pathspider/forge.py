@@ -9,10 +9,11 @@ from pathspider.network import ipv6_address
 from pathspider.classic import DesynchronizedSpider
 
 from pathspider.observer import Observer
-from pathspider.observer import basic_flow
-from pathspider.observer import basic_count
+from pathspider.observer import BasicChain
 
 class ForgeSpider(DesynchronizedSpider):
+
+    chains = [BasicChain]
 
     def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count, libtrace_uri, args)
@@ -21,21 +22,6 @@ class ForgeSpider(DesynchronizedSpider):
 
         self.src4 = ipv4_address(self.libtrace_uri[4:])
         self.src6 = ipv6_address(self.libtrace_uri[4:])
-
-        self.chains = {
-            'new_flow_chain': [basic_flow],
-            'ip4_chain': [basic_count],
-            'ip6_chain': [basic_count],
-            'tcp_chain': [],
-            'udp_chain': [],
-        }
-        extra_chains = self.add_chains()
-        for ck in extra_chains:
-            if ck in self.chains:
-                self.chains[ck] += extra_chains[ck]
-
-    def add_chains(self): # pylint: disable=R0201
-        return {}
 
     def pre_connect(self, job):
         self.setup(job)
@@ -54,4 +40,4 @@ class ForgeSpider(DesynchronizedSpider):
     def create_observer(self):
         self.__logger.info("Creating observer")
         return Observer(self.libtrace_uri,
-                        **self.chains)
+                        chains=self.chains)

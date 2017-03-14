@@ -57,50 +57,15 @@ class Observer:
     """
 
     def __init__(self, lturi,
-                 new_flow_chain=None,
-                 ip4_chain=None,
-                 ip6_chain=None,
-                 icmp4_chain=None,
-                 icmp6_chain=None,
-                 tcp_chain=None,
-                 udp_chain=None,
-                 l4_chain=None,
+                 chains=[],
                  idle_timeout=30,
                  expiry_timeout=5):
         """
         Create an Observer.
 
-        :param new_flow_chain: Array of functions to initialise new flows.
-        :type new_flow_chain: array(function)
-        :param ip4_chain: Array of functions to pass IPv4 headers to.
-        :type ip4_chain: array(function)
-        :param ip6_chain: Array of functions to pass IPv6 headers to.
-        :type ip6_chain: array(function)
-        :param icmp4_chain: Array of functions to pass IPv4 headers containing
-                            ICMPv4 headers to.
-        :type icmp4_chain: array(function)
-        :param icmp6_chain: Array of functions to pass IPv6 headers containing
-                            ICMPv6 headers to.
-        :type icmp6_chain: array(function)
-        :param tcp_chain: Array of functions to pass TCP headers to.
-        :param tcp_chain: Array of functions to pass TCP headers to.
-        :type tcp_chain: array(function)
-        :param udp_chain: Array of functions to pass UDP headers to.
-        :type udp_chain: array(function)
-        :param l4_chain: Array of functions to pass other layer 4 headers to.
-        :type l4_chain: array(function)
+        :param chains: Array of Observer chain classes
         :see also: :ref:`Observer Documentation <observer>`
         """
-
-        # Initialise chains that weren't passed as arguments
-        new_flow_chain = new_flow_chain if new_flow_chain is not None else []
-        ip4_chain = ip4_chain if ip4_chain is not None else []
-        ip6_chain = ip6_chain if ip6_chain is not None else []
-        icmp4_chain = icmp4_chain if icmp4_chain is not None else []
-        icmp6_chain = icmp6_chain if icmp6_chain is not None else []
-        tcp_chain = tcp_chain if tcp_chain is not None else []
-        udp_chain = udp_chain if udp_chain is not None else []
-        l4_chain = l4_chain if l4_chain is not None else []
 
         # Only import this when needed
         import plt as libtrace
@@ -115,14 +80,8 @@ class Observer:
         self._pkt = libtrace.packet() # pylint: disable=no-member
 
         # Chains of functions to evaluate
-        self._new_flow_chain = new_flow_chain
-        self._ip4_chain = ip4_chain
-        self._ip6_chain = ip6_chain
-        self._icmp4_chain = icmp4_chain
-        self._icmp6_chain = icmp6_chain
-        self._tcp_chain = tcp_chain
-        self._udp_chain = udp_chain
-        self._l4_chain = l4_chain
+        chains = chains if chains is not None else []
+        self._chains = [chain() for chain in chains]
 
         # Packet timer and bintables
         self._ptq = 0                   # current packet timer, quantized
@@ -160,6 +119,10 @@ class Observer:
 
         return self._irq_fired
 
+    def _get_chains(self, name):
+        return [c.__getattribute__(name) for c in self._chains
+                if hasattr(c, name)]
+
     def _next_packet(self):
         # Import only when needed
         import plt as libtrace
@@ -191,31 +154,28 @@ class Observer:
 
         # run IP header chains
         if self._pkt.ip:
-            for fn in self._ip4_chain:
+            for fn in self._get_chains("ip4"):
                 keep_flow = keep_flow and fn(rec, self._pkt.ip, rev=rev)
             if self._pkt.icmp:
-                for fn in self._icmp4_chain:
+                for fn in self._get_chains("icmp4"):
                     q = libtrace.ip(self._pkt.ip.icmp.data[8:]) # pylint: disable=no-member
                     keep_flow = keep_flow and fn(rec, self._pkt.ip, q, rev=rev)
 
         elif self._pkt.ip6:
-            for fn in self._ip6_chain:
+            for fn in self._get_chains("ip6"):
                 keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
             if self._pkt.icmp6:
-                for fn in self._icmp6_chain:
+                for fn in self._get_chains("icmp6"):
                     q = libtrace.ip(self._pkt.ip.icmp6.data[8:]) # pylint: disable=no-member
                     keep_flow = keep_flow and fn(rec, self._pkt.ip6, q, rev=rev)
 
         # run transport header chains
         if self._pkt.tcp:
-            for fn in self._tcp_chain:
+            for fn in self._get_chains("tcp"):
                 keep_flow = keep_flow and fn(rec, self._pkt.tcp, rev=rev)
         elif self._pkt.udp:
-            for fn in self._udp_chain:
+            for fn in self._get_chains("udp"):
                 keep_flow = keep_flow and fn(rec, self._pkt.udp, rev=rev)
-        else:
-            for fn in self._l4_chain:
-                keep_flow = keep_flow and fn(rec, self._pkt, rev=rev)
 
         # complete the flow if any chain function asked us to
         if not keep_flow:
@@ -271,7 +231,7 @@ class Observer:
         else:
             # nowhere to be found. new flow.
             rec = {'pkt_first': ip.seconds, '_idle_bin': 0}
-            for fn in self._new_flow_chain:
+            for fn in self._get_chains("new_flow"):
                 if not fn(rec, ip):
                     # self._logger.debug("ignoring "+str(ffid))
                     self._ignored.add(ffid)
@@ -445,48 +405,54 @@ class Observer:
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 
-def extract_ports(ip):
-    if ip.udp:
-        return (ip.udp.src_port, ip.udp.dst_port)
-    elif ip.tcp:
-        return (ip.tcp.src_port, ip.tcp.dst_port)
-    else:
-        return (None, None)
+class BasicChain:
 
-def basic_flow(rec, ip):
-    """
-    New flow function that sets up basic flow information
-    """
+    def _extract_ports(self, ip):
+        if ip.udp:
+            return (ip.udp.src_port, ip.udp.dst_port)
+        elif ip.tcp:
+            return (ip.tcp.src_port, ip.tcp.dst_port)
+        else:
+            return (None, None)
 
-    # Extract addresses and ports
-    (rec['sip'], rec['dip'], rec['proto']) = (str(ip.src_prefix), str(ip.dst_prefix), ip.proto)
-    (rec['sp'], rec['dp']) = extract_ports(ip)
+    def new_flow(self, rec, ip):
+        """
+        New flow function that sets up basic flow information
+        """
+    
+        # Extract addresses and ports
+        (rec['sip'], rec['dip'], rec['proto']) = (str(ip.src_prefix), str(ip.dst_prefix), ip.proto)
+        (rec['sp'], rec['dp']) = self._extract_ports(ip)
+    
+        # Initialize counters
+        rec['pkt_fwd'] = 0
+        rec['pkt_rev'] = 0
+        rec['oct_fwd'] = 0
+        rec['oct_rev'] = 0
+    
+        # we want to keep this flow
+        return True
 
-    # Initialize counters
-    rec['pkt_fwd'] = 0
-    rec['pkt_rev'] = 0
-    rec['oct_fwd'] = 0
-    rec['oct_rev'] = 0
+    def ip4(self, rec, ip, rev):
+        return self._basic_count(rec, ip, rev)
 
-    # we want to keep this flow
-    return True
-
-def basic_count(rec, ip, rev):
-    """
-    Packet function that counts packets and octets per flow
-    """
-
-    if rev:
-        rec["pkt_rev"] += 1
-        rec["oct_rev"] += ip.size
-    else:
-        rec["pkt_fwd"] += 1
-        rec["oct_fwd"] += ip.size
-
-    return True
+    def ip6(self, rec, ip, rev):
+        return self._basic_count(rec, ip, rev)
+    
+    def _basic_count(self, rec, ip, rev):
+        """
+        Packet function that counts packets and octets per flow
+        """
+    
+        if rev:
+            rec["pkt_rev"] += 1
+            rec["oct_rev"] += ip.size
+        else:
+            rec["pkt_fwd"] += 1
+            rec["oct_fwd"] += ip.size
+    
+        return True
 
 def simple_observer(lturi):
     return Observer(lturi,
-                    new_flow_chain=[basic_flow],
-                    ip4_chain=[basic_count],
-                    ip6_chain=[basic_count])
+                    chains=[BasicChain])

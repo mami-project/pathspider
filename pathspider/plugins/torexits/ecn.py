@@ -16,14 +16,11 @@ from pathspider.base import CONN_FAILED
 from pathspider.classic import SynchronizedSpider
 
 from pathspider.observer import Observer
-from pathspider.observer import basic_flow
-from pathspider.observer import basic_count
-from pathspider.observer.tcp import tcp_state_setup
-from pathspider.observer.tcp import tcp_state
+from pathspider.observer import BasicChain
+from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SEC
 
-from pathspider.plugins.ecn import ecn_setup
-from pathspider.plugins.ecn import ecn_code
+from pathspider.plugins.ecn import ECNChain
 
 from pathspider.network import ipv4_address
 
@@ -117,10 +114,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('ecn')
         logger.info("Creating observer")
         return Observer(self.libtrace_uri,
-                        new_flow_chain=[basic_flow, tcp_state_setup, ecn_setup],
-                        ip4_chain=[basic_count, ecn_code],
-                        ip6_chain=[basic_count, ecn_code],
-                        tcp_chain=[tcp_state])
+                        chains=[BasicChain, TCPChain, ECNChain])
 
     def combine_flows(self, flows):
         conditions = []

@@ -9,16 +9,12 @@ from scapy.all import RandShort  # pylint: disable=E0611
 from pathspider.base import PluggableSpider
 from pathspider.forge import ForgeSpider
 
-from pathspider.observer.dns import dns_response_setup
-from pathspider.observer.dns import dns_response
+from pathspider.observer import BasicChain
+from pathspider.observer.dns import DNSChain
 
 class UDPZero(PluggableSpider, ForgeSpider):
 
-    def add_chains(self):
-        return {
-                'new_flow_chain': [dns_response_setup],
-                'udp_chain': [dns_response],
-               }
+    chains = [BasicChain, DNSChain]
 
     def forge(self, job, config):
         sport = 0

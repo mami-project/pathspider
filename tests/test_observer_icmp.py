@@ -8,9 +8,8 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer import basic_flow
-from pathspider.observer.icmp import icmp_setup
-from pathspider.observer.icmp import icmp_unreachable
+from pathspider.observer import BasicChain
+from pathspider.observer.icmp import ICMPChain
 
 def test_observer_icmp_unreachable():
     try:
@@ -23,8 +22,7 @@ def test_observer_icmp_unreachable():
     logging.getLogger().setLevel(logging.INFO)
 
     o = Observer(lturi,
-                 new_flow_chain=[basic_flow, icmp_setup],
-                 icmp4_chain=[icmp_unreachable])
+                 chains=[BasicChain, ICMPChain])
     q = queue.Queue()
     t = threading.Thread(target=o.run_flow_enqueuer,
                          args=(q,),
