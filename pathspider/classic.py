@@ -14,6 +14,7 @@ from pathspider.base import QUEUE_SLEEP
 from pathspider.base import SHUTDOWN_SENTINEL
 
 class SynchronizedSpider(Spider):
+    # pylint: disable=W0223
 
     def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
         super().__init__(worker_count, libtrace_uri, args, server_mode)
@@ -189,6 +190,7 @@ class SynchronizedSpider(Spider):
 
 
 class DesynchronizedSpider(Spider):
+    # pylint: disable=W0223
 
     def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
         super().__init__(worker_count, libtrace_uri, args, server_mode)
