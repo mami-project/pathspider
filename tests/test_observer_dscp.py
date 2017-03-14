@@ -8,7 +8,6 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer import basic_flow
 from pathspider.plugins.dscp import DSCP
 
 class FakeDSCPArgs:

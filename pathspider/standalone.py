@@ -25,7 +25,7 @@ def job_feeder(inputfile, spider):
                         job['dp'] = job.pop('port')
                         logger.warning("Job specified 'port' not 'dp'. This is deprecated and will fail in future PATHspider releases.")
                 if job['dip'] in seen_targets:
-                    logger.warning("This target has already had a job submitted, skipping.")
+                    logger.debug("This target has already had a job submitted, skipping.")
                     continue
                 seen_targets.add(job['dip'])
                 spider.add_job(job)

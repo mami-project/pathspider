@@ -8,42 +8,42 @@ from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.classic import SynchronizedSpider
 from pathspider.observer import Observer
-from pathspider.observer import basic_flow
-from pathspider.observer import basic_count
-from pathspider.observer.tcp import tcp_state_setup
-from pathspider.observer.tcp import tcp_state
+from pathspider.observer import BasicChain
+from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
 
 ## Chain functions
 
-def ecn_setup(rec, _):
-    fields = [
-        'ecn_ect0_fwd',
-        'ecn_ect1_fwd',
-        'ecn_ce_fwd',
-        'ecn_ect0_rev',
-        'ecn_ect1_rev',
-        'ecn_ce_rev'
-    ]
+class ECNChain:
 
-    for field in fields:
-        rec[field] = False
-    return True
-
-def ecn_code(rec, ip, rev):
-    ECT_ZERO = 0x02
-    ECT_ONE = 0x01
-    ECT_CE = 0x03
-
-    if ip.traffic_class & ECT_CE == ECT_ZERO:
-        rec['ecn_ect0_rev' if rev else 'ecn_ect0_fwd'] = True
-    if ip.traffic_class & ECT_CE == ECT_ONE:
-        rec['ecn_ect1_rev' if rev else 'ecn_ect1_fwd'] = True
-    if ip.traffic_class & ECT_CE == ECT_CE:
-        rec['ecn_ce_rev' if rev else 'ecn_ce_fwd'] = True
-
-    return True
+    def new_flow(self, rec, _):
+        fields = [
+            'ecn_ect0_fwd',
+            'ecn_ect1_fwd',
+            'ecn_ce_fwd',
+            'ecn_ect0_rev',
+            'ecn_ect1_rev',
+            'ecn_ce_rev'
+        ]
+    
+        for field in fields:
+            rec[field] = False
+        return True
+    
+    def tcp(self, rec, ip, rev):
+        ECT_ZERO = 0x02
+        ECT_ONE = 0x01
+        ECT_CE = 0x03
+    
+        if ip.traffic_class & ECT_CE == ECT_ZERO:
+            rec['ecn_ect0_rev' if rev else 'ecn_ect0_fwd'] = True
+        if ip.traffic_class & ECT_CE == ECT_ONE:
+            rec['ecn_ect1_rev' if rev else 'ecn_ect1_fwd'] = True
+        if ip.traffic_class & ECT_CE == ECT_CE:
+            rec['ecn_ce_rev' if rev else 'ecn_ce_fwd'] = True
+    
+        return True
 
 ## ECN main class
 
@@ -109,10 +109,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('ecn')
         logger.info("Creating observer")
         return Observer(self.libtrace_uri,
-                        new_flow_chain=[basic_flow, tcp_state_setup, ecn_setup],
-                        ip4_chain=[basic_count, ecn_code],
-                        ip6_chain=[basic_count, ecn_code],
-                        tcp_chain=[tcp_state])
+                        chains=[BasicChain, TCPChain, ECNChain])
 
     def combine_flows(self, flows):
         conditions = []
