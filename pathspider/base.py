@@ -452,8 +452,7 @@ class Spider:
     def exception_wrapper(self, target, *args, **kwargs):
         try:
             target(*args, **kwargs)
-        except:
-            #FIXME: What exceptions do we expect?
+        except: # pylint: disable=W0702
             self.__logger = logging.getLogger('pathspider')
             self.__logger.exception("exception occurred. terminating.")
             if self.exception is None:
