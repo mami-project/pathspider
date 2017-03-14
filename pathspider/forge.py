@@ -1,7 +1,5 @@
 
-import sys
 import logging
-import traceback
 
 from scapy.all import send
 
@@ -19,6 +17,8 @@ class ForgeSpider(DesynchronizedSpider):
     def __init__(self, worker_count, libtrace_uri, args):
         super().__init__(worker_count, libtrace_uri, args)
 
+        self.__logger = logging.getLogger('forge')
+
         self.src4 = ipv4_address(self.libtrace_uri[4:])
         self.src6 = ipv6_address(self.libtrace_uri[4:])
 
@@ -30,8 +30,8 @@ class ForgeSpider(DesynchronizedSpider):
             'udp_chain': [],
         }
         extra_chains = self.add_chains()
-        for ck in extra_chains.keys():
-            if ck in self.chains.keys():
+        for ck in extra_chains:
+            if ck in self.chains:
                 self.chains[ck] += extra_chains[ck]
 
     def add_chains(self): # pylint: disable=R0201
@@ -52,13 +52,6 @@ class ForgeSpider(DesynchronizedSpider):
         raise NotImplementedError("Cannot register an abstract plugin")
 
     def create_observer(self):
-        logger = logging.getLogger('ecn')
-        logger.info("Creating observer")
-        try:
-            return Observer(self.libtrace_uri,
-                            **self.chains)
-        except:
-            logger.error("Observer not cooperating, abandon ship")
-            traceback.print_exc()
-            sys.exit(-1)
-
+        self.__logger.info("Creating observer")
+        return Observer(self.libtrace_uri,
+                        **self.chains)
