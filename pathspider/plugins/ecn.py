@@ -110,16 +110,11 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         logger = logging.getLogger('ecn')
         logger.info("Creating observer")
-        try:
-            return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tcp_state_setup, ecn_setup],
-                            ip4_chain=[basic_count, ecn_code],
-                            ip6_chain=[basic_count, ecn_code],
-                            tcp_chain=[tcp_state])
-        except:
-            logger.error("Observer not cooperating, abandon ship")
-            traceback.print_exc()
-            sys.exit(-1)
+        return Observer(self.libtrace_uri,
+                        new_flow_chain=[basic_flow, tcp_state_setup, ecn_setup],
+                        ip4_chain=[basic_count, ecn_code],
+                        ip6_chain=[basic_count, ecn_code],
+                        tcp_chain=[tcp_state])
 
     def combine_flows(self, flows):
         conditions = []

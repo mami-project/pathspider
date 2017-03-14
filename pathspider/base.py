@@ -482,7 +482,11 @@ class Spider:
             self.running = True
 
             # create an observer and start its process
-            self.observer = self.create_observer()
+            try:
+                self.observer = self.create_observer()
+            except: # pylint: disable=W0702
+                self.__logger.exception("Failed to create Observer!")
+                sys.exit(1)
             self.observer_process = mp.Process(
                 args=(self.observer.run_flow_enqueuer,
                       self.flowqueue,

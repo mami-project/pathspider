@@ -264,16 +264,11 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     def create_observer(self):
         logger = logging.getLogger('tfo')
         logger.info("Creating observer")
-        try:
-            return Observer(self.libtrace_uri,
-                            new_flow_chain=[basic_flow, tcp_state_setup, _tfosetup],
-                            ip4_chain=[basic_count],
-                            ip6_chain=[basic_count],
-                            tcp_chain=[tcp_state, _tfopacket])
-        except:
-            logger.error("Observer not cooperating, abandon ship")
-            traceback.print_exc()
-            sys.exit(-1)
+        return Observer(self.libtrace_uri,
+                        new_flow_chain=[basic_flow, tcp_state_setup, _tfosetup],
+                        ip4_chain=[basic_count],
+                        ip6_chain=[basic_count],
+                        tcp_chain=[tcp_state, _tfopacket])
 
     @staticmethod
     def register_args(subparsers):
