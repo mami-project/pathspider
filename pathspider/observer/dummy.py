@@ -1,7 +1,7 @@
 
 from pathspider.observer import SHUTDOWN_SENTINEL
 
-class Observer:
+class Observer: # pylint: disable=R0903
     def __init__(self):
         pass
 

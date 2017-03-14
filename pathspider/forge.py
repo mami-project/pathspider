@@ -34,7 +34,7 @@ class ForgeSpider(DesynchronizedSpider):
             if ck in self.chains.keys():
                 self.chains[ck] += extra_chains[ck]
 
-    def add_chains(self):
+    def add_chains(self): # pylint: disable=R0201
         return {}
 
     def pre_connect(self, job):

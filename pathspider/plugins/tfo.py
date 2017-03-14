@@ -1,24 +1,19 @@
 
 import logging
-import struct 
+import struct
 import socket
+from timeit import default_timer as timer
 
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK, CONN_FAILED, CONN_TIMEOUT, CONN_SKIPPED
-
 from pathspider.classic import DesynchronizedSpider
-
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
 from pathspider.observer import basic_count
-
 from pathspider.observer.tcp import tcp_state_setup
 from pathspider.observer.tcp import tcp_state
 
-from timeit import default_timer as timer
-
 USER_AGENT = "pathspider"
-
 
 ## Chain functions
 
@@ -96,7 +91,7 @@ def _tfosetup(rec, _):
 
     return True
 
-def _tfopacket(rec, tcp, rev):
+def _tfopacket(rec, tcp, rev): # pylint: disable=unused-argument
     # Shortcut non-SYN
     if not tcp.syn_flag:
         return True
@@ -161,8 +156,7 @@ def encode_dns_question(qname):
 
 # given a job description, generate a message to send on the SYN with TFO
 def message_for(job, phase):
-    
-    if job['dp'] == 80 :
+    if job['dp'] == 80:
         # Web. Get / for the named host
         return bytes("GET / HTTP/1.1\r\nhost: "+str(job['domain'])+"\r\n\r\n", "utf-8")
     elif job['dp'] == 53:
@@ -218,7 +212,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
                 # pylint: disable=no-member
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message_for(job,0), socket.MSG_FASTOPEN, (job['dip'], job['dp']))
+                sock.sendto(message_for(job, 0), socket.MSG_FASTOPEN, (job['dip'], job['dp']))
                 sock.close()
                 rec['tfo_c0t'] = timer() - tt
             except:
@@ -228,7 +222,9 @@ class TFO(DesynchronizedSpider, PluggableSpider):
             try:
                 tt = timer()
                 rec['client'] = socket.socket(af, socket.SOCK_STREAM)
-                rec['client'].sendto(message_for(job,1), socket.MSG_FASTOPEN, (job['dip'], job['dp'])) # pylint: disable=no-member
+                rec['client'].sendto(message_for(job, 1),
+                                     socket.MSG_FASTOPEN,
+                                     (job['dip'], job['dp'])) # pylint: disable=no-member
                 rec['tfo_c1t'] = timer() - tt
 
                 rec['spdr_state'] = CONN_OK
@@ -271,6 +267,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     @staticmethod
     def register_args(subparsers):
         parser = subparsers.add_parser('tfo', help="TCP Fast Open")
-        parser.add_argument("--timeout", default=5, type=int, help="The timeout to use for attempted connections in seconds (Default: 5)")
+        parser.add_argument("--timeout", default=5, type=int,
+                            help=("The timeout to use for attempted "
+                                  "connections in seconds (Default: 5)"))
         parser.set_defaults(spider=TFO)
-
