@@ -1,3 +1,6 @@
+[MASTER]
+ignore=dnsresolv.py
+
 [MESSAGES CONTROL]
 disable=C0103
 
