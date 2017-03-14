@@ -10,40 +10,45 @@ from pathspider.base import CONN_SKIPPED
 from pathspider.classic import SynchronizedSpider
 
 from pathspider.observer import Observer
-from pathspider.observer import basic_flow
-from pathspider.observer import basic_count
-
-from pathspider.observer.tcp import tcp_state_setup
-from pathspider.observer.tcp import tcp_state
+from pathspider.observer import BasicChain
+from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SYN
 
 ## Chain functions
 
-def dscp_setup(rec, ip):
-    if ip.tcp:
-        # we'll only care about these if it's TCP
-        rec['dscp_mark_syn_fwd'] = None
-        rec['dscp_mark_syn_rev'] = None
+class DSCPChain:
 
-    rec['dscp_mark_data_fwd'] = None
-    rec['dscp_mark_data_rev'] = None
-    return True
+    def new_flow(self, rec, ip):
+        if ip.tcp:
+            # we'll only care about these if it's TCP
+            rec['dscp_mark_syn_fwd'] = None
+            rec['dscp_mark_syn_rev'] = None
+    
+        rec['dscp_mark_data_fwd'] = None
+        rec['dscp_mark_data_rev'] = None
+        return True
 
-def dscp_extract(rec, ip, rev):
-    tos = ip.traffic_class
-    dscp = tos >> 2
+    def ip4(self, rec, ip, rev):
+        return self._dscp_extract(rec, ip, rev)
 
-    if ip.tcp:
-        if ip.tcp.flags & TCP_SYN == TCP_SYN:
-            rec['dscp_mark_syn_rev' if rev else 'dscp_mark_syn_fwd'] = dscp
-            return True
-        if ip.tcp.payload is None:
-            return True
+    def ip6(self, rec, ip, rev):
+        return self._dscp_extract(rec, ip, rev)
 
-    # If not TCP or TCP with payload
-    data_key = 'dscp_mark_data_rev' if rev else 'dscp_mark_data_fwd'
-    rec[data_key] = rec[data_key] or dscp
-    return True
+    def _dscp_extract(self, rec, ip, rev):
+        tos = ip.traffic_class
+        dscp = tos >> 2
+    
+        if ip.tcp:
+            if ip.tcp.flags & TCP_SYN == TCP_SYN:
+                rec['dscp_mark_syn_rev' if rev else 'dscp_mark_syn_fwd'] = dscp
+                return True
+            if ip.tcp.payload is None:
+                return True
+    
+        # If not TCP or TCP with payload
+        data_key = 'dscp_mark_data_rev' if rev else 'dscp_mark_data_fwd'
+        rec[data_key] = rec[data_key] or dscp
+        return True
 
 ## DSCP main class
 
@@ -115,10 +120,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('dscp')
         logger.info("Creating observer")
         return Observer(self.libtrace_uri,
-                        new_flow_chain=[basic_flow, tcp_state_setup, dscp_setup],
-                        ip4_chain=[basic_count, dscp_extract],
-                        ip6_chain=[basic_count, dscp_extract],
-                        tcp_chain=[tcp_state])
+                        chains=[BasicChain, DSCPChain, TCPChain])
 
     def combine_flows(self, flows):
         conditions = []

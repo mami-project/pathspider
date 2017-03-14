@@ -1,11 +1,16 @@
 
 ICMP_UNREACHABLE = 3
 
-def icmp_setup(rec, _):
-    rec['icmp_unreachable'] = False
-    return True
+class ICMPChain:
 
-def icmp_unreachable(rec, ip, _, rev):
-    if rev and ip.icmp.type == ICMP_UNREACHABLE:
-        rec['icmp_unreachable'] = True
-    return not rec['icmp_unreachable']
+    def new_flow(self, rec, ip):
+        rec['icmp_unreachable'] = False
+        return True
+
+    def icmp4(self, rec, ip, q, rev):
+        return self._icmp(rec, ip, q, rev)
+ 
+    def _icmp(self, rec, ip, q, rev):
+        if rev and ip.icmp.type == ICMP_UNREACHABLE:
+            rec['icmp_unreachable'] = True
+        return not rec['icmp_unreachable']

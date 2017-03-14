@@ -8,7 +8,6 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer import basic_flow
 from pathspider.observer.tcp import TCP_SEC
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.plugins.ecn import ECN
