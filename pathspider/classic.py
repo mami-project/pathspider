@@ -121,18 +121,14 @@ class SynchronizedSpider(Spider):
                     self.sem_config_zero.acquire()
 
                     # Connect in configuration zero
-                    conn0_start = str(datetime.utcnow())
-                    conn0 = self.connect(job, 0)
-                    conn0['spdr_start'] = conn0_start
+                    conn0 = self._connect_wrapper(job, 0)
 
                     # Wait for configuration one
                     self.sem_config_one_rdy.release()
                     self.sem_config_one.acquire()
 
                     # Connect in configuration one
-                    conn1_start = str(datetime.utcnow())
-                    conn1 = self.connect(job, 1)
-                    conn1['spdr_start'] = conn1_start
+                    conn1 = self._connect_wrapper(job, 1)
 
                     # Signal okay to go to configuration zero
                     self.sem_config_zero_rdy.release()
@@ -269,14 +265,10 @@ class DesynchronizedSpider(Spider):
                     self.pre_connect(job)
 
                     # Connect in configuration zero
-                    conn0_start = str(datetime.utcnow())
-                    conn0 = self.connect(job, 0)
-                    conn0['spdr_start'] = conn0_start
+                    conn0 = self._connect_wrapper(job, 0)
 
                     # Connect in configuration one
-                    conn1_start = str(datetime.utcnow())
-                    conn1 = self.connect(job, 1)
-                    conn1['spdr_start'] = conn1_start
+                    conn1 = self._connect_wrapper(job, 1)
 
                     # Save job record for combiner
                     self.jobtab[jobId] = job
