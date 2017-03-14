@@ -11,10 +11,11 @@ import pycurl
 import stem
 import stem.control
 
-from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_FAILED
+
+from pathspider.classic import SynchronizedSpider
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow

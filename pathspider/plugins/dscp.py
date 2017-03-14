@@ -5,10 +5,11 @@ import subprocess
 import traceback
 import socket
 
-from pathspider.base import SynchronizedSpider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_SKIPPED
+
+from pathspider.classic import SynchronizedSpider
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow

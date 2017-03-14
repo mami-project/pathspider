@@ -5,9 +5,10 @@ import traceback
 
 from scapy.all import send
 
-from pathspider.base import DesynchronizedSpider
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
+
+from pathspider.classic import DesynchronizedSpider
 
 from pathspider.observer import Observer
 from pathspider.observer import basic_flow
