@@ -212,7 +212,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
                 # pylint: disable=no-member
                 tt = timer()
                 sock = socket.socket(af, socket.SOCK_STREAM)
-                sock.sendto(message_for(job, 0), socket.MSG_FASTOPEN, (job['dip'], job['dp'])) # pylint: disable=no-member
+                sock.sendto(message_for(job, 0), socket.MSG_FASTOPEN, (job['dip'], job['dp'])) # pylint: disable=E1101
                 sock.close()
                 rec['tfo_c0t'] = timer() - tt
             except:
