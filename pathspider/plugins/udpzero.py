@@ -23,9 +23,9 @@ class UDPZero(PluggableSpider, ForgeSpider):
         udp = (UDP(sport=sport, dport=job['dp'])/
                DNS(qd=DNSQR(qname=job['domain'])))
         if ':' in job['dip']:
-            ip = IPv6(src=self.source[0], dst=job['dip'])
+            ip = IPv6(src=self.source[1], dst=job['dip'])
         else:
-            ip = IP(src=self.source[1], dst=job['dip'])
+            ip = IP(src=self.source[0], dst=job['dip'])
         if config == 1:
             udp.chksum = 0 # If not initialised, Scapy will calculate
         return ip/udp
