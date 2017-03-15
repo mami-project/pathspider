@@ -10,6 +10,7 @@ from pathspider.classic import DesynchronizedSpider
 from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
+from pathspider.observer.tfo import TFOChain
 
 USER_AGENT = "pathspider"
 
