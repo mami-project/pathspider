@@ -34,6 +34,9 @@ import multiprocessing as mp
 import queue
 from datetime import datetime
 
+from pathspider.network import ipv4_address
+from pathspider.network import ipv6_address
+
 ###
 ### Utility Classes
 ###
@@ -140,7 +143,6 @@ class Spider:
         self.running = False
         self.stopping = False
         self.terminating = False
-
         self.server_mode = server_mode
 
         self.worker_count = worker_count
@@ -175,6 +177,12 @@ class Spider:
         self.exception = None
 
         self.conn_timeout = None
+
+        if libtrace_uri.startswith('int'):
+            self.source = (ipv4_address(self.libtrace_uri[4:]),
+                           ipv6_address(self.libtrace_uri[4:]))
+        else:
+            self.source = ("127.0.0.1", "::1")
 
         self.__logger = logging.getLogger('pathspider')
 
@@ -440,7 +448,7 @@ class Spider:
             job['flow_results'] = flows
             job['time'] = {'from': start, 'to': stop}
             job['conditions'] = self.combine_flows(flows)
-            if job['conditions'] is not None:
+            if job['conditions'] is None:
                 job.pop('conditions')
             self.outqueue.put(job)
         else:

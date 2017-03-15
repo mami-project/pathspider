@@ -162,32 +162,6 @@ class SynchronizedSpider(Spider):
                 time.sleep(QUEUE_SLEEP)
                 self.sem_config_zero_rdy.release()
 
-    def tcp_connect(self, job):
-        """
-        This helper function will perform a TCP connection. It will not perform
-        any special action in the event that this is the experimental flow,
-        it only performs a TCP connection. This function expects that
-        self.conn_timeout has been set to a sensible value.
-        """
-
-        if self.conn_timeout is None:
-            raise RuntimeError("Plugin did not set TCP connect timeout.")
-
-        if ":" in job['dip']:
-            sock = socket.socket(socket.AF_INET6)
-        else:
-            sock = socket.socket(socket.AF_INET)
-
-        try:
-            sock.settimeout(self.conn_timeout)
-            sock.connect((job['dip'], job['dp']))
-
-            return {'client': sock, 'sp': sock.getsockname()[1], 'spdr_state': CONN_OK}
-        except TimeoutError:
-            return {'client': sock, 'sp': sock.getsockname()[1], 'spdr_state': CONN_TIMEOUT}
-        except OSError:
-            return {'client': sock, 'sp': sock.getsockname()[1], 'spdr_state': CONN_FAILED}
-
 
 class DesynchronizedSpider(Spider):
     # pylint: disable=W0223

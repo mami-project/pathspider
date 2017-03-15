@@ -6,9 +6,9 @@ import socket
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_SKIPPED
-
 from pathspider.classic import SynchronizedSpider
-
+from pathspider.helpers.tcp import connect_tcp
+from pathspider.helpers.tcp import connect_http
 from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
@@ -59,18 +59,12 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         else:
             job['dp'] = self.args.tcp_port
 
-        rec = self.tcp_connect(job)
-
-        try:
-            rec['client'].shutdown(socket.SHUT_RDWR)
-            rec['client'].close()
-            # FIXME: This is intended to ensure the connection is done and
-            # won't see futher packets after the next configuration, but the
-            # observer functions could also be made more robust too.
-        except:
-            pass
-
-        rec.pop('client')
+        if self.args.connect == "tcp":
+            rec = connect_tcp(self.source, job, self.conn_timeout)
+        elif self.args.connect == "http":
+            rec = connect_http(self.source, job, self.conn_timeout)
+        else:
+            raise RuntimeError("Unknown connection type requested!")
 
         return rec
 
@@ -90,7 +84,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         # discard non-observed flows
         for f in flows:
             if not f['observed']:
-                return
+                return ['pathspider.not_observed']
 
         baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd']) + '.'
         test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd']) + '.'
@@ -108,6 +102,8 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         conditions.append(test + 'replymark:' + str(flows[0]['dscp_mark_syn_rev']))
         conditions.append(baseline + 'replymark:' + str(flows[1]['dscp_mark_syn_rev']))
 
+        print(conditions)
+
         return conditions
 
     @staticmethod
@@ -118,3 +114,5 @@ class DSCP(SynchronizedSpider, PluggableSpider):
                             metavar="[0-63]", help="DSCP codepoint to send (Default: 48)")
         parser.add_argument("--tcp-port", type=int, choices=range(1, 65535), default='80',
                             metavar="[1-65535]", help="Destination TCP port to connect to (Default: 80)")
+        parser.add_argument("--connect", type=str, choices=['http', 'tcp'], default='http',
+                            metavar="[http|tcp]", help="Type of connection to perform (Default: http)")

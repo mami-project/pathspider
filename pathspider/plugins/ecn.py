@@ -7,6 +7,8 @@ import socket
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.classic import SynchronizedSpider
+from pathspider.helpers.tcp import connect_tcp
+from pathspider.helpers.tcp import connect_http
 from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
@@ -47,26 +49,14 @@ class ECN(SynchronizedSpider, PluggableSpider):
         Performs a TCP connection.
         """
 
-        return self.tcp_connect(job)
+        if self.args.connect == "tcp":
+            rec = connect_tcp(self.source, job, self.conn_timeout)
+        elif self.args.connect == "http":
+            rec = connect_http(self.source, job, self.conn_timeout)
+        else:
+            raise RuntimeError("Unknown connection type requested!")
 
-    def post_connect(self, job, conn, config):
-        """
-        Close the socket gracefully.
-        """
-
-        conn['sp'] = conn['client'].getsockname()[1]
-
-        try:
-            conn['client'].shutdown(socket.SHUT_RDWR)
-        except: # FIXME: What are we catching?
-            pass
-
-        try:
-            conn['client'].close()
-        except: # FIXME: What are we catching?
-            pass
-
-        conn.pop('client')
+        return rec
 
     def create_observer(self):
         """
@@ -111,4 +101,6 @@ class ECN(SynchronizedSpider, PluggableSpider):
     def register_args(subparsers):
         parser = subparsers.add_parser('ecn', help="Explicit Congestion Notification")
         parser.add_argument("--timeout", default=5, type=int, help="The timeout to use for attempted connections in seconds (Default: 5)")
+        parser.add_argument("--connect", type=str, choices=['http', 'tcp'], default='http',
+                            metavar="[http|tcp]", help="Type of connection to perform (Default: http)")
         parser.set_defaults(spider=ECN)

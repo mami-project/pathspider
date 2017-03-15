@@ -3,9 +3,6 @@ import logging
 
 from scapy.all import send
 
-from pathspider.network import ipv4_address
-from pathspider.network import ipv6_address
-
 from pathspider.classic import DesynchronizedSpider
 
 from pathspider.observer import Observer
@@ -19,9 +16,6 @@ class ForgeSpider(DesynchronizedSpider):
         super().__init__(worker_count, libtrace_uri, args)
 
         self.__logger = logging.getLogger('forge')
-
-        self.src4 = ipv4_address(self.libtrace_uri[4:])
-        self.src6 = ipv6_address(self.libtrace_uri[4:])
 
     def pre_connect(self, job):
         self.setup(job)
