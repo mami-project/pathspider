@@ -58,7 +58,7 @@ class Observer:
     """
 
     def __init__(self, lturi,
-                 chains=[],
+                 chains=None,
                  idle_timeout=30,
                  expiry_timeout=5):
         """
