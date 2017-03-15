@@ -1,4 +1,6 @@
 
+from pathspider.observer.base import BaseChain
+
 ICMP_UNREACHABLE = 3
 
 class ICMPChain:
