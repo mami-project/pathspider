@@ -63,7 +63,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
     def _make_request(self):
         output = io.BytesIO()
-        
+
         query = pycurl.Curl()
         query.setopt(pycurl.URL, self.url)
         query.setopt(pycurl.PROXY, 'localhost')
@@ -71,7 +71,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
         query.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5_HOSTNAME)
         query.setopt(pycurl.CONNECTTIMEOUT, self.args.timeout)
         query.setopt(pycurl.WRITEFUNCTION, output.write)
-        
+
         try:
             query.perform()
             return output.getvalue().decode('utf-8')
@@ -91,13 +91,14 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 self.controller.attach_stream(stream.id, circuit_id)
 
         self.controller.add_event_listener(attach_stream, stem.control.EventType.STREAM) # pylint: disable=E1101
-    
+
         try:
             check_page = self._make_request()
-    
+
             result = json.loads(check_page)
 
-            job['sip'] = result['sip'] # In case the exit uses a different IP to the OR Port for exit traffic
+            job['sip'] = result['sip'] # In case the exit uses a different IP
+                                       # to the OR Port for exit traffic
 
             return {'sp': result['sp'], 'spdr_state': CONN_OK}
         except ValueError:
@@ -130,21 +131,35 @@ class ECN(SynchronizedSpider, PluggableSpider):
                 else:
                     conditions.append('ecn.connectivity.offline')
 
-                conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_fwd'] else 'ecn.ipmark.ect0.not_seen')
-                conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_fwd'] else 'ecn.ipmark.ect1.not_seen')
-                conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_fwd'] else 'ecn.ipmark.ce.not_seen')
+                conditions.append('ecn.ipmark.ect0.seen'
+                                  if flows[1]['ecn_ect0_fwd']
+                                  else 'ecn.ipmark.ect0.not_seen')
+                conditions.append('ecn.ipmark.ect1.seen'
+                                  if flows[1]['ecn_ect1_fwd']
+                                  else 'ecn.ipmark.ect1.not_seen')
+                conditions.append('ecn.ipmark.ce.seen'
+                                  if flows[1]['ecn_ce_fwd']
+                                  else 'ecn.ipmark.ce.not_seen')
             else:
                 conditions.append('ecn.client.disabled')
-    
+
 
         return conditions
 
     @staticmethod
     def register_args(subparsers):
         parser = subparsers.add_parser('ecn', help="Explicit Congestion Notification")
-        parser.add_argument("--timeout", default=5, type=int, help="The timeout to use for attempted connections in seconds (Default: 5)")
-        parser.add_argument("--www-port", default=8080, type=int, help="The port on which a webserver is running (Default: 8080)")
-        parser.add_argument("--tor-socks-port", default=9050, type=int, help="The port that Tor is listening on for SOCKS5 connections (Default: 9050)")
-        parser.add_argument("--tor-control-port", default=9051, type=int, help="The port that Tor is listening on for control connections (Default: 9051)")
-        parser.add_argument("--tor-control-password", type=str, help="The authentication password for Tor's control port")
+        parser.add_argument("--timeout", default=5, type=int,
+                            help=("The timeout to use for attempted connections in seconds "
+                                  "(Default: 5)"))
+        parser.add_argument("--www-port", default=8080, type=int,
+                            help="The port on which a webserver is running (Default: 8080)")
+        parser.add_argument("--tor-socks-port", default=9050, type=int,
+                            help=("The port that Tor is listening on for SOCKS5 connections "
+                                  "(Default: 9050)"))
+        parser.add_argument("--tor-control-port", default=9051, type=int,
+                            help=("The port that Tor is listening on for control connections "
+                                  "(Default: 9051)"))
+        parser.add_argument("--tor-control-password", type=str,
+                            help="The authentication password for Tor's control port")
         parser.set_defaults(spider=ECN)
