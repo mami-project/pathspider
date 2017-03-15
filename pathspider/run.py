@@ -53,7 +53,8 @@ def handle_args(argv):
     for util in utils:
         util.register_args(subparsers)
 
-    if len(sys.argv) == 1:
+    if (len(sys.argv) == 1 or
+            len(sys.argv) == 2 and sys.argv[1] == "--tor-exits"):
         parser.print_help()
         sys.exit(1)
 
