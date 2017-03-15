@@ -16,11 +16,10 @@ from pathspider.base import CONN_FAILED
 from pathspider.classic import SynchronizedSpider
 
 from pathspider.observer import Observer
-from pathspider.observer import BasicChain
+from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SEC
-
-from pathspider.plugins.ecn import ECNChain
+from pathspider.observer.ecn import ECNChain
 
 from pathspider.network import ipv4_address
 

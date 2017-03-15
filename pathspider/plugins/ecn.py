@@ -8,44 +8,11 @@ from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.classic import SynchronizedSpider
 from pathspider.observer import Observer
-from pathspider.observer import BasicChain
+from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SAE
 from pathspider.observer.tcp import TCP_SAEC
-
-## Chain functions
-
-class ECNChain:
-
-    def new_flow(self, rec, _):
-        fields = [
-            'ecn_ect0_fwd',
-            'ecn_ect1_fwd',
-            'ecn_ce_fwd',
-            'ecn_ect0_rev',
-            'ecn_ect1_rev',
-            'ecn_ce_rev'
-        ]
-    
-        for field in fields:
-            rec[field] = False
-        return True
-    
-    def tcp(self, rec, ip, rev):
-        ECT_ZERO = 0x02
-        ECT_ONE = 0x01
-        ECT_CE = 0x03
-    
-        if ip.traffic_class & ECT_CE == ECT_ZERO:
-            rec['ecn_ect0_rev' if rev else 'ecn_ect0_fwd'] = True
-        if ip.traffic_class & ECT_CE == ECT_ONE:
-            rec['ecn_ect1_rev' if rev else 'ecn_ect1_fwd'] = True
-        if ip.traffic_class & ECT_CE == ECT_CE:
-            rec['ecn_ce_rev' if rev else 'ecn_ce_fwd'] = True
-    
-        return True
-
-## ECN main class
+from pathspider.observer.ecn import ECNChain
 
 class ECN(SynchronizedSpider, PluggableSpider):
 

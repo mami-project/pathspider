@@ -9,7 +9,7 @@ from pathspider.network import ipv6_address
 from pathspider.classic import DesynchronizedSpider
 
 from pathspider.observer import Observer
-from pathspider.observer import BasicChain
+from pathspider.observer.base import BasicChain
 
 class ForgeSpider(DesynchronizedSpider):
 

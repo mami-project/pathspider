@@ -1,9 +1,9 @@
 
-from pathspider.observer.base import BaseChain
+from pathspider.observer.base import Chain
 
 ICMP_UNREACHABLE = 3
 
-class ICMPChain:
+class ICMPChain(Chain):
 
     def new_flow(self, rec, ip):
         rec['icmp_unreachable'] = False

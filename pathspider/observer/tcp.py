@@ -1,5 +1,5 @@
 
-from pathspider.observer.base import BaseChain
+from pathspider.observer.base import Chain
 
 TCP_CWR = 0x80
 TCP_ECE = 0x40
@@ -15,7 +15,7 @@ TCP_SEC = (TCP_SYN | TCP_ECE | TCP_CWR)
 TCP_SAEC = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
-class TCPChain(BaseChain):
+class TCPChain(Chain):
 
     def new_flow(self, rec, ip): # pylint: disable=W0613
         rec['tcp_synflags_fwd'] = None

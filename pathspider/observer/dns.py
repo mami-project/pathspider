@@ -1,7 +1,7 @@
 
-from pathspider.observer.base import BaseChain
+from pathspider.observer.base import Chain
 
-class DNSChain(BaseChain):
+class DNSChain(Chain):
 
     def new_flow(self, rec, ip):
         rec['dns_response_valid'] = False
