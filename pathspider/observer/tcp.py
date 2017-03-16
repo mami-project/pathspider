@@ -15,6 +15,57 @@ TCP_SEC = (TCP_SYN | TCP_ECE | TCP_CWR)
 TCP_SAEC = (TCP_SYN | TCP_ACK | TCP_ECE | TCP_CWR)
 TCP_SAE = (TCP_SYN | TCP_ACK | TCP_ECE)
 
+TO_EOL = 0
+TO_NOP = 1
+TO_MSS = 2
+TO_WS = 3
+TO_SACKOK = 4
+TO_SACK = 5
+TO_TS = 8
+TO_MPTCP = 30
+TO_FASTOPEN = 34
+TO_EXPA = 254
+TO_EXPB = 255
+TO_EXP_FASTOPEN = (0xF9, 0x89)
+
+def tcp_options(tcp):
+    """
+    Given a TCP header, make TCP options available
+    according to the interface we've designed for python-libtrace
+
+    """
+    optbytes = tcp.data[20:tcp.doff*4]
+    opthash = {}
+
+    # shortcut empty options
+    if len(optbytes) == 0:
+        return opthash
+
+    # parse options in place
+    cp = 0
+    ncp = 0
+
+    while cp < len(optbytes):
+        # skip NOP
+        if optbytes[cp] == TO_NOP:
+            cp += 1
+            continue
+        # die on EOL
+        if optbytes[cp] == TO_EOL:
+            break
+
+        # parse options length
+        ncp = cp + optbytes[cp+1]
+
+        # copy options data into hash
+        # FIXME doesn't handle multiples
+        opthash[optbytes[cp]] = optbytes[cp+2:ncp]
+
+        # advance
+        cp = ncp
+
+    return opthash
+
 class TCPChain(Chain):
 
     def new_flow(self, rec, ip): # pylint: disable=W0613
