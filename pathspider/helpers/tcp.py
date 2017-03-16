@@ -38,7 +38,7 @@ def connect_tcp(source, job, conn_timeout, sockopts=None):
         sp = sock.getsockname()[1]
 
         sock.shutdown(socket.SHUT_RDWR)
-        sock.close
+        sock.close()
 
         return {'sp': sp, 'spdr_state': CONN_OK}
     except TimeoutError:
@@ -91,7 +91,14 @@ def connect_http(source, job, conn_timeout, curlopts=None):
     try:
         c.perform()
         sp = c.getinfo(pycurl.LOCAL_PORT)
+        code = c.getinfo(pycurl.RESPONSE_CODE)
         c.close()
-        return {'sp': sp, 'spdr_state': CONN_OK, 'http_response_header': header.getvalue().decode('utf-8'), 'http_response_body': body.getvalue().decode('utf-8')}
+        return {
+            'sp': sp,
+            'spdr_state': CONN_OK,
+            'http_response_code': code,
+            'http_response_header': header.getvalue().decode('utf-8'),
+            'http_response_body': body.getvalue().decode('utf-8'),
+        }
     except OSError:
         return {'spdr_state': CONN_FAILED, 'sp': 0}
