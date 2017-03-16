@@ -1,6 +1,6 @@
 
 import logging
-import struct
+#import struct
 from timeit import default_timer as timer
 
 from pathspider.base import PluggableSpider
@@ -67,6 +67,28 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         logger.info("Creating observer")
         return Observer(self.libtrace_uri,
                         chains=[BasicChain, TCPChain, TFOChain])
+
+    def combine_flows(self, flows):
+        conditions = []
+
+        if not flows[0]['observed']:
+            conditions.append('tfo.connectivity.offline')
+        elif flows[1]['observed'] and flows[1]['tcp_connected']:
+            conditions.append('tfo.connectivity.works')
+            if flows[1]['tfo_synclen']:
+                conditions.append('tfo.cookie.received')
+                if flows[1]['tfo_ack'] - flows[1]['tfo_seq'] == flows[1]['tfo_dlen'] + 1:
+                    conditions.append('tfo.syndata.acked')
+                elif (flows[1]['tfo_ack'] - flows[1]['tfo_seq'] == 1) and flows[1]['tfo_dlen'] > 0:
+                    conditions.append('tfo.syndata.not_acked')
+                elif flows[1]['tfo_ack'] == 0:
+                    conditions.append('tfo.syndata.failed')
+            else:
+                conditions.append('tfo.cookie.not_received')
+        else:
+            conditions.append('tfo.connectivity.broken')
+
+        return conditions
 
     @staticmethod
     def register_args(subparsers):
