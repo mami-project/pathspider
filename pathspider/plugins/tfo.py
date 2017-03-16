@@ -71,8 +71,10 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     def combine_flows(self, flows):
         conditions = []
 
-        if not flows[0]['observed']:
+        if not flows[0]['observed'] and not flows[1]['observed']:
             conditions.append('tfo.connectivity.offline')
+        elif not flows[0]['observed'] and flows[1]['observed']:
+            conditions.append('tfo.connectivity.transient')
         elif flows[1]['observed'] and flows[1]['tcp_connected']:
             conditions.append('tfo.connectivity.works')
             if flows[1]['tfo_synclen']:
