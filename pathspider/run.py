@@ -55,11 +55,8 @@ def handle_args(argv):
                                        description="The following plugins are available for use:",
                                        metavar='PLUGIN', help='plugin to use')
     for plugin in plugins:
-        #try:
+        print("Registering plugin {}".format(repr(plugin)))
         plugin.register_args(subparsers)
-        #except AttributeError:
-        #    # Don't try to register arguments for subclasses that don't care.
-        #    pass
 
     for util in utils:
         util.register_args(subparsers)

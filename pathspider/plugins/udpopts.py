@@ -12,11 +12,14 @@ from pathspider.forge import ForgeSpider
 from pathspider.observer.base import BasicChain
 from pathspider.observer.dns import DNSChain
 
-class UDPOpts(PluggableSpider, ForgeSpider):
+class UDPOpts(ForgeSpider, PluggableSpider):
 
+    name = "udpopts"
+    description = "UDP Options Trailer"
     chains = [BasicChain, DNSChain]
+    packets = 2
 
-    def forge(self, job, config):
+    def forge(self, job, seq):
         sport = 0
         while sport < 1024:
             sport = int(RandShort())
@@ -27,7 +30,7 @@ class UDPOpts(PluggableSpider, ForgeSpider):
         else:
             ip = IP(src=self.source[0], dst=job['dip'])
         pkt = ip/udp
-        if config == 1:
+        if seq == 1:
             pkt.getlayer(1).len = len(pkt.getlayer(1))
             return pkt/b"\x01\x00" # NOP, EOL
         return pkt
@@ -45,8 +48,3 @@ class UDPOpts(PluggableSpider, ForgeSpider):
             return ['udpopts.connectivity.transient']
         else:
             return ['udpopts.connectivity.offline']
-
-    @staticmethod
-    def register_args(subparsers):
-        parser = subparsers.add_parser('udpopts', help="UDP Options")
-        parser.set_defaults(spider=UDPOpts)

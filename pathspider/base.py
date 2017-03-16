@@ -37,59 +37,6 @@ from datetime import datetime
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
 
-###
-### Utility Classes
-###
-
-class SemaphoreN(threading.BoundedSemaphore):
-    """
-    An extension to the standard library's BoundedSemaphore that provides
-    functions to handle n tokens at once.
-    """
-    def __init__(self, value):
-        self._value = value
-        super().__init__(self._value)
-        self.empty()
-
-    def __str__(self):
-        return 'SemaphoreN with a maximum value of {}.'.format(self._value)
-
-    def acquire_n(self, value=1, blocking=True, timeout=None):
-        """
-        Acquire ``value`` number of tokens at once.
-
-        The parameters ``blocking`` and ``timeout`` have the same semantics as
-        :class:`BoundedSemaphore`.
-
-        :returns: The same value as the last call to `BoundedSemaphore`'s
-        :meth:`acquire` if :meth:`acquire` were called ``value`` times instead
-        of the call to this method.
-        """
-        ret = None
-        for _ in range(value):
-            ret = self.acquire(blocking=blocking, timeout=timeout)
-        return ret
-
-    def release_n(self, value=1):
-        """
-        Release ``value`` number of tokens at once.
-
-        :returns: The same value as the last call to `BoundedSemaphore`'s
-        :meth:`release` if :meth:`release` were called ``value`` times instead
-        of the call to this method.
-        """
-        ret = None
-        for _ in range(value):
-            ret = self.release()
-        return ret
-
-    def empty(self):
-        """
-        Acquire all tokens of the semaphore.
-        """
-        while self.acquire(blocking=False):
-            pass
-
 CONN_OK = 0
 CONN_FAILED = 1
 CONN_TIMEOUT = 2
@@ -176,8 +123,6 @@ class Spider:
         self.lock = threading.Lock()
         self.exception = None
 
-        self.conn_timeout = None
-
         if libtrace_uri.startswith('int'):
             self.source = (ipv4_address(self.libtrace_uri[4:]),
                            ipv6_address(self.libtrace_uri[4:]))
@@ -226,9 +171,14 @@ class Spider:
 
         pass
 
-    def _connect_wrapper(self, job, config):
+    def _connect_wrapper(self, job, config, connect=None):
         start = str(datetime.utcnow())
-        conn = self.connect(job, config)
+        if connect is None:
+            conn = self.connect(job, config)
+        else:
+            if not hasattr(connect, '__self__'):
+                connect = connect.__get__(self)
+            conn = connect(job, config)
         conn['spdr_start'] = start
         return conn
 
@@ -291,16 +241,12 @@ class Spider:
         This function is called by the base Spider logic to get an instance
         of :class:`pathspider.observer.Observer` configured with the function
         chains that are requried by the plugin.
-
-        This method is not implemented in the abstract
-        :class:`pathspider.base.Spider` class and must be implemented by any
-        plugin.
-
-        For more information on how to use the flow observer, see
-        :ref:`Observer <observer>`.
         """
 
-        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
+        self.__logger.info("Creating observer")
+        from pathspider.observer import Observer
+        return Observer(self.libtrace_uri,
+                        chains=self.chains) # pylint: disable=no-member
 
     def _key(self, obj):
         if self.server_mode:
@@ -439,11 +385,15 @@ class Spider:
 
         self.__logger.debug("Result: " + str(flow))
 
-        if flow['jobId'] in self.comparetab:
-            other_flow = self.comparetab.pop(flow['jobId'])
-            flows = (flow, other_flow) if other_flow['config'] else (other_flow, flow)
-            start = min(flow['spdr_start'], other_flow['spdr_start'])
-            stop = max(flow['spdr_stop'], other_flow['spdr_stop'])
+        if flow['jobId'] not in self.comparetab:
+            self.comparetab[flow['jobId']] = []
+        self.comparetab[flow['jobId']].append(flow)
+
+        if len(self.comparetab[flow['jobId']]) == self._config_count: # pylint: disable=no-member
+            flows = self.comparetab.pop(flow['jobId'])
+            flows.sort(key=lambda x: x['config'])
+            start = min([flow['spdr_start'] for flow in flows])
+            stop = max([flow['spdr_stop'] for flow in flows])
             job = self.jobtab.pop(flow['jobId'])
             job['flow_results'] = flows
             job['time'] = {'from': start, 'to': stop}
@@ -451,8 +401,6 @@ class Spider:
             if job['conditions'] is None:
                 job.pop('conditions')
             self.outqueue.put(job)
-        else:
-            self.comparetab[flow['jobId']] = flow
 
     def combine_flows(self, flows):
         pass
@@ -467,6 +415,21 @@ class Spider:
                 self.exception = sys.exc_info()[1]
 
             self.terminate()
+
+    def _finalise_conns(self, job, jobId, conns):
+        # Pass results on for merge
+        config = 0
+        for conn in conns:
+            self.post_connect(job, conn, config)
+            conn['spdr_stop'] = str(datetime.utcnow())
+            conn['config'] = config
+            if self.server_mode:
+                conn['sip'] = job['sip']
+            else:
+                conn['dip'] = job['dip']
+            conn['jobId'] = jobId
+            self.resqueue.put(conn)
+            config += 1
 
     def start(self):
         """

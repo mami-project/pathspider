@@ -13,7 +13,7 @@ from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_FAILED
 
-from pathspider.classic import SynchronizedSpider
+from pathspider.sync import SynchronizedSpider
 
 from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain

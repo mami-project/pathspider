@@ -12,9 +12,12 @@ from pathspider.forge import ForgeSpider
 from pathspider.observer.base import BasicChain
 from pathspider.observer.dns import DNSChain
 
-class UDPZero(PluggableSpider, ForgeSpider):
+class UDPZero(ForgeSpider, PluggableSpider):
 
+    name = "udpzero"
+    description = "UDP Zero Checksum"
     chains = [BasicChain, DNSChain]
+    packets = 2
 
     def forge(self, job, config):
         sport = 0
@@ -43,8 +46,3 @@ class UDPZero(PluggableSpider, ForgeSpider):
             return ['udpzero.connectivity.transient']
         else:
             return ['udpzero.connectivity.offline']
-
-    @staticmethod
-    def register_args(subparsers):
-        parser = subparsers.add_parser('udpzero', help="UDP with Zero Checksum")
-        parser.set_defaults(spider=UDPZero)

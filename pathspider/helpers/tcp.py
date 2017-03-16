@@ -4,6 +4,8 @@ from io import BytesIO
 
 import pycurl
 
+from scapy.all import RandShort
+
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_TIMEOUT
 from pathspider.base import CONN_FAILED
@@ -64,6 +66,7 @@ def connect_http(source, job, conn_timeout, curlopts=None):
         curlopts[pycurl.INTERFACE] = source[1]
     else:
         curlopts[pycurl.INTERFACE] = source[0]
+    curlopts[pycurl.LOCALPORT] = int(RandShort())
 
     if pycurl.URL not in curlopts:
         url = "http://" + job['dip'] + ":" + str(job['dp']) + "/"
@@ -73,7 +76,8 @@ def connect_http(source, job, conn_timeout, curlopts=None):
         useragent = "PATHspider (https://pathspider.net/)"
         curlopts[pycurl.USERAGENT] = useragent
 
-    curlopts[pycurl.HTTPHEADER] = ["Host: " + job['domain']]
+    if 'domain' in job:
+        curlopts[pycurl.HTTPHEADER] = ["Host: " + job['domain']]
 
     curlopts[pycurl.TIMEOUT] = conn_timeout
 
@@ -81,6 +85,9 @@ def connect_http(source, job, conn_timeout, curlopts=None):
     curlopts[pycurl.HEADERFUNCTION] = header.write
     body = BytesIO()
     curlopts[pycurl.WRITEDATA] = body
+
+    curlopts[pycurl.FRESH_CONNECT] = 1
+    curlopts[pycurl.FORBID_REUSE] = 1
 
     for o in curlopts:
         try:
@@ -101,4 +108,7 @@ def connect_http(source, job, conn_timeout, curlopts=None):
             'http_response_body': body.getvalue().decode('utf-8'),
         }
     except OSError:
+        import traceback
+        print(o)
+        traceback.print_exc()
         return {'spdr_state': CONN_FAILED, 'sp': 0}
