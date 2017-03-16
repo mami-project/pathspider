@@ -29,20 +29,31 @@ def handle_args(argv):
             return parts
 
     parser = argparse.ArgumentParser(description=('PATHspider will spider the '
-            'paths.'), formatter_class=SubcommandHelpFormatter)
-    parser.add_argument('-s', '--standalone', action='store_true', help='''Run in
-        standalone mode.''', default=True)
-    parser.add_argument('-i', '--interface', help='''The interface to use for the observer.''', default="eth0")
-    parser.add_argument('-w', '--workers', type=int, help='''Number of workers to use.''', default=100)
-    parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE', help='''A file
-            containing a list of PATHspider jobs. Defaults to standard input.''')
-    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE', 
-            help='''The file to output results data to. Defaults to standard output.''')
-    parser.add_argument('--tor-exits', action='store_true', help='''Tor exit plugins (server mode).''')
-    parser.add_argument('-v', '--verbose', action='store_true', help='''Log debug-level output.''')
+                                                  'paths.'),
+                                     formatter_class=SubcommandHelpFormatter)
+    parser.add_argument('-s', '--standalone', action='store_true',
+                        help="Run in standalone mode.", default=True)
+    parser.add_argument('-i', '--interface', default="eth0",
+                        help="The interface to use for the observer. (Default: eth0)")
+    parser.add_argument('-w', '--workers', type=int, default=100,
+                        help="Number of workers to use. (Default: 100)")
+    parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE',
+                        help=("A file containing a list of PATHspider jobs. "
+                              "Defaults to standard input."))
+    parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',
+                        help=("The file to output results data to. "
+                              "Defaults to standard output."))
+    parser.add_argument('--output-flows', action='store_true',
+                        help="Include flow results in output.")
+    parser.add_argument('--tor-exits', action='store_true',
+                        help="Tor exit plugins (server mode).")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help="Log debug-level output.")
 
     # Add plugins
-    subparsers = parser.add_subparsers(title="Plugins", description="The following plugins are available for use:", metavar='PLUGIN', help='plugin to use')
+    subparsers = parser.add_subparsers(title="Plugins",
+                                       description="The following plugins are available for use:",
+                                       metavar='PLUGIN', help='plugin to use')
     for plugin in plugins:
         #try:
         plugin.register_args(subparsers)

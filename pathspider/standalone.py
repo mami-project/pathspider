@@ -65,6 +65,8 @@ def run_standalone(args):
                 if result == SHUTDOWN_SENTINEL:
                     logger.info("output complete")
                     break
+                if not args.output_flows:
+                    result.pop("flow_results", None)
                 outputfile.write(json.dumps(result) + "\n")
                 logger.debug("wrote a result")
                 spider.outqueue.task_done()
