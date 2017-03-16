@@ -11,14 +11,14 @@ class ECNChain(Chain):
                     rec['ecn_{}_{}_{}'.format(f, t, d)] = False
 
         return True
-    
+
     def tcp(self, rec, ip, rev):
         ECT_ZERO = 0x02
         ECT_ONE = 0x01
         ECT_CE = 0x03
-   
+
         ipmark = None
- 
+
         if ip.traffic_class & ECT_CE == ECT_ZERO:
             ipmark = 'ecn_ect0'
         if ip.traffic_class & ECT_CE == ECT_ONE:
@@ -33,5 +33,5 @@ class ECNChain(Chain):
                 t = 'data'
             d = 'rev' if rev else 'fwd'
             rec['{}_{}_{}'.format(ipmark, t, d)] = True
-    
+
         return True
