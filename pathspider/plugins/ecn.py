@@ -88,11 +88,11 @@ class ECN(SynchronizedSpider, PluggableSpider):
             else:
                 conditions.append('ecn.negotiation.failed')
 
-            conditions.append('ecn.ipmark.ect0.seen' if flows[1]['ecn_ect0_rev']
+            conditions.append('ecn.ipmark.ect0.seen' if (flows[1]['ecn_ect0_syn_rev'] or flows[1]['ecn_ect0_data_rev'])
                               else 'ecn.ipmark.ect0.not_seen')
-            conditions.append('ecn.ipmark.ect1.seen' if flows[1]['ecn_ect1_rev']
+            conditions.append('ecn.ipmark.ect1.seen' if (flows[1]['ecn_ect1_syn_rev'] or flows[1]['ecn_ect1_data_rev'])
                               else 'ecn.ipmark.ect1.not_seen')
-            conditions.append('ecn.ipmark.ce.seen' if flows[1]['ecn_ce_rev']
+            conditions.append('ecn.ipmark.ce.seen' if (flows[1]['ecn_ce_syn_rev'] or flows[1]['ecn_ce_data_rev'])
                               else 'ecn.ipmark.ce.not_seen')
 
         return conditions

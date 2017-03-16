@@ -52,12 +52,18 @@ def test_observer_ecn():
     assert flow['tcp_fin_rev'] == True
     assert flow['tcp_rst_fwd'] == False
     assert flow['tcp_rst_rev'] == False
-    assert flow['ecn_ect0_fwd'] == True
-    assert flow['ecn_ect0_rev'] == True
-    assert flow['ecn_ect1_fwd'] == False
-    assert flow['ecn_ect1_rev'] == False
-    assert flow['ecn_ce_fwd'] == False
-    assert flow['ecn_ce_rev'] == True
+    assert flow['ecn_ect0_data_fwd'] == True
+    assert flow['ecn_ect0_data_rev'] == True
+    assert flow['ecn_ect0_syn_fwd'] == False
+    assert flow['ecn_ect0_syn_rev'] == False
+    assert flow['ecn_ect1_data_fwd'] == False
+    assert flow['ecn_ect1_data_rev'] == False
+    assert flow['ecn_ect1_syn_fwd'] == False
+    assert flow['ecn_ect1_syn_rev'] == False
+    assert flow['ecn_ce_data_fwd'] == False
+    assert flow['ecn_ce_data_rev'] == True
+    assert flow['ecn_ce_syn_fwd'] == False
+    assert flow['ecn_ce_syn_rev'] == False
 
 def test_observer_ecn_partial_flow():
     try:
@@ -87,9 +93,15 @@ def test_observer_ecn_partial_flow():
     assert len(flows) == 3
 
     for flow in flows:
-        assert flow['ecn_ect0_fwd'] == False
-        assert flow['ecn_ect0_rev'] == False
-        assert flow['ecn_ect1_fwd'] == False
-        assert flow['ecn_ect1_rev'] == False
-        assert flow['ecn_ce_fwd'] == False
-        assert flow['ecn_ce_rev'] == False
+        assert flow['ecn_ect0_data_fwd'] == False
+        assert flow['ecn_ect0_data_rev'] == False
+        assert flow['ecn_ect0_syn_fwd'] == False
+        assert flow['ecn_ect0_syn_rev'] == False
+        assert flow['ecn_ect1_data_fwd'] == False
+        assert flow['ecn_ect1_data_rev'] == False
+        assert flow['ecn_ect1_syn_fwd'] == False
+        assert flow['ecn_ect1_syn_rev'] == False
+        assert flow['ecn_ce_data_fwd'] == False
+        assert flow['ecn_ce_data_rev'] == False
+        assert flow['ecn_ce_syn_fwd'] == False
+        assert flow['ecn_ce_syn_rev'] == False
