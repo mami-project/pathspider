@@ -12,7 +12,13 @@ class ECNChain(Chain):
 
         return True
 
-    def tcp(self, rec, ip, rev):
+    def ip4(self, rec, ip, rev):
+        return self._ecn_extract(rec, ip, rev)
+
+    def ip6(self, rec, ip, rev):
+        return self._ecn_extract(rec, ip, rev)
+
+    def _ecn_extract(self, rec, ip, rev):
         ECT_ZERO = 0x02
         ECT_ONE = 0x01
         ECT_CE = 0x03
