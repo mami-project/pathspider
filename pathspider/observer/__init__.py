@@ -16,7 +16,8 @@ def _flow4_ids(ip):
     icmp_with_payload = {3, 4, 5, 11, 12}
     quotation_fid = False
     if ip.proto == 1 and ip.icmp.type in icmp_with_payload:
-        ip = libtrace.ip(ip.icmp.data[8:]) # pylint: disable=no-member
+        #ip = libtrace.ip(ip.icmp.data[8:]) # pylint: disable=no-member
+        ip = ip.icmp.payload
         quotation_fid = True
 
     protos_with_ports = {6, 17, 132, 136}
@@ -36,8 +37,15 @@ def _flow4_ids(ip):
         return (base64.b64encode(fid), base64.b64encode(rid))
 
 def _flow6_ids(ip6):
-    # FIXME link ICMP by looking at payload
-    if ip6.proto == 6 or ip6.proto == 17 or ip6.proto == 132:
+    icmp_with_payload = {1, 2, 3, 4}
+    quotation_fid = False
+
+    if ip6.proto == 58 and ip6.icmp6.type in icmp_with_payload:
+        ip6 = ip6.icmp.payload
+        quotation_fid = True
+
+    protos_with_ports = {6, 17, 132, 136}
+    if ip6.proto in protos_with_ports:
         # key includes ports
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7] + ip6.payload[0:4]
         rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[6:7] + ip6.payload[2:4] + ip6.payload[0:2]
@@ -45,7 +53,12 @@ def _flow6_ids(ip6):
         # no ports, just 3-tuple
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7]
         rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[6:7]
-    return (base64.b64encode(fid), base64.b64encode(rid))
+
+    if quotation_fid:
+        # If the fid is based on an ICMP quotation, need to be reversed
+        return (base64.b64encode(rid), base64.b64encode(fid))
+    else:
+        return (base64.b64encode(fid), base64.b64encode(rid))
 
 PacketClockTimer = collections.namedtuple("PacketClockTimer", ("time", "fn"))
 
