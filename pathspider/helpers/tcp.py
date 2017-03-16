@@ -69,6 +69,10 @@ def connect_http(source, job, conn_timeout, curlopts=None):
         url = "http://" + job['dip'] + ":" + str(job['dp']) + "/"
         curlopts[pycurl.URL] = url
 
+    if pycurl.USERAGENT not in curlopts:
+        useragent = "PATHspider (https://pathspider.net/)"
+        curlopts[pycurl.USERAGENT] = useragent
+
     curlopts[pycurl.HTTPHEADER] = ["Host: " + job['domain']]
 
     curlopts[pycurl.TIMEOUT] = conn_timeout
