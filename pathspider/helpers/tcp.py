@@ -66,7 +66,11 @@ def connect_http(source, job, conn_timeout, curlopts=None):
         curlopts[pycurl.INTERFACE] = source[0]
 
     if pycurl.URL not in curlopts:
-        url = "http://" + job['dip'] + ":" + str(job['dp']) + "/"
+        if ':' in job['dip']
+            domainPart = '[' + job['dip'] + ']'
+        else:
+            domainPart = job['dip']
+        url = "http://" + domainPart + ":" + str(job['dp']) + "/"
         curlopts[pycurl.URL] = url
 
     if pycurl.USERAGENT not in curlopts:
