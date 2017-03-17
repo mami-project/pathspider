@@ -10,6 +10,9 @@ from pathspider.base import QUEUE_SLEEP
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.helpers.tcp import connect_tcp
 from pathspider.helpers.tcp import connect_http
+from pathspider.helpers.dns import connect_dns_tcp
+from pathspider.helpers.dns import connect_dns_udp
+
 
 class SynchronizedSpider(Spider):
     # pylint: disable=W0223
@@ -62,6 +65,10 @@ class SynchronizedSpider(Spider):
             rec = connect_tcp(self.source, job, self.args.timeout)
         elif self.args.connect == "http":
             rec = connect_http(self.source, job, self.args.timeout)
+        elif self.args.connect == "dnstcp":
+            rec = connect_dns_tcp(self.source, job, self.args.timeout)
+        elif self.args.connect == "dnsudp":
+            rec = connect_dns_udp(self.source, job, self.args.timeout)
         else:
             raise RuntimeError("Unknown connection type requested!")
 

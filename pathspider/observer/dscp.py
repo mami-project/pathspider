@@ -5,11 +5,8 @@ from pathspider.observer.tcp import TCP_SYN
 class DSCPChain(Chain):
 
     def new_flow(self, rec, ip):
-        if ip.tcp:
-            # we'll only care about these if it's TCP
-            rec['dscp_mark_syn_fwd'] = None
-            rec['dscp_mark_syn_rev'] = None
-    
+        rec['dscp_mark_syn_fwd'] = None
+        rec['dscp_mark_syn_rev'] = None
         rec['dscp_mark_data_fwd'] = None
         rec['dscp_mark_data_rev'] = None
         return True
@@ -31,7 +28,7 @@ class DSCPChain(Chain):
             if ip.tcp.payload is None:
                 return True
     
-        # If not TCP or TCP with payload
+        # If not TCP or TCP non-SYN
         data_key = 'dscp_mark_data_rev' if rev else 'dscp_mark_data_fwd'
         rec[data_key] = rec[data_key] or dscp
         return True

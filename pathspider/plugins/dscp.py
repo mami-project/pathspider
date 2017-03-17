@@ -19,7 +19,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     name = "dscp"
     description = "Differentiated Services Codepoints"
     chains = [BasicChain, DSCPChain, TCPChain]
-    connect_supported = ["http", "tcp"]
+    connect_supported = ["http", "tcp", "dnstcp", "dnsudp"]
 
     def config_no_dscp(self):
         """
@@ -38,7 +38,6 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         logger = logging.getLogger('dscp')
         for iptables in ['iptables', 'ip6tables']:
             subprocess.check_call([iptables, '-t', 'mangle', '-A', 'OUTPUT',
-                                   '-p', 'tcp', '-m', 'tcp',
                                    '-j', 'DSCP',
                                    '--set-dscp', str(self.args.codepoint)])
         logger.debug("Configurator enabled DSCP marking")
@@ -53,8 +52,8 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             if not f['observed']:
                 return ['pathspider.not_observed']
 
-        baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd']) + '.'
-        test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd']) + '.'
+        baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd'] or flows[0]['dscp_mark_data_fwd']) + '.'
+        test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd'] or flows[1]['dscp_mark_data_fwd']) + '.'
 
         if flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
             cond_conn = test + 'connectivity.works'
@@ -66,8 +65,8 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             cond_conn = test + 'connectivity.offline'
         conditions.append(cond_conn)
 
-        conditions.append(test + 'replymark:' + str(flows[0]['dscp_mark_syn_rev']))
-        conditions.append(baseline + 'replymark:' + str(flows[1]['dscp_mark_syn_rev']))
+        conditions.append(baseline + 'replymark:' + str(flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']))
+        conditions.append(test + 'replymark:' + str(flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']))
 
         return conditions
 

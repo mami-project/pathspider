@@ -55,7 +55,6 @@ def handle_args(argv):
                                        description="The following plugins are available for use:",
                                        metavar='PLUGIN', help='plugin to use')
     for plugin in plugins:
-        print("Registering plugin {}".format(repr(plugin)))
         plugin.register_args(subparsers)
 
     for util in utils:

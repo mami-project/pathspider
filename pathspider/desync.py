@@ -117,6 +117,12 @@ class DesynchronizedSpider(Spider):
         parser.add_argument("--timeout", default=5, type=int,
                             help=("The timeout to use for attempted "
                                   "connections in seconds (Default: 5)"))
+        if hasattr(cls, "connect_supported"):
+            parser.add_argument("--connect", type=str, choices=cls.connect_supported,
+                                default=cls.connect_supported[0],
+                                metavar="[{}]".format("|".join(cls.connect_supported)),
+                                help="Type of connection to perform (Default: {})".format(
+                                    cls.connect_supported[0]))
         parser.set_defaults(spider=cls)
         if hasattr(cls, "extra_args"):
             cls.extra_args(parser)

@@ -4,8 +4,6 @@ from io import BytesIO
 
 import pycurl
 
-from scapy.all import RandShort
-
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_TIMEOUT
 from pathspider.base import CONN_FAILED
@@ -66,7 +64,6 @@ def connect_http(source, job, conn_timeout, curlopts=None):
         curlopts[pycurl.INTERFACE] = source[1]
     else:
         curlopts[pycurl.INTERFACE] = source[0]
-    curlopts[pycurl.LOCALPORT] = int(RandShort())
 
     if pycurl.URL not in curlopts:
         url = "http://" + job['dip'] + ":" + str(job['dp']) + "/"
@@ -108,7 +105,4 @@ def connect_http(source, job, conn_timeout, curlopts=None):
             'http_response_body': body.getvalue().decode('utf-8'),
         }
     except OSError:
-        import traceback
-        print(o)
-        traceback.print_exc()
         return {'spdr_state': CONN_FAILED, 'sp': 0}

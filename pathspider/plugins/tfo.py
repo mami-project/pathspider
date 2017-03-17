@@ -1,32 +1,23 @@
 
 import logging
-from timeit import default_timer as timer
+import socket
+import struct
+
+from dnslib import DNSQuestion
+from dnslib import QTYPE
 
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
+from pathspider.base import CONN_FAILED
+from pathspider.base import CONN_TIMEOUT
 from pathspider.desync import DesynchronizedSpider
 from pathspider.helpers.tcp import connect_http
+from pathspider.helpers.dns import connect_dns_tcp
+from pathspider.helpers.dns import PSDNSRecord
 from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tfo import TFOChain
-
-# TODO: Create a DNS helper
-#import struct
-#
-#def encode_dns_question(qname):
-#    out = bytearray()
-#    for part in qname.split("."):
-#        out.append(len(part))
-#        for b in bytes(part, "us-ascii"):
-#            out.append(b)
-#    out.append(0)
-#    return bytes(out)
-#
-#def dns_query(job, phase):
-#    # DNS. Construct a question asking the server for its own address
-#    header = [0x0a75 + phase, 0x0100, 1, 0, 0, 0] # header: question, recursion OK
-#    return struct.pack("!6H", *header) + encode_dns_question(job['domain'])
 
 CURLOPT_TCP_FASTOPEN = 244
 
@@ -35,19 +26,53 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     name = "tfo"
     description = "TCP Fast Open"
     chains = [BasicChain, TCPChain, TFOChain]
-
-    def __init__(self, worker_count, libtrace_uri, args):
-        super().__init__(worker_count=worker_count,
-                         libtrace_uri=libtrace_uri,
-                         args=args)
-        self.conn_timeout = args.timeout
+    connect_supported = ["http", "dnstcp"]
 
     def conn_no_tfo(self, job, config):
-        return connect_http(self.source, job, self.conn_timeout)
+        if self.args.connect == "http":
+            return connect_http(self.source, job, self.args.timeout)
+        elif self.args.connect == "dnstcp":
+            return connect_dns_tcp(self.source, job, self.args.timeout)
+        else:
+            raise RuntimeError("Unknown connection mode specified")
 
     def conn_tfo(self, job, config):
-        curlopts = {CURLOPT_TCP_FASTOPEN: 1}
-        return connect_http(self.source, job, self.conn_timeout, curlopts)
+        if self.args.connect == "http":
+            curlopts = {CURLOPT_TCP_FASTOPEN: 1}
+            return connect_http(self.source, job, self.args.timeout, curlopts)
+        elif self.args.connect == "dnstcp":
+            try:
+                q = PSDNSRecord(q=DNSQuestion(job['domain'], QTYPE.A))
+                data = q.pack()
+                data = struct.pack("!H", len(data)) + data
+                if ':' in job['dip']:
+                    sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+                    sock.bind((self.source[1], 0))
+                else:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.bind((self.source[0], 0))
+                # TODO: In non-blocking mode, this will always raise an EINPROGRESS
+                # Should perform a blocking select afterwards, if it doesn't become available for
+                # read then should fail it
+                #sock.settimeout(self.args.timeout)
+                sock.sendto(data, socket.MSG_FASTOPEN, (job['dip'], job['dp']))
+                sp = sock.getsockname()[1]
+                sock.close()
+                return {'sp': sp, 'spdr_state': CONN_OK}
+            except TimeoutError:
+                return {'sp': sock.getsockname()[1], 'spdr_state': CONN_TIMEOUT}
+                import traceback
+                traceback.print_exc()
+            except TypeError:  # Caused by not having a v4/v6 address when trying to bind
+                import traceback
+                traceback.print_exc()
+                return {'sp': 0, 'spdr_state': CONN_FAILED}
+            except OSError:
+                import traceback
+                traceback.print_exc()
+                return {'sp': 0, 'spdr_state': CONN_FAILED}
+        else:
+            raise RuntimeError("Unknown connection mode specified")
 
     connections = [conn_no_tfo, conn_tfo, conn_tfo]
 

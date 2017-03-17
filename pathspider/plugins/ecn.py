@@ -19,7 +19,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
     name = "ecn"
     description = "Explicit Congestion Notification"
     chains = [BasicChain, TCPChain, ECNChain]
-    connect_supported = ["http", "tcp"]
+    connect_supported = ["http", "tcp", "dnstcp"]
 
     def config_no_ecn(self):
         """
