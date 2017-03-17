@@ -1,18 +1,14 @@
-
 import logging
 import subprocess
 import socket
 
-from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
-from pathspider.base import CONN_SKIPPED
+from pathspider.base import PluggableSpider
 from pathspider.sync import SynchronizedSpider
-from pathspider.helpers.tcp import connect_tcp
-from pathspider.helpers.tcp import connect_http
-from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.dscp import DSCPChain
+
 
 class DSCP(SynchronizedSpider, PluggableSpider):
 
@@ -21,7 +17,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     chains = [BasicChain, DSCPChain, TCPChain]
     connect_supported = ["http", "tcp", "dnstcp", "dnsudp"]
 
-    def config_no_dscp(self):
+    def config_no_dscp(self):  # pylint: disable=no-self-use
         """
         Disables DSCP marking via iptables.
         """
@@ -37,9 +33,10 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         """
         logger = logging.getLogger('dscp')
         for iptables in ['iptables', 'ip6tables']:
-            subprocess.check_call([iptables, '-t', 'mangle', '-A', 'OUTPUT',
-                                   '-j', 'DSCP',
-                                   '--set-dscp', str(self.args.codepoint)])
+            subprocess.check_call([
+                iptables, '-t', 'mangle', '-A', 'OUTPUT', '-j', 'DSCP',
+                '--set-dscp', str(self.args.codepoint)
+            ])
         logger.debug("Configurator enabled DSCP marking")
 
     configurations = [config_no_dscp, config_dscp]
@@ -52,25 +49,37 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             if not f['observed']:
                 return ['pathspider.not_observed']
 
-        baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd'] or flows[0]['dscp_mark_data_fwd']) + '.'
-        test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd'] or flows[1]['dscp_mark_data_fwd']) + '.'
+        baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd'] or
+                                 flows[0]['dscp_mark_data_fwd']) + '.'
+        test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd'] or
+                             flows[1]['dscp_mark_data_fwd']) + '.'
 
-        if flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
+        if flows[0]['spdr_state'] == CONN_OK and flows[1][
+                'spdr_state'] == CONN_OK:
             cond_conn = test + 'connectivity.works'
-        elif flows[0]['spdr_state'] == CONN_OK and not flows[1]['spdr_state'] == CONN_OK:
+        elif flows[0]['spdr_state'] == CONN_OK and not flows[1][
+                'spdr_state'] == CONN_OK:
             cond_conn = test + 'connectivity.broken'
-        elif not flows[0]['spdr_state'] == CONN_OK and flows[1]['spdr_state'] == CONN_OK:
+        elif not flows[0]['spdr_state'] == CONN_OK and flows[1][
+                'spdr_state'] == CONN_OK:
             cond_conn = test + 'connectivity.transient'
         else:
             cond_conn = test + 'connectivity.offline'
         conditions.append(cond_conn)
 
-        conditions.append(baseline + 'replymark:' + str(flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']))
-        conditions.append(test + 'replymark:' + str(flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']))
+        conditions.append(baseline + 'replymark:' + str(
+            flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']))
+        conditions.append(test + 'replymark:' + str(
+            flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']))
 
         return conditions
 
     @staticmethod
     def extra_args(parser):
-        parser.add_argument("--codepoint", type=int, choices=range(0, 64), default='48',
-                            metavar="[0-63]", help="DSCP codepoint to send (Default: 48)")
+        parser.add_argument(
+            "--codepoint",
+            type=int,
+            choices=range(0, 64),
+            default='48',
+            metavar="[0-63]",
+            help="DSCP codepoint to send (Default: 48)")

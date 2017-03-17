@@ -1,12 +1,9 @@
 import logging
 import subprocess
 
-import socket
-
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.sync import SynchronizedSpider
-from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tcp import TCP_SAE
@@ -21,7 +18,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
     chains = [BasicChain, TCPChain, ECNChain]
     connect_supported = ["http", "tcp", "dnstcp"]
 
-    def config_no_ecn(self):
+    def config_no_ecn(self): # pylint: disable=no-self-use
         """
         Disables ECN negotiation via sysctl.
         """
@@ -33,7 +30,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
             stderr=subprocess.DEVNULL)
         logger.debug("Configurator disabled ECN")
 
-    def config_ecn(self):
+    def config_ecn(self): # pylint: disable=no-self-use
         """
         Enables ECN negotiation via sysctl.
         """

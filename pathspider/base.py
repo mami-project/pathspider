@@ -131,22 +131,6 @@ class Spider:
 
         self.__logger = logging.getLogger('pathspider')
 
-    def config_zero(self):
-        """
-        Changes the global state or system configuration for the
-        baseline measurements.
-        """
-
-        raise NotImplementedError("Cannot instantiate an abstract Spider")
-
-    def config_one(self):
-        """
-        Changes the global state or system configuration for the
-        experimental measurements.
-        """
-
-        raise NotImplementedError("Cannot instantiate an abstract Spider")
-
     def configurator(self):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
 
@@ -174,38 +158,13 @@ class Spider:
     def _connect_wrapper(self, job, config, connect=None):
         start = str(datetime.utcnow())
         if connect is None:
-            conn = self.connect(job, config)
+            conn = self.connect(job, config) # pylint: disable=no-member
         else:
             if not hasattr(connect, '__self__'):
                 connect = connect.__get__(self)
             conn = connect(job, config)
         conn['spdr_start'] = start
         return conn
-
-    def connect(self, job, config):
-        """
-        Performs the connection.
-
-        :param job: The job record.
-        :type job: dict
-        :param config: The current state of the configurator (0 or 1).
-        :type config: int
-        :returns: dict -- The result of the connect operation to be passed
-                          to :func:`pathspider.base.Spider.post_connect`. This
-                          dict must contain the necessary keys for the merger
-                          to match the flow with the job and configuration.
-
-        The connect function is used to perform the connection operation and
-        is run for both the A and B test. This method is not implemented in
-        the abstract :class:`pathspider.base.Spider` class and must be
-        implemented by any plugin.
-
-        Sockets created during this operation can be returned by the function
-        for use in the post-connection phase, to minimise the time that the
-        configurator is blocked from moving to the next configuration.
-        """
-
-        raise NotImplementedError("Cannot instantiate an abstract Pathspider")
 
     def post_connect(self, job, rec, config):
         """
