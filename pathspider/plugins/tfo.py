@@ -55,7 +55,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
                 # Should perform a blocking select afterwards, if it doesn't become available for
                 # read then should fail it
                 #sock.settimeout(self.args.timeout)
-                sock.sendto(data, socket.MSG_FASTOPEN, (job['dip'], job['dp']))
+                sock.sendto(data, socket.MSG_FASTOPEN, (job['dip'], job['dp'])) # pylint: disable=no-member
                 sp = sock.getsockname()[1]
                 sock.close()
                 return {'sp': sp, 'spdr_state': CONN_OK}
