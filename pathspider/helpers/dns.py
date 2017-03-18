@@ -1,7 +1,7 @@
 import struct
 import socket
 
-from dnslib.dns import DNSRecord, DNSHeader, DNSQuestion, QTYPE
+from dnslib.dns import DNSError, DNSRecord, DNSQuestion, QTYPE
 from scapy.all import RandShort
 
 from pathspider.base import CONN_OK
@@ -31,13 +31,22 @@ class PSDNSRecord(DNSRecord):
             sock.settimeout(conn_timeout)
             sock.connect((job['dip'], job['dp']))
             sock.sendall(data)
+            sp = sock.getsockname()[1]
+            response = None
             try:
                 response = sock.recv(8192)
+                length = struct.unpack("!H",bytes(response[:2]))[0]
+                while len(response) - 2 < length:
+                    response += sock.recv(8192)
             except socket.timeout:
                 pass
-            sp = sock.getsockname()[1]
+            if response is not None and len(response) > 2:
+                try:
+                    response = response[2:]
+                    PSDNSRecord().parse(response)
+                except DNSError:
+                    response = None
             sock.close()
-            response = response[2:]
         else:
             sp = RandShort()
             sock = socket.socket(inet, socket.SOCK_DGRAM)
@@ -53,6 +62,11 @@ class PSDNSRecord(DNSRecord):
                 response, server = sock.recvfrom(8192)
             except socket.timeout:
                 pass
+            if response is not None:
+                try:
+                    PSDNSRecord().parse(response)
+                except DNSError:
+                    response = None
             sock.close()
         return (response, sp)
 
@@ -84,7 +98,9 @@ def connect_dns(source, job, conn_timeout, tcp=False):
 
     try:
         q = PSDNSRecord(q=DNSQuestion(job['domain'], QTYPE.A))
-        a_pkt, sp = q.spider_send(source, job, conn_timeout, tcp=tcp)
+        response, sp = q.spider_send(source, job, conn_timeout, tcp=tcp)
+        if response is None:
+            return {'sp': sp, 'spdr_state': CONN_FAILED}
         return {'sp': sp, 'spdr_state': CONN_OK}
     except TimeoutError:
         return {'sp': 0, 'spdr_state': CONN_TIMEOUT}
