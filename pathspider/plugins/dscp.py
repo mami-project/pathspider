@@ -8,13 +8,13 @@ from pathspider.sync import SynchronizedSpider
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.dscp import DSCPChain
-
+from pathspider.observer.dns import DNSChain
 
 class DSCP(SynchronizedSpider, PluggableSpider):
 
     name = "dscp"
     description = "Differentiated Services Codepoints"
-    chains = [BasicChain, DSCPChain, TCPChain]
+    chains = [BasicChain, DSCPChain, TCPChain, DNSChain]
     connect_supported = ["http", "tcp", "dnstcp", "dnsudp"]
 
     def config_no_dscp(self):  # pylint: disable=no-self-use
