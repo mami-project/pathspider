@@ -38,7 +38,7 @@ class UDPOpts(ForgeSpider, PluggableSpider):
     def combine_flows(self, flows):
         for flow in flows:
             if not flow['observed']:
-                return []
+                return ['pathspider.not_observed']
 
         if flows[0]['dns_response_valid'] and flows[1]['dns_response_valid']:
             return ['udpopts.connectivity.works']
