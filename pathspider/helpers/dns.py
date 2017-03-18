@@ -2,6 +2,7 @@ import struct
 import socket
 
 from dnslib.dns import DNSRecord, DNSHeader, DNSQuestion, QTYPE
+from scapy.all import RandShort
 
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_TIMEOUT
@@ -30,24 +31,28 @@ class PSDNSRecord(DNSRecord):
             sock.settimeout(conn_timeout)
             sock.connect((job['dip'], job['dp']))
             sock.sendall(data)
-            response = sock.recv(8192)
-            length = struct.unpack("!H", bytes(response[:2]))[0]
-            while len(response) - 2 < length:
-                response += sock.recv(8192)
+            try:
+                response = sock.recv(8192)
+            except socket.timeout:
+                pass
             sp = sock.getsockname()[1]
             sock.close()
             response = response[2:]
         else:
+            sp = RandShort()
             sock = socket.socket(inet, socket.SOCK_DGRAM)
             if ':' in job['dip']:
-                sock.bind((source[1], 0))
+                sock.bind((source[1], sp))
             else:
-                sock.bind((source[0], 0))
-            sock.settimeout(conn_timeout)
-            sock.connect((job['dip'], job['dp']))
-            sock.send(self.pack())
+                sock.bind((source[0], sp))
             sp = sock.getsockname()[1]
-            response, server = sock.recvfrom(8192)
+            sock.settimeout(conn_timeout)
+            sock.sendto(self.pack(), (job['dip'], job['dp']))
+            response = None
+            try:
+                response, server = sock.recvfrom(8192)
+            except socket.timeout:
+                pass
             sock.close()
         return (response, sp)
 
@@ -86,4 +91,6 @@ def connect_dns(source, job, conn_timeout, tcp=False):
     except TypeError:  # Caused by not having a v4/v6 address when trying to bind
         return {'sp': 0, 'spdr_state': CONN_FAILED}
     except OSError:
+        return {'sp': 0, 'spdr_state': CONN_FAILED}
+    except ValueError: # Caused by domain names that don't fit in a DNS query (this should never happen)
         return {'sp': 0, 'spdr_state': CONN_FAILED}
