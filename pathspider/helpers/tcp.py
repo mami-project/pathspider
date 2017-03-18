@@ -66,7 +66,7 @@ def connect_http(source, job, conn_timeout, curlopts=None):
         curlopts[pycurl.INTERFACE] = source[0]
 
     if pycurl.URL not in curlopts:
-        if ':' in job['dip']
+        if ':' in job['dip']:
             domainPart = '[' + job['dip'] + ']'
         else:
             domainPart = job['dip']
