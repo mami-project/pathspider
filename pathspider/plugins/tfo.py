@@ -80,7 +80,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         elif (not flows[0]['spdr_state'] == CONN_OK and
               flows[2]['spdr_state'] == CONN_OK):
             conditions.append('tfo.connectivity.transient')
-        elif (flows[2]['spdr_state'] == CONN_OK and
+        elif (flows[0]['spdr_state'] == CONN_OK and
               flows[2]['spdr_state'] == CONN_OK):
             conditions.append('tfo.connectivity.works')
             if flows[2]['observed']:
