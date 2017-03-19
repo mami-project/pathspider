@@ -204,9 +204,13 @@ class Spider:
         """
 
         self.__logger.info("Creating observer")
-        from pathspider.observer import Observer
-        return Observer(self.libtrace_uri,
-                        chains=self.chains) # pylint: disable=no-member
+        if len(self.chains) > 0:
+            from pathspider.observer import Observer
+            return Observer(self.libtrace_uri,
+                            chains=self.chains) # pylint: disable=no-member
+        else:
+            from pathspider.observer.dummy import Observer
+            return Observer()
 
     def _key(self, obj):
         if self.server_mode:
