@@ -9,9 +9,10 @@ from pathspider.base import CONN_OK
 from pathspider.base import CONN_FAILED
 from pathspider.base import CONN_TIMEOUT
 from pathspider.desync import DesynchronizedSpider
-from pathspider.helpers.tcp import connect_http
 from pathspider.helpers.dns import connect_dns_tcp
 from pathspider.helpers.dns import PSDNSRecord
+from pathspider.helpers.http import connect_http
+from pathspider.helpers.http import connect_https
 from pathspider.observer.base import BasicChain
 from pathspider.observer.tcp import TCPChain
 from pathspider.observer.tfo import TFOChain
@@ -24,7 +25,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     name = "tfo"
     description = "TCP Fast Open"
     chains = [BasicChain, TCPChain, TFOChain]
-    connect_supported = ["http", "dnstcp"]
+    connect_supported = ["http", "https", "dnstcp"]
 
     def conn_no_tfo(self, job, config):  # pylint: disable=unused-argument
         if self.args.connect == "http":
@@ -38,6 +39,9 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         if self.args.connect == "http":
             curlopts = {CURLOPT_TCP_FASTOPEN: 1}
             return connect_http(self.source, job, self.args.timeout, curlopts)
+        elif self.args.connect == "https":
+            curlopts = {CURLOPT_TCP_FASTOPEN: 1}
+            return connect_https(self.source, job, self.args.timeout, curlopts)
         elif self.args.connect == "dnstcp":
             try:
                 q = PSDNSRecord(q=DNSQuestion(job['domain'], QTYPE.A))
