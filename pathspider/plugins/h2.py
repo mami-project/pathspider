@@ -1,12 +1,8 @@
-import socket
-import struct
 
 import pycurl
 
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
-from pathspider.base import CONN_FAILED
-from pathspider.base import CONN_TIMEOUT
 from pathspider.desync import DesynchronizedSpider
 from pathspider.helpers.http import connect_http
 from pathspider.helpers.http import connect_https
@@ -18,7 +14,7 @@ class H2(DesynchronizedSpider, PluggableSpider):
     name = "h2"
     description = "HTTP/2"
     chains = [BasicChain, TCPChain]
-    connect_supported = ["http","https"]
+    connect_supported = ["http", "https"]
 
     def conn_no_h2(self, job, config):  # pylint: disable=unused-argument
         if self.args.connect == "http":
@@ -28,7 +24,7 @@ class H2(DesynchronizedSpider, PluggableSpider):
         else:
             raise RuntimeError("Unknown connection mode specified")
 
-    def conn_h2(self, job, config):
+    def conn_h2(self, job, config): # pylint: disable=unused-argument
         if self.args.connect == "http":
             curlopts = {pycurl.HTTP_VERSION: pycurl.CURL_HTTP_VERSION_2_0}
             curlinfos = {pycurl.INFO_HTTP_VERSION}
