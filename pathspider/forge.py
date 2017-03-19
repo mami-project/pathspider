@@ -5,7 +5,6 @@ from scapy.all import send
 
 from pathspider.desync import DesynchronizedSpider
 
-from pathspider.observer import Observer
 from pathspider.observer.base import BasicChain
 
 class ForgeSpider(DesynchronizedSpider):
