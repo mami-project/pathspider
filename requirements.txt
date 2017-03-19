@@ -1,5 +1,4 @@
 straight.plugin
-dnspython
 pyroute2
 scapy-python3
 pycurl

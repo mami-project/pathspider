@@ -7,7 +7,6 @@ from straight.plugin import load
 
 from pathspider.base import PluggableSpider
 
-import pathspider.util.dnsresolv
 import pathspider.util.torrelays
 
 utils = []
@@ -16,7 +15,6 @@ if "--tor-exits" in sys.argv:
     plugins = load("pathspider.plugins.torexits", subclasses=PluggableSpider)
 else:
     plugins = load("pathspider.plugins", subclasses=PluggableSpider)
-    utils.append(pathspider.util.dnsresolv)
     utils.append(pathspider.util.torrelays)
 
 def handle_args(argv):
