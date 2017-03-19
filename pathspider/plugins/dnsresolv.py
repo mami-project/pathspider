@@ -11,7 +11,7 @@ class DNSResolv(DesynchronizedSpider, PluggableSpider):
     description = "Simple Input List DNS Resolver"
     chains = [] # Use the dummy observer
 
-    def resolv_host(self, job, config):
+    def resolv_host(self, job, config): # pylint: disable=unused-argument
         if 'domain' not in job or job['domain'] is None:
             return {'spdr_state': CONN_DISCARD} # Always discard
         try:
