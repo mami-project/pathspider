@@ -1,4 +1,4 @@
-include README.md
-include pathspider/VERSION
-
-
+include README.rst
+include LICENSE
+include tests.sh
+include *.txt

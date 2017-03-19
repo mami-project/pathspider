@@ -6,9 +6,9 @@ from scapy.all import DNS        # pylint: disable=E0611
 from scapy.all import DNSQR      # pylint: disable=E0611
 from scapy.all import RandShort  # pylint: disable=E0611
 
+import pathspider
 from pathspider.base import PluggableSpider
 from pathspider.forge import ForgeSpider
-
 from pathspider.observer.base import BasicChain
 from pathspider.observer.dns import DNSChain
 
@@ -16,6 +16,7 @@ class UDPZero(ForgeSpider, PluggableSpider):
 
     name = "udpzero"
     description = "UDP Zero Checksum"
+    version = pathspider.__version__
     chains = [BasicChain, DNSChain]
     packets = 2
 

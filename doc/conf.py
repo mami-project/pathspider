@@ -20,8 +20,9 @@ import os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('..'))
 
-with open(os.path.abspath('../pathspider/VERSION'), encoding='utf-8') as version_file:
-    pathspider_version = version_file.read().strip()
+import pathspider
+
+pathspider_version = pathspider.__version__
 
 
 # -- General configuration ------------------------------------------------

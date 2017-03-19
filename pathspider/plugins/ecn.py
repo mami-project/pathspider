@@ -1,6 +1,7 @@
 import logging
 import subprocess
 
+import pathspider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.sync import SynchronizedSpider
@@ -15,6 +16,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
     name = "ecn"
     description = "Explicit Congestion Notification"
+    version = pathspider.__version__
     chains = [BasicChain, TCPChain, ECNChain]
     connect_supported = ["http", "https", "tcp", "dnstcp"]
 

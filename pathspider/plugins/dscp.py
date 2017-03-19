@@ -2,6 +2,7 @@ import logging
 import subprocess
 import socket
 
+import pathspider
 from pathspider.base import CONN_OK
 from pathspider.base import PluggableSpider
 from pathspider.sync import SynchronizedSpider
@@ -14,6 +15,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
 
     name = "dscp"
     description = "Differentiated Services Codepoints"
+    version = pathspider.__version__
     chains = [BasicChain, DSCPChain, TCPChain, DNSChain]
     connect_supported = ["http", "tcp", "dnstcp", "dnsudp"]
 

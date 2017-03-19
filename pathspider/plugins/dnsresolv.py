@@ -1,5 +1,6 @@
 import socket
 
+import pathspider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_DISCARD
 from pathspider.desync import DesynchronizedSpider
@@ -9,6 +10,7 @@ class DNSResolv(DesynchronizedSpider, PluggableSpider):
 
     name = "dnsresolv"
     description = "Simple Input List DNS Resolver"
+    version = pathspider.__version__
     chains = [] # Use the dummy observer
 
     def resolv_host(self, job, config): # pylint: disable=unused-argument
