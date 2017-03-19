@@ -9,7 +9,8 @@ from pathspider.base import Spider
 from pathspider.base import QUEUE_SLEEP
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.helpers.tcp import connect_tcp
-from pathspider.helpers.tcp import connect_http
+from pathspider.helpers.http import connect_http
+from pathspider.helpers.http import connect_https
 from pathspider.helpers.dns import connect_dns_tcp
 from pathspider.helpers.dns import connect_dns_udp
 
@@ -65,6 +66,8 @@ class SynchronizedSpider(Spider):
             rec = connect_tcp(self.source, job, self.args.timeout)
         elif self.args.connect == "http":
             rec = connect_http(self.source, job, self.args.timeout)
+        elif self.args.connect == "https":
+            rec = connect_https(self.source, job, self.args.timeout)
         elif self.args.connect == "dnstcp":
             rec = connect_dns_tcp(self.source, job, self.args.timeout)
         elif self.args.connect == "dnsudp":
