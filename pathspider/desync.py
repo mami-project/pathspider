@@ -5,9 +5,9 @@ import uuid
 from datetime import datetime
 
 from pathspider.base import Spider
+from pathspider.base import CONN_DISCARD
 from pathspider.base import QUEUE_SLEEP
 from pathspider.base import SHUTDOWN_SENTINEL
-
 
 class DesynchronizedSpider(Spider):
     # pylint: disable=W0223
@@ -91,17 +91,22 @@ class DesynchronizedSpider(Spider):
                     self.pre_connect(job)
 
                     conns = []
+                    should_discard = False
 
                     for config in range(0, len(self.connections)):
                         conn = self._connect_wrapper(job, config,
                                                      connect=self.connections[config])
+                        if 'spdr_state' in conn:
+                            if conn['spdr_state'] == CONN_DISCARD:
+                                should_discard = True
                         conns.append(conn)
 
-                    # Save job record for combiner
-                    self.jobtab[jobId] = job
+                    if not should_discard:
+                        # Save job record for combiner
+                        self.jobtab[jobId] = job
 
-                    # Pass results on for merge
-                    self._finalise_conns(job, jobId, conns)
+                        # Pass results on for merge
+                        self._finalise_conns(job, jobId, conns)
 
                     self.__logger.debug("job complete: " + repr(job))
                     self.jobqueue.task_done()
