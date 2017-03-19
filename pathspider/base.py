@@ -62,6 +62,8 @@ class Spider:
 
     """
 
+    chains = [] # Disable the observer by default
+
     def __init__(self, worker_count, libtrace_uri, args, server_mode):
         """
         The initialisation of a pathspider plugin.
