@@ -87,6 +87,8 @@ class TCPChain(Chain):
 
         # This test is intended to catch the completion of the 3WHS.
         if (not rec['tcp_connected'] and rev == 0 and
+                rec['tcp_synflags_fwd'] is not None and
+                rec['tcp_synflags_rev'] is not None and
                 rec['tcp_synflags_fwd'] & TCP_SYN == TCP_SYN and
                 rec['tcp_synflags_rev'] & TCP_SA == TCP_SA and
                 tcp.ack_flag):
