@@ -14,12 +14,12 @@ class ICMPChain(Chain):
         rec['icmp_unreachable'] = False
         return True
 
-    def icmp4(self, rec, ip, q, rev): # pylint: disable=W0613
+    def icmp4(self, rec, ip, q, rev): # pylint: disable=no-self-use,unused-argument
         if rev and ip.icmp.type == ICMP_UNREACHABLE:
             rec['icmp_unreachable'] = True
         return not rec['icmp_unreachable']
 
-    def icmp6(self, rec, ip6, q, rev): # pylint: disable=W0613
+    def icmp6(self, rec, ip6, q, rev): # pylint: disable=no-self-use,unused-argument
         if rev and ip6.icmp6.type == ICMP6_UNREACHABLE:
             rec['icmp_unreachable'] = True
         return not rec['icmp_unreachable']
