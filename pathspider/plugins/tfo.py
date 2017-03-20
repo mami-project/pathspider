@@ -4,7 +4,7 @@ import struct
 from dnslib import DNSQuestion
 from dnslib import QTYPE
 
-import pathspider
+import pathspider.base
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_FAILED
@@ -25,7 +25,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
 
     name = "tfo"
     description = "TCP Fast Open"
-    version = pathspider.__version__
+    version = pathspider.base.__version__
     chains = [BasicChain, TCPChain, TFOChain]
     connect_supported = ["http", "https", "dnstcp"]
 

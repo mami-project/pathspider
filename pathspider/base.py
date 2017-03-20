@@ -37,6 +37,8 @@ from datetime import datetime
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
 
+__version__ = "2.0.0.dev0"
+
 CONN_OK = 0
 CONN_FAILED = 1
 CONN_TIMEOUT = 2

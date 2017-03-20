@@ -20,10 +20,7 @@ import os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('..'))
 
-import pathspider
-
-pathspider_version = pathspider.__version__
-
+import pathspider.base
 
 # -- General configuration ------------------------------------------------
 
@@ -64,7 +61,7 @@ author = u'the PATHspider authors'
 # built documents.
 #
 # The short X.Y version.
-version = pathspider_version
+version = pathspider.base.__version__
 # The full version, including alpha/beta/rc tags.
 release = pathspider_version
 

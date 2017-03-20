@@ -1,7 +1,7 @@
 
 import pycurl
 
-import pathspider
+import pathspider.base
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.desync import DesynchronizedSpider
@@ -14,7 +14,7 @@ class H2(DesynchronizedSpider, PluggableSpider):
 
     name = "h2"
     description = "HTTP/2"
-    version = pathspider.__version__
+    version = pathspider.base.__version__
     chains = [BasicChain, TCPChain]
     connect_supported = ["http", "https"]
 

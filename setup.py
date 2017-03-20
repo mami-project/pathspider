@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-import pathspider
+import pathspider.base
 
 here = path.abspath(path.dirname(__file__))
 
@@ -17,7 +17,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='pathspider',
-    version=pathspider.__version__,
+    version=pathspider.base.__version__,
     description='A tool for measuring path transparency in the Internet',
     long_description=long_description,
     url='https://pathspider.net/',
