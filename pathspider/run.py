@@ -6,16 +6,11 @@ import logging
 from straight.plugin import load
 
 from pathspider.base import PluggableSpider
-
 import pathspider.util.torrelays
 
-utils = []
+plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
-if "--tor-exits" in sys.argv:
-    plugins = load("pathspider.plugins.torexits", subclasses=PluggableSpider)
-else:
-    plugins = load("pathspider.plugins", subclasses=PluggableSpider)
-    utils.append(pathspider.util.torrelays)
+utils = [pathspider.util.torrelays]
 
 def handle_args(argv):
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
