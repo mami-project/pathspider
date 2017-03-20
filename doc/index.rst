@@ -1,5 +1,5 @@
-Welcome to PATHspider's documentation!
-======================================
+PATHspider |version|
+====================
 
 In today's Internet we see an increasing deployment of middleboxes. While
 middleboxes provide in-network functionality that is necessary to keep networks
@@ -30,8 +30,8 @@ Table of Contents
    installation
    using
    plugins
-   resolver
-   plugindev
+   targets/index.rst
+   plugindev/index.rst
    advanced
 
 .. toctree::
