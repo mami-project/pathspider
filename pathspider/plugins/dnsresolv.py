@@ -17,7 +17,7 @@ class DNSResolv(DesynchronizedSpider, PluggableSpider):
         if 'domain' not in job or job['domain'] is None:
             return {'spdr_state': CONN_DISCARD} # Always discard
         try:
-            ips = [str(i[4][0]) for i in socket.getaddrinfo(job['domain'], 80)]
+            ips = set([str(i[4][0]) for i in socket.getaddrinfo(job['domain'], 80)])
         except socket.gaierror:
             return {'spdr_state': CONN_DISCARD} # Always discard
         for ip in ips:

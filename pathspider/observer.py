@@ -5,7 +5,7 @@ import queue
 import math
 
 from pathspider.base import SHUTDOWN_SENTINEL
-from pathspider.observer.base import BasicChain
+from pathspider.chains.basic import BasicChain
 
 def _flow4_ids(ip):
     # Only import this when needed
@@ -419,6 +419,10 @@ class Observer:
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 
-def simple_observer(lturi):
-    return Observer(lturi,
-                    chains=[BasicChain])
+class DummyObserver: # pylint: disable=R0903
+    def __init__(self):
+        pass
+
+    def run_flow_enqueuer(self, flowqueue, irqueue=None): # pylint: disable=R0201
+        irqueue.get()
+        flowqueue.put(SHUTDOWN_SENTINEL)

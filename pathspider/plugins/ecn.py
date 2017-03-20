@@ -5,11 +5,11 @@ import pathspider
 from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.sync import SynchronizedSpider
-from pathspider.observer.base import BasicChain
-from pathspider.observer.tcp import TCPChain
-from pathspider.observer.tcp import TCP_SAE
-from pathspider.observer.tcp import TCP_SAEC
-from pathspider.observer.ecn import ECNChain
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.tcp import TCPChain
+from pathspider.chains.tcp import TCP_SAE
+from pathspider.chains.tcp import TCP_SAEC
+from pathspider.chains.ecn import ECNChain
 
 
 class ECN(SynchronizedSpider, PluggableSpider):

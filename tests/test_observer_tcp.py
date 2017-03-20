@@ -8,10 +8,10 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer import BasicChain
-from pathspider.observer.tcp import TCPChain
-from pathspider.observer.tcp import TCP_SYN
-from pathspider.observer.tcp import TCP_ACK
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.tcp import TCPChain
+from pathspider.chains.tcp import TCP_SYN
+from pathspider.chains.tcp import TCP_ACK
 
 def test_observer_tcp():
     try:

@@ -7,8 +7,8 @@ import nose
 
 from pathspider.base import SHUTDOWN_SENTINEL
 
-from pathspider.observer.tcp import TCP_SYN
-from pathspider.observer.tcp import TCP_SA
+from pathspider.chains.tcp import TCP_SYN
+from pathspider.chains.tcp import TCP_SA
 from pathspider.plugins.tfo import TFO
 
 class FakeTFOArgs:

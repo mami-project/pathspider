@@ -1,5 +1,5 @@
 
-from pathspider.observer.base import Chain
+from pathspider.chains.base import Chain
 
 class DNSChain(Chain):
 

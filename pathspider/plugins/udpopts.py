@@ -9,8 +9,8 @@ from scapy.all import RandShort  # pylint: disable=E0611
 import pathspider
 from pathspider.base import PluggableSpider
 from pathspider.forge import ForgeSpider
-from pathspider.observer.base import BasicChain
-from pathspider.observer.dns import DNSChain
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.dns import DNSChain
 
 class UDPOpts(ForgeSpider, PluggableSpider):
 

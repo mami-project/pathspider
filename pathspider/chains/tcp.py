@@ -1,5 +1,5 @@
 
-from pathspider.observer.base import Chain
+from pathspider.chains.base import Chain
 
 TCP_CWR = 0x80
 TCP_ECE = 0x40

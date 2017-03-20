@@ -6,10 +6,10 @@ import pathspider
 from pathspider.base import CONN_OK
 from pathspider.base import PluggableSpider
 from pathspider.sync import SynchronizedSpider
-from pathspider.observer.base import BasicChain
-from pathspider.observer.tcp import TCPChain
-from pathspider.observer.dscp import DSCPChain
-from pathspider.observer.dns import DNSChain
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.tcp import TCPChain
+from pathspider.chains.dscp import DSCPChain
+from pathspider.chains.dns import DNSChain
 
 class DSCP(SynchronizedSpider, PluggableSpider):
 

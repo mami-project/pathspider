@@ -8,8 +8,8 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer import BasicChain
-from pathspider.observer.icmp import ICMPChain
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.icmp import ICMPChain
 
 def test_observer_icmp_unreachable():
     try:

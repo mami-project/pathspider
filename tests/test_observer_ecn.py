@@ -8,8 +8,8 @@ import nose
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.observer import Observer
 
-from pathspider.observer.tcp import TCP_SEC
-from pathspider.observer.tcp import TCP_SAE
+from pathspider.chains.tcp import TCP_SEC
+from pathspider.chains.tcp import TCP_SAE
 from pathspider.plugins.ecn import ECN
 
 class FakeECNArgs:

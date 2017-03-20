@@ -14,9 +14,9 @@ from pathspider.helpers.dns import connect_dns_tcp
 from pathspider.helpers.dns import PSDNSRecord
 from pathspider.helpers.http import connect_http
 from pathspider.helpers.http import connect_https
-from pathspider.observer.base import BasicChain
-from pathspider.observer.tcp import TCPChain
-from pathspider.observer.tfo import TFOChain
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.tcp import TCPChain
+from pathspider.chains.tfo import TFOChain
 
 CURLOPT_TCP_FASTOPEN = 244
 

@@ -8,8 +8,8 @@ import nose
 
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.base import QUEUE_SIZE
+from pathspider.chains.basic import BasicChain
 from pathspider.observer import Observer
-from pathspider.observer import simple_observer
 
 def _test_observer(lturi):
     try:
@@ -19,7 +19,7 @@ def _test_observer(lturi):
 
     logging.getLogger().setLevel(logging.INFO)
 
-    o = simple_observer(lturi)
+    o = Observer(lturi, chains=[BasicChain])
     q = queue.Queue()
     t = threading.Thread(target=o.run_flow_enqueuer,
                          args=(q,),

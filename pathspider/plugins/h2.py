@@ -7,8 +7,8 @@ from pathspider.base import CONN_OK
 from pathspider.desync import DesynchronizedSpider
 from pathspider.helpers.http import connect_http
 from pathspider.helpers.http import connect_https
-from pathspider.observer.base import BasicChain
-from pathspider.observer.tcp import TCPChain
+from pathspider.chains.basic import BasicChain
+from pathspider.chains.tcp import TCPChain
 
 class H2(DesynchronizedSpider, PluggableSpider):
 

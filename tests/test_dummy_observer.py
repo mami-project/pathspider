@@ -3,13 +3,13 @@ import multiprocessing as mp
 
 from pathspider.base import QUEUE_SIZE
 from pathspider.base import SHUTDOWN_SENTINEL
-from pathspider.observer.dummy import Observer
+from pathspider.observer import DummyObserver
 
 def test_dummy_observer():
     flowqueue = mp.Queue(QUEUE_SIZE)
     observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
 
-    observer = Observer()
+    observer = DummyObserver()
     observer_process = mp.Process(
         args=(flowqueue,
               observer_shutdown_queue),

@@ -211,8 +211,8 @@ class Spider:
             return Observer(self.libtrace_uri,
                             chains=self.chains) # pylint: disable=no-member
         else:
-            from pathspider.observer.dummy import Observer
-            return Observer()
+            from pathspider.observer import DummyObserver
+            return DummyObserver()
 
     def _key(self, obj):
         if self.server_mode:

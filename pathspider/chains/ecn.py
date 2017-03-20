@@ -1,6 +1,6 @@
 
-from pathspider.observer.base import Chain
-from pathspider.observer.tcp import TCP_SYN
+from pathspider.chains.base import Chain
+from pathspider.chains.tcp import TCP_SYN
 
 class ECNChain(Chain):
 

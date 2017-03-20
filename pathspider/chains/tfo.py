@@ -1,10 +1,10 @@
 
-from pathspider.observer.base import Chain
-from pathspider.observer.tcp import TO_EXPA
-from pathspider.observer.tcp import TO_EXPB
-from pathspider.observer.tcp import TO_EXP_FASTOPEN
-from pathspider.observer.tcp import TO_FASTOPEN
-from pathspider.observer.tcp import tcp_options
+from pathspider.chains.base import Chain
+from pathspider.chains.tcp import tcp_options
+from pathspider.chains.tcp import TO_EXPA
+from pathspider.chains.tcp import TO_EXPB
+from pathspider.chains.tcp import TO_EXP_FASTOPEN
+from pathspider.chains.tcp import TO_FASTOPEN
 
 class TFOChain(Chain):
 

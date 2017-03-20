@@ -1,7 +1,5 @@
 
-class Chain:
-    def new_flow(self, rec, ip):
-        raise NotImplementedError("Cannot create a new flow with an abstract Observer chain")
+from pathspider.chains.base import Chain
 
 class BasicChain(Chain):
 
