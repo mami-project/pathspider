@@ -72,8 +72,8 @@ def tcp_options(tcp):
     Parses and extracts TCP options from a python-libtrace TCP object.
 
     .. warning:: This is a pure Python implementation of a TCP options parser
-		 and does not benefit from the speed advantage generally
-		 realised by calling to libtrace functions written in C through
+        	 and does not benefit from the speed advantage generally
+        	 realised by calling to libtrace functions written in C through
                  python-libtrace.
 
     :param tcp: The TCP header to extract options from
@@ -141,7 +141,7 @@ class TCPChain(Chain):
 
     def new_flow(self, rec, ip): # pylint: disable=W0613
         """
-	For a new flow, all fields will be initialised to ``False`` except
+        For a new flow, all fields will be initialised to ``False`` except
         ``tcp_synflags_*`` which will be set to ``None``.
 
         :param rec: the flow record
@@ -171,7 +171,7 @@ class TCPChain(Chain):
 
         SYN Flags
             This will record the SYN flags observed in each direction. These will
-	    not be recorded again if there are futher segments in the flow with a
+            not be recorded again if there are futher segments in the flow with a
             SYN bit set, the first SYN observed wins.
 
         FIN and RST Flags
@@ -184,9 +184,9 @@ class TCPChain(Chain):
             direction then ``tcp_connected`` will be set to True.
 
         Flow Completion
-	    If a FIN has been observed in one direction and this segment
-	    contains a FIN in the other direction, a flow is considered
-	    complete. If a RST has been observed in either direction, a flow is
+            If a FIN has been observed in one direction and this segment
+            contains a FIN in the other direction, a flow is considered
+            complete. If a RST has been observed in either direction, a flow is
             considered complete.
 
         :param rec: the flow record

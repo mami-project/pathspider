@@ -62,8 +62,8 @@ class DSCPChain(Chain):
         Records DSCP markings from an IPv4 header.
 
         DSCP Marking
-	    For the first TCP SYN packet and the first non-TCP packet or TCP
-	    packet with a payload, the DSCP value will be recorded in the
+            For the first TCP SYN packet and the first non-TCP packet or TCP
+            packet with a payload, the DSCP value will be recorded in the
             relevant field.
 
         :param rec: the flow record
@@ -84,8 +84,8 @@ class DSCPChain(Chain):
         Records DSCP markings from an IPv6 header.
 
         DSCP Marking
-	    For the first TCP SYN packet and the first non-TCP packet or TCP
-	    packet with a payload, the DSCP value will be recorded in the
+            For the first TCP SYN packet and the first non-TCP packet or TCP
+            packet with a payload, the DSCP value will be recorded in the
             relevant field.
 
         :param rec: the flow record

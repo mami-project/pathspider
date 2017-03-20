@@ -90,7 +90,7 @@ class ECNChain(Chain):
         :type rec: dict
         :param ip: the IPv4 packet that was observed to be part of this flow
         :type ip: plt.ip
-	:param rev: True if the packet was in the reverse direction, False if
+        :param rev: True if the packet was in the reverse direction, False if
                     in the forward direction
         :type rev: bool
         :return: Always ``True``
@@ -111,7 +111,7 @@ class ECNChain(Chain):
         :type rec: dict
         :param ip: the IPv6 packet that was observed to be part of this flow
         :type ip: plt.ip6
-	:param rev: True if the packet was in the reverse direction, False if
+        :param rev: True if the packet was in the reverse direction, False if
                     in the forward direction
         :type rev: bool
         :return: Always ``True``

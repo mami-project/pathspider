@@ -18,15 +18,15 @@ class Chain:
 
     def new_flow(self, rec, ip):
         """
-	This function is called for every new flow to initialise a flow record
+        This function is called for every new flow to initialise a flow record
         with the fields that will be used by this chain. It is recommended to
-	initialise all fields to None until other functions have set values for
-	them to make clear which fields are set by this chain and to avoid key
+        initialise all fields to None until other functions have set values for
+        them to make clear which fields are set by this chain and to avoid key
         errors later.
 
         :param rec: the flow record
         :type rec: dict
-	:param ip: the IP or IPv6 packet that triggered the creation of a new
+        :param ip: the IP or IPv6 packet that triggered the creation of a new
                    flow record
         :type ip: plt.ip or plt.ip6
         """

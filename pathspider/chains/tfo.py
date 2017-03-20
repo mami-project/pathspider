@@ -88,21 +88,21 @@ class TFOChain(Chain):
             IANA assigned TCP option number or one of the TCP Option Experiment
             option numbers with the TCP Option Experiment ID used by TCP Fast
             Open early in its standardisiation. If an option is found, the
-	    method by which it was identified will be recorded in the
-	    ``tfo_synkind`` field for the forward direction and ``tfo_ackkind``
+            method by which it was identified will be recorded in the
+            ``tfo_synkind`` field for the forward direction and ``tfo_ackkind``
             field for the reverse direction.
 
         TCP Fast Open Cookie Length
             The length of the cookies observed on TCP options will be recorded
-	    in the ``tfo_synclen`` field for the forward direction and
+            in the ``tfo_synclen`` field for the forward direction and
             ``tfo_ackclen`` for the reverse direction. If no Fast Open option
             is found, this will remain at 0 when the flow is complete.
 
         Acknowledgement of SYN data
-	    The length of the data on the SYN in the forward direction will be
-	    recorded in the ``tfo_dlen`` field. The TCP sequence number for the
-	    SYN in the forward direction will be recorded in ``tfo_seq`` field
-	    and the TCP acknowledgement number for the SYN in the reverse
+            The length of the data on the SYN in the forward direction will be
+            recorded in the ``tfo_dlen`` field. The TCP sequence number for the
+            SYN in the forward direction will be recorded in ``tfo_seq`` field
+            and the TCP acknowledgement number for the SYN in the reverse
             direction will be recorded in the ``tfo_ack`` field.
 
         :param rec: the flow record

@@ -58,7 +58,7 @@ class ICMPChain(Chain):
         Records ICMPv4 details.
 
         ICMPv4 Unreachable Messages
-	    Sets ``icmp_unreachable`` to ``True`` if an ICMP Unreachable
+            Sets ``icmp_unreachable`` to ``True`` if an ICMP Unreachable
             message is seen in the reverse direction.
 
         :param rec: the flow record
@@ -69,7 +69,7 @@ class ICMPChain(Chain):
         :param q: the ICMP quotation of the packet that triggered this message
                   (if any)
         :type q: plt.ip
-	:param rev: ``True`` if the packet was in the reverse direction,
+        :param rev: ``True`` if the packet was in the reverse direction,
                     ``False`` if in the forward direction
         :type rev: bool
         :return: ``False`` if an ICMP unreachable message has been observed,
@@ -86,7 +86,7 @@ class ICMPChain(Chain):
         Records ICMPv6 details.
 
         ICMPv6 Unreachable Messages
-	    Sets ``icmp_unreachable`` to ``True`` if an ICMP Unreachable
+            Sets ``icmp_unreachable`` to ``True`` if an ICMP Unreachable
             message is seen in the reverse direction.
 
         :param rec: the flow record
@@ -97,10 +97,10 @@ class ICMPChain(Chain):
         :param q: the ICMP quotation of the packet that triggered this message
                   (if any)
         :type q: plt.ip
-	:param rev: ``True`` if the packet was in the reverse direction,
+        :param rev: ``True`` if the packet was in the reverse direction,
                     ``False`` if in the forward direction
         :type rev: bool
-	:return: ``False`` if an ICMP unreachable message has been observed,
+        :return: ``False`` if an ICMP unreachable message has been observed,
                  otherwise ``True``
         :rtype: bool
         """
