@@ -4,7 +4,6 @@ from io import BytesIO
 import pycurl
 
 from pathspider.base import CONN_OK
-from pathspider.base import CONN_TIMEOUT
 from pathspider.base import CONN_FAILED
 
 def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
@@ -19,10 +18,11 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
     if curlopts is None:
         curlopts = {}
 
-    if ":" in job['dip']:
-        curlopts[pycurl.INTERFACE] = source[1]
-    else:
-        curlopts[pycurl.INTERFACE] = source[0]
+    if source is not None:
+        if ":" in job['dip']:
+            curlopts[pycurl.INTERFACE] = source[1]
+        else:
+            curlopts[pycurl.INTERFACE] = source[0]
 
     if pycurl.URL not in curlopts:
         if ':' in job['dip']:
@@ -68,11 +68,11 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
             'sp': sp,
             'spdr_state': CONN_OK,
             'http_response_code': code,
-            'http_response_header': header.getvalue().decode('utf-8'),
-            'http_response_body': body.getvalue().decode('utf-8'),
+            'http_response_header': header.getvalue(),
+            'http_response_body': body.getvalue(),
             'http_info': info,
         }
-    except OSError:
+    except pycurl.error: # TODO: Catch timeout seperately
         return {'spdr_state': CONN_FAILED, 'sp': 0}
 
 def connect_https(source, job, conn_timeout, curlopts=None, curlinfos=None):

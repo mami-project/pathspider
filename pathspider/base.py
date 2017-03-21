@@ -136,6 +136,13 @@ class Spider:
 
         self.__logger = logging.getLogger('pathspider')
 
+        if hasattr(self.args, 'connect') and self.args.connect.startswith('tor'):
+            logging.getLogger("stem").setLevel(logging.ERROR)
+            import stem.control
+            self.controller = stem.control.Controller.from_port()
+            self.controller.authenticate()
+
+
     def configurator(self):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
 
@@ -295,7 +302,10 @@ class Spider:
         Thread to merge results from the workers and the observer.
         """
 
-        merging_flows = True
+        if len(self.chains) > 0:
+            merging_flows = True
+        else:
+            merging_flows = False
         merging_results = True
 
         while self.running and (merging_results or merging_flows):
