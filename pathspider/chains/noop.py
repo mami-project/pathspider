@@ -17,7 +17,7 @@ class NoOpChain(Chain):
     for the purpose of documentation and testing.
     """
 
-    def new_flow(self, rec, ip): # pylint: disable=W0613
+    def new_flow(self, rec, ip): # pylint: disable=unused-argument
         """
         This function is called for every new flow to initialise a flow record
         with the fields that will be used by this chain. It is recommended to
@@ -35,7 +35,7 @@ class NoOpChain(Chain):
         """
         return True
 
-    def ip4(self, rec, ip, rev):
+    def ip4(self, rec, ip, rev): # pylint: disable=unused-argument
         """
         This function is called for every new IPv4 packet seen. It can be used
         to record details for fields present in the IPv4 header.
@@ -54,7 +54,7 @@ class NoOpChain(Chain):
 
         return True
 
-    def ip6(self, rec, ip6, rev):
+    def ip6(self, rec, ip6, rev): # pylint: disable=unused-argument
         """
         This function is called for every new IPv6 packet seen. It can be used
         to record details for fields present in the IPv6 header.
@@ -73,7 +73,7 @@ class NoOpChain(Chain):
 
         return True
 
-    def icmp4(self, rec, ip, q, rev):
+    def icmp4(self, rec, ip, q, rev): # pylint: disable=unused-argument
         """
         This function is called for every new ICMPv4 packet seen. It can be
         used to record details for fields present in the ICMPv4 header or
@@ -102,7 +102,7 @@ class NoOpChain(Chain):
 
         return True
 
-    def icmp6(self, rec, ip6, q, rev):
+    def icmp6(self, rec, ip6, q, rev): # pylint: disable=unused-argument
         """
         This function is called for every new ICMPv6 packet seen. It can be
         used to record details for fields present in the ICMPv6 header or
@@ -131,7 +131,7 @@ class NoOpChain(Chain):
 
         return True
 
-    def tcp(self, rec, tcp, rev):
+    def tcp(self, rec, tcp, rev): # pylint: disable=unused-argument
         """
         This function is called for every new TCP packet seen. It can be used
         to record details for fields present in the TCP header.
@@ -150,7 +150,7 @@ class NoOpChain(Chain):
 
         return True
 
-    def udp(self, rec, udp, rev):
+    def udp(self, rec, udp, rev): # pylint: disable=unused-argument
         """
         This function is called for every new UDP packet seen. It can be used
         to record details for fields present in the UDP header.
