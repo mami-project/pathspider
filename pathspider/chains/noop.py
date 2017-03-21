@@ -80,8 +80,8 @@ class NoOpChain(Chain):
         quotation.
 
         .. note:: The IP header is passed as the argument, not the ICMP header
-        	  as it may be desirable to access fields in the IP header, for
-        	  instance to determine the router or host that sent the ICMP
+                  as it may be desirable to access fields in the IP header, for
+                  instance to determine the router or host that sent the ICMP
                   message
 
         :param rec: the flow record
@@ -109,8 +109,8 @@ class NoOpChain(Chain):
         quotation.
 
         .. note:: The IP header is passed as the argument, not the ICMP header
-        	  as it may be desirable to access fields in the IP header, for
-        	  instance to determine the router or host that sent the ICMP
+                  as it may be desirable to access fields in the IP header, for
+                  instance to determine the router or host that sent the ICMP
                   message
 
         :param rec: the flow record

@@ -72,8 +72,8 @@ def tcp_options(tcp):
     Parses and extracts TCP options from a python-libtrace TCP object.
 
     .. warning:: This is a pure Python implementation of a TCP options parser
-        	 and does not benefit from the speed advantage generally
-        	 realised by calling to libtrace functions written in C through
+                 and does not benefit from the speed advantage generally
+                 realised by calling to libtrace functions written in C through
                  python-libtrace.
 
     :param tcp: The TCP header to extract options from
