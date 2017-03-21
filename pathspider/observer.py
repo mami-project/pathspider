@@ -6,6 +6,7 @@ import math
 
 from pathspider.base import SHUTDOWN_SENTINEL
 
+
 def _flow4_ids(ip):
     # FIXME keep map of fragment IDs to keys
 
@@ -19,8 +20,10 @@ def _flow4_ids(ip):
     protos_with_ports = {6, 17, 132, 136}
     if ip.proto in protos_with_ports:
         # key includes ports
-        fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10] + ip.payload[0:4]
-        rid = ip.dst_prefix.addr + ip.src_prefix.addr + ip.data[9:10] + ip.payload[2:4] + ip.payload[0:2]
+        fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[
+            9:10] + ip.payload[0:4]
+        rid = ip.dst_prefix.addr + ip.src_prefix.addr + ip.data[
+            9:10] + ip.payload[2:4] + ip.payload[0:2]
     else:
         # no ports, just 3-tuple
         fid = ip.src_prefix.addr + ip.dst_prefix.addr + ip.data[9:10]
@@ -31,6 +34,7 @@ def _flow4_ids(ip):
         return (base64.b64encode(rid), base64.b64encode(fid))
     else:
         return (base64.b64encode(fid), base64.b64encode(rid))
+
 
 def _flow6_ids(ip6):
     icmp_with_payload = {1, 2, 3, 4}
@@ -43,8 +47,10 @@ def _flow6_ids(ip6):
     protos_with_ports = {6, 17, 132, 136}
     if ip6.proto in protos_with_ports:
         # key includes ports
-        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7] + ip6.payload[0:4]
-        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[6:7] + ip6.payload[2:4] + ip6.payload[0:2]
+        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[
+            6:7] + ip6.payload[0:4]
+        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[
+            6:7] + ip6.payload[2:4] + ip6.payload[0:2]
     else:
         # no ports, just 3-tuple
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7]
@@ -56,7 +62,9 @@ def _flow6_ids(ip6):
     else:
         return (base64.b64encode(fid), base64.b64encode(rid))
 
+
 PacketClockTimer = collections.namedtuple("PacketClockTimer", ("time", "fn"))
+
 
 class Observer:
     """
@@ -66,10 +74,7 @@ class Observer:
     data to be associated with each flow.
     """
 
-    def __init__(self, lturi,
-                 chains=None,
-                 idle_timeout=30,
-                 expiry_timeout=5):
+    def __init__(self, lturi, chains=None, idle_timeout=30, expiry_timeout=5):
         """
         Create an Observer.
 
@@ -85,18 +90,18 @@ class Observer:
         self._irq_fired = False
 
         # Libtrace initialization
-        self._trace = libtrace.trace(lturi) # pylint: disable=no-member
+        self._trace = libtrace.trace(lturi)  # pylint: disable=no-member
         self._trace.start()
-        self._pkt = libtrace.packet() # pylint: disable=no-member
+        self._pkt = libtrace.packet()  # pylint: disable=no-member
 
         # Chains of functions to evaluate
         chains = chains if chains is not None else []
         self._chains = [chain() for chain in chains]
 
         # Packet timer and bintables
-        self._ptq = 0                   # current packet timer, quantized
-        self._idle_bins = {}            # map bin number to set of fids
-        self._expiry_bins = {}          # map bin number to set of fids
+        self._ptq = 0  # current packet timer, quantized
+        self._idle_bins = {}  # map bin number to set of fids
+        self._expiry_bins = {}  # map bin number to set of fids
         self._idle_timeout = idle_timeout
         self._expiry_timeout = expiry_timeout
         self._bin_quantum = 1
@@ -130,8 +135,9 @@ class Observer:
         return self._irq_fired
 
     def _get_chains(self, name):
-        return [c.__getattribute__(name) for c in self._chains
-                if hasattr(c, name)]
+        return [
+            c.__getattribute__(name) for c in self._chains if hasattr(c, name)
+        ]
 
     def _next_packet(self):
         # Import only when needed
@@ -168,7 +174,7 @@ class Observer:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip, rev=rev)
             if self._pkt.icmp:
                 for fn in self._get_chains("icmp4"):
-                    q = libtrace.ip(self._pkt.ip.icmp.data[8:]) # pylint: disable=no-member
+                    q = libtrace.ip(self._pkt.ip.icmp.data[8:])  # pylint: disable=no-member
                     keep_flow = keep_flow and fn(rec, self._pkt.ip, q, rev=rev)
 
         elif self._pkt.ip6:
@@ -176,8 +182,9 @@ class Observer:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
             if self._pkt.icmp6:
                 for fn in self._get_chains("icmp6"):
-                    q = libtrace.ip(self._pkt.ip.icmp6.data[8:]) # pylint: disable=no-member
-                    keep_flow = keep_flow and fn(rec, self._pkt.ip6, q, rev=rev)
+                    q = libtrace.ip(self._pkt.ip.icmp6.data[8:])  # pylint: disable=no-member
+                    keep_flow = keep_flow and fn(
+                        rec, self._pkt.ip6, q, rev=rev)
 
         # run transport header chains
         if self._pkt.tcp:
@@ -260,16 +267,17 @@ class Observer:
 
         # update idle bin if we're not expiring
         if active:
-            new_idle_bin = math.ceil((rec['pkt_last'] + self._idle_timeout) / self._bin_quantum) * self._bin_quantum
+            new_idle_bin = math.ceil((rec['pkt_last'] + self._idle_timeout) /
+                                     self._bin_quantum) * self._bin_quantum
 
             if new_idle_bin > rec["_idle_bin"]:
 
                 if rec['_idle_bin'] in self._idle_bins:
-                    self._idle_bins[rec['_idle_bin']] -= set((fid,))
+                    self._idle_bins[rec['_idle_bin']] -= set((fid, ))
                 if new_idle_bin in self._idle_bins:
-                    self._idle_bins[new_idle_bin] |= set((fid,))
+                    self._idle_bins[new_idle_bin] |= set((fid, ))
                 else:
-                    self._idle_bins[new_idle_bin] = set((fid,))
+                    self._idle_bins[new_idle_bin] = set((fid, ))
 
                 rec['_idle_bin'] = new_idle_bin
 
@@ -285,7 +293,7 @@ class Observer:
 
         # remove flow ID from idle bin
         rec = self._active[fid]
-        self._idle_bins[rec['_idle_bin']] -= set((fid,))
+        self._idle_bins[rec['_idle_bin']] -= set((fid, ))
 
         del rec['_idle_bin']
 
@@ -294,13 +302,14 @@ class Observer:
         del self._active[fid]
 
         # assign expiry bin
-        expiry_bin = math.ceil((self._ptq + self._expiry_timeout) / self._bin_quantum) * self._bin_quantum
+        expiry_bin = math.ceil((self._ptq + self._expiry_timeout) /
+                               self._bin_quantum) * self._bin_quantum
         #self._logger.debug("Completing flow "+str(fid)+" at "+str(self._ptq)+" to expire "+str(expiry_bin)+" (in "+str(expiry_bin-self._ptq)+"s)")
 
         if expiry_bin in self._expiry_bins:
-            self._expiry_bins[expiry_bin] |= set((fid,))
+            self._expiry_bins[expiry_bin] |= set((fid, ))
         else:
-            self._expiry_bins[expiry_bin] = set((fid,))
+            self._expiry_bins[expiry_bin] = set((fid, ))
 
     def _emit_flow(self, rec):
         self._emitted.append(rec)
@@ -323,8 +332,9 @@ class Observer:
             return
 
         # advance quantum
-        for bint in range(self._ptq + self._bin_quantum, next_ptq + self._bin_quantum, self._bin_quantum):
-            self._logger.debug("tick: "+str(bint))
+        for bint in range(self._ptq + self._bin_quantum,
+                          next_ptq + self._bin_quantum, self._bin_quantum):
+            self._logger.debug("tick: " + str(bint))
 
             # process idle
             if bint in self._idle_bins:
@@ -404,21 +414,19 @@ class Observer:
                     break
 
         # log observer info on shutdown
-        self._logger.info(
-            ("processed %u packets "
-             "(%u dropped, %u short, %u non-ip) "
-             "into %u flows (%u ignored)"),
-            self._ct_pkt, self._trace.pkt_drops(),
-            self._ct_shortkey, self._ct_nonip,
-            self._ct_flow, self._ct_ignored
-        )
+        self._logger.info(("processed %u packets "
+                           "(%u dropped, %u short, %u non-ip) "
+                           "into %u flows (%u ignored)"), self._ct_pkt,
+                          self._trace.pkt_drops(), self._ct_shortkey,
+                          self._ct_nonip, self._ct_flow, self._ct_ignored)
 
         flowqueue.put(SHUTDOWN_SENTINEL)
 
-class DummyObserver: # pylint: disable=R0903
+
+class DummyObserver:  # pylint: disable=R0903
     def __init__(self):
         pass
 
-    def run_flow_enqueuer(self, flowqueue, irqueue=None): # pylint: disable=R0201
+    def run_flow_enqueuer(self, flowqueue, irqueue=None):  # pylint: disable=R0201
         irqueue.get()
         flowqueue.put(SHUTDOWN_SENTINEL)
