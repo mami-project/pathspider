@@ -1,6 +1,5 @@
 
 import pycurl
-import stem.control
 
 import pathspider.base
 from pathspider.base import PluggableSpider

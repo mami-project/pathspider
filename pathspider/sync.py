@@ -1,4 +1,3 @@
-from datetime import datetime
 import logging
 import queue
 import threading
@@ -56,11 +55,10 @@ class SynchronizedSpider(Spider):
         for config in range(0, len(self.configurations)):
             self.__semaphores[config][0].release_n(self.worker_count)
 
-    def connect(self, job, config):
+    def connect(self, job, config): # pylint: disable=unused-argument
         """
-        Performs a TCP connection.
+        Performs the requested connection.
         """
-        logger = logging.getLogger('dscp')
 
         if self.args.connect == "tcp":
             rec = connect_tcp(self.source, job, self.args.timeout)

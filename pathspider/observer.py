@@ -5,12 +5,8 @@ import queue
 import math
 
 from pathspider.base import SHUTDOWN_SENTINEL
-from pathspider.chains.basic import BasicChain
 
 def _flow4_ids(ip):
-    # Only import this when needed
-    import plt as libtrace
-
     # FIXME keep map of fragment IDs to keys
 
     icmp_with_payload = {3, 4, 5, 11, 12}

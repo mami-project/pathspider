@@ -37,7 +37,7 @@ class TFO(DesynchronizedSpider, PluggableSpider):
         else:
             raise RuntimeError("Unknown connection mode specified")
 
-    def conn_tfo(self, job, config):
+    def conn_tfo(self, job, config): # pylint: disable=unused-argument
         if self.args.connect == "http":
             curlopts = {CURLOPT_TCP_FASTOPEN: 1}
             return connect_http(self.source, job, self.args.timeout, curlopts)

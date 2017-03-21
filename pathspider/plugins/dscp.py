@@ -1,6 +1,5 @@
 import logging
 import subprocess
-import socket
 
 import pathspider.base
 from pathspider.base import CONN_OK

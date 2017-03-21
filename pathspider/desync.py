@@ -2,7 +2,6 @@ import time
 import logging
 import queue
 import uuid
-from datetime import datetime
 
 from pathspider.base import Spider
 from pathspider.base import CONN_DISCARD

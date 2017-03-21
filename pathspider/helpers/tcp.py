@@ -1,6 +1,5 @@
 
 import socket
-from io import BytesIO
 
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_TIMEOUT
