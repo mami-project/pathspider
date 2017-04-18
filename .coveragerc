@@ -2,7 +2,7 @@
 concurrency = multiprocessing
 include =
  pathspider/*
-exclude =
+omit =
  pathspider/tests/*
 
 [report]
