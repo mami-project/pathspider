@@ -4,10 +4,12 @@ import sys
 import logging
 
 import pathspider.cmd.measure
+import pathspider.cmd.test
 import pathspider.cmd.wizard
 
 cmds = [
     pathspider.cmd.measure,
+    pathspider.cmd.test,
     pathspider.cmd.wizard,
 ]
 
@@ -43,7 +45,6 @@ def handle_args(argv):
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
-
 
     # If it's a valid command, run it, or help the user if not
     if hasattr(args, 'cmd'):

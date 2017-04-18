@@ -18,6 +18,4 @@ def test_plugin_load():
         assert issubclass(plugin, pathspider.base.Spider)
         names.add(plugin.__name__)
 
-    print("Found plugins: {}".format(repr(names)))
-
     assert names == expected_names
