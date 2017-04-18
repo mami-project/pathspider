@@ -13,6 +13,7 @@ class TestICMPChain(ChainTestCase):
     # 3. Reply followed by unreachable
     # 4. Something with IPv6
     # 5. Other ICMP messages that shouldn't be unreachable
+    # 6. An ICMP unreachable message with no payload
     #
     # TODO: Drop the BasicChain from these tests once we have these flows.
 
