@@ -1,7 +1,7 @@
 
 from pathspider.tests.chains import ChainTestCase
 
-class ObserverMatchingTest(ChainTestCase):
+class TestObserverMatching(ChainTestCase):
 
     def test_observer_random_flowcount(self):
         test_trace = "random.pcap"
