@@ -85,10 +85,6 @@ def tcp_options(tcp):
     optbytes = tcp.data[20:tcp.doff*4]
     opthash = {}
 
-    # shortcut empty options
-    if len(optbytes) == 0:
-        return opthash
-
     # parse options in place
     cp = 0
     ncp = 0
