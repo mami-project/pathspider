@@ -140,32 +140,3 @@ class TFOChain(Chain):
 
         # tell observer to keep going
         return True
-
-    # def test_tfocookie(fn=_tfocookie):
-    # TODO: Decide what to do with this test
-    #     """
-    #     Test the _tfocookie() options parser on a static packet dump test file.
-    #     This is used mainly for performance evaluation of the parser for now,
-    #     and does not check for correctness.
-
-    #     """
-    #     import plt as libtrace
-
-    #     lturi = "pcapfile:testdata/tfocookie.pcap"
-    #     trace = libtrace.trace(lturi)
-    #     trace.start()
-    #     pkt = libtrace.packet()
-    #     cookies = 0
-    #     nocookies = 0
-
-    #     while trace.read_packet(pkt):
-    #         if not pkt.tcp:
-    #             continue
-
-    #         # just do the parse
-    #         if fn(pkt.tcp):
-    #             cookies += 1
-    #         else:
-    #             nocookies += 1
-
-    #     print("cookies: %u, nocookies: %u" % (cookies, nocookies))
