@@ -5,7 +5,7 @@ from pathspider.chains.dscp import DSCPChain
 
 class TestDSCPChain(ChainTestCase):
 
-    def test_observer_dscp_tcp_allzero(self):
+    def test_chain_dscp_tcp_allzero(self):
         test_trace = "dscp_tcp_allzero.pcap"
         self.create_observer(test_trace, [DSCPChain])
 
@@ -22,7 +22,7 @@ class TestDSCPChain(ChainTestCase):
         for key in expected_dscp:
             assert flows[0][key] == expected_dscp[key]
 
-    def test_observer_dscp_tcp_fwd3(self):
+    def test_chain_dscp_tcp_fwd3(self):
         test_trace = "dscp_tcp_fwd3.pcap"
         self.create_observer(test_trace, [DSCPChain])
 
@@ -40,7 +40,7 @@ class TestDSCPChain(ChainTestCase):
         for key in expected_dscp:
             assert flows[0][key] == expected_dscp[key]
 
-    def test_observer_dscp_ipv6_tcp_fwd3(self):
+    def test_chain_dscp_ipv6_tcp_fwd3(self):
         test_trace = "dscp_ipv6_tcp_fwd3.pcap"
         self.create_observer(test_trace, [DSCPChain])
 
@@ -58,7 +58,7 @@ class TestDSCPChain(ChainTestCase):
         for key in expected_dscp:
             assert flows[0][key] == expected_dscp[key]
 
-    def test_observer_dscp_udp_allzero(self):
+    def test_chain_dscp_udp_allzero(self):
         test_trace = "dscp_udp_allzero.pcap"
         self.create_observer(test_trace, [DSCPChain])
 
@@ -76,7 +76,7 @@ class TestDSCPChain(ChainTestCase):
         for key in expected_dscp:
             assert flows[0][key] == expected_dscp[key]
 
-    def test_observer_dscp_udp_fwd3(self):
+    def test_chain_dscp_udp_fwd3(self):
         test_trace = "dscp_udp_fwd3.pcap"
         self.create_observer(test_trace, [DSCPChain])
 

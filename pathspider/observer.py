@@ -41,7 +41,7 @@ def _flow6_ids(ip6):
     quotation_fid = False
 
     if ip6.proto == 58 and ip6.icmp6.type in icmp_with_payload:
-        ip6 = ip6.icmp.payload
+        ip6 = ip6.icmp6.payload
         quotation_fid = True
 
     protos_with_ports = {6, 17, 132, 136}
