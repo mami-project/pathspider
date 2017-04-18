@@ -4,11 +4,13 @@ import sys
 import logging
 
 import pathspider.cmd.measure
+import pathspider.cmd.observe
 import pathspider.cmd.test
 import pathspider.cmd.wizard
 
 cmds = [
     pathspider.cmd.measure,
+    pathspider.cmd.observe,
     pathspider.cmd.test,
     pathspider.cmd.wizard,
 ]
