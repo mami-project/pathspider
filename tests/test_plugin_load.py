@@ -1,8 +1,8 @@
 
 import nose
 
-import pathspider.run
 import pathspider.base
+import pathspider.cmd.measure
 
 def test_plugin_load():
     try:
@@ -14,7 +14,7 @@ def test_plugin_load():
     expected_names = set(['TFO', 'ECN', 'DSCP', 'UDPZero', 'UDPOpts', 'DNSResolv', 'H2'])
     names = set()
 
-    for plugin in pathspider.run.plugins:
+    for plugin in pathspider.cmd.measure.plugins:
         assert issubclass(plugin, pathspider.base.Spider)
         names.add(plugin.__name__)
 

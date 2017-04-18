@@ -1,5 +1,6 @@
 [MESSAGES CONTROL]
 disable=C0103
 
-[typecheck]
+[TYPECHECK]
 generated-members=pycurl.*
+extension-pkg-whitelist=PyQt5

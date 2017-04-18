@@ -1,5 +1,5 @@
 
-from pathspider.standalone import job_feeder
+from pathspider.cmd.measure import job_feeder
 
 class FakeSpider:
     def __init__(self):
@@ -19,8 +19,6 @@ def test_job_feeder_webtest():
 
     job_feeder("examples/webtest.ndjson", spider)
     assert spider.was_shutdown
-    with open("/tmp/jobs.txt", "w") as output:
-        output.write(repr(spider.jobs))
     assert spider.jobs == expected_jobs
 
 def test_job_feeder_webtest_newline():
@@ -31,4 +29,3 @@ def test_job_feeder_webtest_newline():
     job_feeder("tests/testdata/webtest_newline.ndjson", spider)
     assert spider.was_shutdown
     assert spider.jobs == expected_jobs
-
