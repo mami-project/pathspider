@@ -108,3 +108,23 @@ class TestTCPChain(ChainTestCase):
 
         for key in expected_tcp:
             assert flows[0][key] == expected_tcp[key]
+
+    def test_chain_tcp_ipv4_only_rst(self):
+        test_trace = "tcp_ipv4_only_rst.pcap"
+        self.create_observer(test_trace, [TCPChain])
+
+        expected_tcp = {
+            'tcp_synflags_fwd': None,
+            'tcp_synflags_rev': None,
+            'tcp_connected': False,
+            'tcp_fin_fwd': False,
+            'tcp_fin_rev': False,
+            'tcp_rst_fwd': True,
+            'tcp_rst_rev': False,
+        }
+
+        flows = self.run_observer()
+        assert len(flows) == 1
+
+        for key in expected_tcp:
+            assert flows[0][key] == expected_tcp[key]
