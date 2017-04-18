@@ -49,7 +49,7 @@ setup(
     install_requires=install_requires,
     entry_points={
         'console_scripts': [
-            'pathspider=pathspider.run:handle_args_wrapper',
+            'pspdr=pathspider.cmd.base:handle_args_wrapper',
         ],
     },
 )
