@@ -5,7 +5,7 @@ from pathspider.chains.basic import BasicChain
 
 class TestBasicChain(ChainTestCase):
 
-
+    # TODO: Add tests for UDP/SCTP/UDP-lite/DCCP
 
     def test_chain_basic_ipv4_tcp(self):
         test_trace = "basic_ipv4_tcp.pcap"
