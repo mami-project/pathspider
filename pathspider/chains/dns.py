@@ -60,7 +60,10 @@ class DNSChain(Chain):
         :rtype: bool
         """
 
-        return self._dns_response(rec, tcp, rev)
+        if tcp.payload is not None:
+            return self._dns_response(rec, tcp.payload, rev)
+        else:
+            return True
 
     def udp(self, rec, udp, rev):
         """
@@ -82,14 +85,14 @@ class DNSChain(Chain):
         :rtype: bool
         """
 
-        return self._dns_response(rec, udp, rev)
+        return self._dns_response(rec, udp.payload, rev)
 
-    def _dns_response(self, rec, l4, rev):
+    def _dns_response(self, rec, payload, rev):
         try:
             from pldns import ldns # pylint: disable=E0611
 
             if rev is True:
-                dns = ldns(l4.payload)
+                dns = ldns(payload)
                 if dns.is_ok():
                     if dns.is_response:
                         rec['dns_response_valid'] = True
