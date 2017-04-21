@@ -1,7 +1,6 @@
 
 from pathspider.tests.chains import ChainTestCase
 
-from pathspider.chains.basic import BasicChain
 from pathspider.chains.icmp import ICMPChain
 
 class TestICMPChain(ChainTestCase):
@@ -17,14 +16,76 @@ class TestICMPChain(ChainTestCase):
     #
     # TODO: Drop the BasicChain from these tests once we have these flows.
 
-    def test_icmpchain_unreachable_presence(self):
-        test_trace = "icmp_unreachable.pcap"
-        self.create_observer(test_trace, [BasicChain, ICMPChain])
+    def test_icmp_single_unreachable(self):
+        test_trace = "icmp_single_unreachable.pcap"
+        self.create_observer(test_trace, [ICMPChain])
+
+        expected_icmp = {
+            'icmp_unreachable': True,
+        }
+
         flows = self.run_observer()
+        assert len(flows) == 1
     
-        unreachables = [
-            '172.20.152.190',
-            ]
+        for key in expected_icmp:
+            assert flows[0][key] == expected_icmp[key]
+
+
+    def test_icmp_single_unreachable_nopayload(self):
+        test_trace = "icmp_single_unreachable_nopayload.pcap"
+        self.create_observer(test_trace, [ICMPChain])
+
+        expected_icmp = {
+            'icmp_unreachable': False,
+        }
+
+        flows = self.run_observer()
+        assert len(flows) == 1
     
-        for f in flows:
-            assert f['icmp_unreachable'] == (f['dip'] in unreachables)
+        for key in expected_icmp:
+            assert flows[0][key] == expected_icmp[key]
+
+#    def test_icmp_ipv6_unreachable(self):
+#        test_trace = "icmp_ipv6_unreachable.pcap"
+#        self.create_observer(test_trace, [ICMPChain])
+#
+#        expected_icmp = {
+#            'icmp_unreachable': True,
+#        }
+#
+#        flows = self.run_observer()
+#        assert len(flows) == 1
+#
+#        for key in expected_icmp:
+#            assert flows[0][key] == expected_icmp[key]
+
+
+    def test_icmp_ttl_exceeded(self):
+        test_trace = "icmp_ttl_exceeded.pcap"
+        self.create_observer(test_trace, [ICMPChain])
+
+        expected_icmp = {
+            'icmp_unreachable': False,
+        }
+
+        flows = self.run_observer()
+        assert len(flows) == 1
+
+        for key in expected_icmp:
+            assert flows[0][key] == expected_icmp[key]
+
+    def test_icmp_synack_unreachable(self):
+        test_trace = "icmp_synack_unreachable.pcap"
+        self.create_observer(test_trace, [ICMPChain])
+
+        expected_icmp = {
+            'icmp_unreachable': True,
+        }
+
+        flows = self.run_observer()
+        assert len(flows) == 1
+
+        for key in expected_icmp:
+            assert flows[0][key] == expected_icmp[key]
+
+
