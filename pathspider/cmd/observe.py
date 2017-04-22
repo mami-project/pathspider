@@ -18,10 +18,17 @@ from pathspider.observer import Observer
 
 from pathspider.network import interface_up
 
-plugins = load("pathspider.chains", subclasses=Chain)
+chains = load("pathspider.chains", subclasses=Chain)
 
 def run_observer(args):
     logger = logging.getLogger("pathspider")
+
+    if args.list_chains:
+        print("The following chains are available:\n")
+        for chain in chains:
+            print(chain.__name__.lower()[:-5])
+        print("\nSpider safely!")
+        sys.exit(0)
 
     if not interface_up(args.interface):
         logger.error("The chosen interface is not up! Cannot continue.")
@@ -31,10 +38,10 @@ def run_observer(args):
     logger.info("creating observer...")
 
     chosen_chains = []
-    for chain in args.chains:
-        for plugin in plugins:
-            if chain.lower() + "chain" == plugin.__name__.lower():
-                chosen_chains.append(plugin)
+    for chosen_chain in args.chains:
+        for chain in chains:
+            if chosen_chain.lower() + "chain" == chain.__name__.lower():
+                chosen_chains.append(chain)
 
     if len(args.chains) > len(chosen_chains):
         logger.error("Unable to find one or more of the requested chains.")
