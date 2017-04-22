@@ -4,6 +4,7 @@ import logging
 import json
 import sys
 import threading
+import csv
 
 from straight.plugin import load
 
@@ -34,6 +35,31 @@ def job_feeder(inputfile, spider):
         spider.shutdown()
         logger.debug("job_feeder: stopped")
 
+def job_feeder_csv(inputfile, spider):
+    logger = logging.getLogger("feeder")
+    seen_targets = set()
+    with open(inputfile) as csvfile:
+        reader = csv.reader(csvfile)
+        logger.debug("job_feeder: started")
+        for row in reader:
+            if len(row) == 4:
+                job = {'dip': row[0], 'dp': row[1], 'domain': row[2], 'rank': row[3]}
+                if 'dip' in job.keys():
+                    if job['dip'] in seen_targets:
+                        logger.debug("This target has already had a job submitted, skipping.")
+                        continue
+                    seen_targets.add(job['dip'])
+                spider.add_job(job)
+            else:
+                logger.warning("Unable to read row for a job, skipping...")
+
+        logger.info("job_feeder: all jobs added, waiting for spider to finish")
+        spider.shutdown()
+        logger.debug("job_feeder: stopped")
+
+
+
+
 def run_measurement(args):
     logger = logging.getLogger("pathspider")
 
@@ -54,6 +80,9 @@ def run_measurement(args):
         spider.start()
 
         logger.debug("starting job feeder...")
+        if args.csv_input:
+            job_feeder = job_feeder_csv
+
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
 
         with open(args.output, 'w') as outputfile:
@@ -91,6 +120,8 @@ def register_args(subparsers):
     parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE',
                         help=("A file containing a list of PATHspider jobs. "
                               "Defaults to standard input."))
+    parser.add_argument('--csv-input', action='store_true',
+                        help=("Indicate CSV format."))
     parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',
                         help=("The file to output results data to. "
                               "Defaults to standard output."))
