@@ -13,9 +13,9 @@ def _flow4_ids(ip):
     icmp_with_payload = {3, 4, 5, 11, 12}
     quotation_fid = False
     if ip.proto == 1 and ip.icmp.type in icmp_with_payload:
-        #ip = libtrace.ip(ip.icmp.data[8:]) # pylint: disable=no-member
-        ip = ip.icmp.payload
-        quotation_fid = True
+        if ip.icmp.payload is not None and len(ip.icmp.payload.data) >= 20:
+            ip = ip.icmp.payload
+            quotation_fid = True
 
     protos_with_ports = {6, 17, 132, 136}
     if ip.proto in protos_with_ports:
@@ -41,8 +41,9 @@ def _flow6_ids(ip6):
     quotation_fid = False
 
     if ip6.proto == 58 and ip6.icmp6.type in icmp_with_payload:
-        ip6 = ip6.icmp6.payload
-        quotation_fid = True
+        if ip6.icmp6.payload is not None and len(ip6.icmp6.payload.data) >= 40:
+            ip6 = ip6.icmp6.payload
+            quotation_fid = True
 
     protos_with_ports = {6, 17, 132, 136}
     if ip6.proto in protos_with_ports:
@@ -174,7 +175,7 @@ class Observer:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip, rev=rev)
             if self._pkt.icmp:
                 for fn in self._get_chains("icmp4"):
-                    q = libtrace.ip(self._pkt.ip.icmp.data[8:])  # pylint: disable=no-member
+                    q = self._pkt.icmp.payload # pylint: disable=no-member
                     keep_flow = keep_flow and fn(rec, self._pkt.ip, q, rev=rev)
 
         elif self._pkt.ip6:
@@ -182,7 +183,7 @@ class Observer:
                 keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
             if self._pkt.icmp6:
                 for fn in self._get_chains("icmp6"):
-                    q = libtrace.ip(self._pkt.ip.icmp6.data[8:])  # pylint: disable=no-member
+                    q = self._pkt.icmp6.payload # pylint: disable=no-member
                     keep_flow = keep_flow and fn(
                         rec, self._pkt.ip6, q, rev=rev)
 
