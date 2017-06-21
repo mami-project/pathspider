@@ -14,7 +14,7 @@ from pathspider.network import interface_up
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
-def job_feeder(inputfile, spider):
+def job_feeder_ndjson(inputfile, spider):
     logger = logging.getLogger("feeder")
     seen_targets = set()
     with open(inputfile) as fh:
@@ -82,6 +82,8 @@ def run_measurement(args):
         logger.debug("starting job feeder...")
         if args.csv_input:
             job_feeder = job_feeder_csv
+        else:
+            job_feeder = job_feeder_ndjson
 
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
 
