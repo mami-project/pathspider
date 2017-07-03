@@ -5,6 +5,8 @@
 """
 
 from pathspider.chains.base import Chain
+from pathspider.traceroute_send import INITIAL_SEQ
+from pathspider.traceroute_send import INITIAL_PORT
 
 #: ICMPv4 Message Type - Unreachable
 ICMP4_UNREACHABLE = 3
@@ -27,6 +29,9 @@ ICMP6_TTLEXCEEDED = 3
 ICMP6_PKTTOOBIG = 2
 #: ICMPv6 Message Type - Parameter Problem
 ICMP6_BADIP = 4
+
+
+
 
 class tracerouteChain(Chain):
     """
@@ -57,23 +62,39 @@ class tracerouteChain(Chain):
         :return: Always ``True``
         :rtype: bool
         """
-
-        rec['icmp_unreachable'] = False
-        rec['icmp_ttl_exceeded'] = False
-        rec['ip_ttl'] = 0
-        #rec['sip_origin'] = 0
-        #rec['dip_origin'] = 0
-        #rec['icmp_dip'] = 0
-        rec['ttlexceeded from ip'] = 0  # ip that sent back the ttl exceeded icmp message
+        
+        #rec['Number of hops to reach destination'] = 0
+        rec['ttl_exceeded'] = False
         return True
-
+    
+    
+    
+    def ttl_in_hops(self,ttl_input):
+        
+        if ttl_input > 128:
+            hops = 256 - ttl_input
+        elif ttl_input > 64:
+            hops = 129 - ttl_input
+        elif ttl_input > 32:
+            hops = 65 - ttl_input
+        else:
+            hops = 33 - ttl_input
+        
+        return hops
+    
+    def tcp(self, rec, tcp, rev):
+    
+        """Check if received tcp package from destination matches the sent out one then get number of hops from
+        ack number, since this is one more than the received seq number which indicates the number of hops"""
+        
+        #if rev and rec['Number of hops to reach destination'] == 0: #check if first time we reached destination
+            #rec['Number of hops to reach destination'] = tcp.ack_nbr - (INITIAL_SEQ-2)
+        
+    
     def icmp4(self, rec, ip, q, rev): # pylint: disable=no-self-use,unused-argument
         """
         Records ICMPv4 details.
 
-        ICMPv4 Unreachable Messages
-            Sets ``icmp_unreachable`` to ``True`` if an ICMP Unreachable
-            message is seen in the reverse direction.
 
         :param rec: the flow record
         :type rec: dict
@@ -86,48 +107,34 @@ class tracerouteChain(Chain):
         :param rev: ``True`` if the packet was in the reverse direction,
                     ``False`` if in the forward direction
         :type rev: bool
-        :return: ``True``
-        :rtype: bool
         """
-        
-        # TTL of received package
-        if rev:
-            rec['ip_ttl'] = ip.ttl
-            #rec['icmp_dip'] = str(ip.dst_prefix)
-            rec['received icmp type'] = ip.icmp.type
             
+        
+        if rev and ip.icmp.type == ICMP4_TTLEXCEEDED:
+            rec['ttl_exceeded'] = True
+            
+            box_ip = str(ip.src_prefix)
+            
+            rec['Destination'] = str(ip.icmp.payload.dst_prefix)
 
             
-        else:
-            rec['sent icmp type'] = ip.icmp.type
+            """Identification of hop number via sequence number"""
+            hopnumber = ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)        
             
-        
-        #OR kann man so nicht machen
-        #if rev and ip.icmp.type == (ICMP4_UNREACHABLE or ICMP4_TTLEXCEEDED or ICMP4_SOURCEQUENCH or ICMP4_REDIRECTMSG or ICMP4_BADIP):
-         #   print (ip.icmp.payload)
-        
-        if rev and ip.icmp.type == ICMP4_UNREACHABLE:
-            rec['icmp_unreachable'] = True
-        
-        # when icmp message of type TTL then the encapsulated IP-header can be read out
-        if rev and ip.icmp.type == ICMP4_TTLEXCEEDED:
-            rec['icmp_ttl_exceeded'] = True
-            rec['ttlexceeded from ip'] = str(ip.src_prefix)
-            #rec['original_ttl'] = ip.icmp.payload.ttl
-            #rec['dip_origin'] = str(ip.icmp.payload.dst_prefix)
-            #rec['sip_origin'] = str(ip.icmp.payload.src_prefix)
+            """Identification of hop number via port number"""
+            #hopnumber = ip.icmp.payload.tcp.dst_port - (INITIAL_PORT-1)
+            
+            rec[box_ip] = [hopnumber, "time"]
+            
+            return True
         
         
-        
-        return True
+            
+        return False
 
     def icmp6(self, rec, ip6, q, rev): # pylint: disable=no-self-use,unused-argument
         """
         Records ICMPv6 details.
-
-        ICMPv6 Unreachable Messages
-            Sets ``icmp_unreachable`` to ``True`` if an ICMP Unreachable
-            message is seen in the reverse direction.
 
         :param rec: the flow record
         :type rec: dict
@@ -140,13 +147,19 @@ class tracerouteChain(Chain):
         :param rev: ``True`` if the packet was in the reverse direction,
                     ``False`` if in the forward direction
         :type rev: bool
-        :return: ``False`` if an ICMP unreachable message has been observed,
-                 otherwise ``True``
-        :rtype: bool
         """
 
-        if rev and ip6.icmp6.type == ICMP6_UNREACHABLE:
-            rec['icmp_unreachable'] = True
+        
         if rev and ip6.icmp6.type == ICMP6_TTLEXCEEDED:
-            rec['icmp_ttl_expired'] = True
-        return True
+            rec['ttl_exceeded'] = True
+            
+            box_ip = str(ip6.src_prefix)
+            hopnumber = ip6.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)
+            #hopnumber = ip.icmp.payloaf.tcp.dst_port - (INITIAL_PORT-1)
+            rec[box_ip] = hopnumber
+            
+            return True
+            
+        return False
+    
+    
