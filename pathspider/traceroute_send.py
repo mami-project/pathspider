@@ -1,13 +1,18 @@
 from scapy.all import *
+import time
+from pathspider.base import QUEUE_SIZE
 
-def send_pkts(ttl_input,dip):
+
+INITIAL_PORT = 10000
+INITIAL_SEQ = 10000
+
+def send_pkts(ttl_input,dip,src,outqueue):
     
-    """Sending packet with a sufficient big payload or else the observer.py will give
-        back an error for payload being too small"""
+    """Send TCP packet with increasing TTL for every hop to destination"""
     
     hops_add = 3        # buffer for additional hops
     
-    # abklären erster hop und 256- oder 255-
+    time.sleep(2)   #wait short time to guarantee that observer finished setting up
     
     # check for possible initial max hops
     if ttl_input > 128:
@@ -19,25 +24,23 @@ def send_pkts(ttl_input,dip):
     else:
         hops = 33 - ttl_input + hops_add
   
-        
-    for i in range(hops):
-        send(IP(ttl=i,dst = dip)/ICMP()/"XXXXXXXXXXXXXXXXXXXXX")
-    
+    for j in range(src):    #repeating with src different flows
+        for i in range(hops):
+            send(IP(ttl=i,dst = dip)/TCP(seq=(INITIAL_SEQ-1+i),sport = (INITIAL_PORT-1+j)))
+            outqueue.put(time.clock())
+        #send(IP(ttl=i,dst = dip)/TCP(sport = (INITIAL_PORT-1+i)))
     
     return
 
 
 def send_pkt(ttl_input,dip):
-    
-    """Sending packet with a sufficient big payload or else the observer.py will give
-        back an error for payload being too small"""
-    
+    """Send one packet for testing purpose"""
    
-    send(IP(ttl=ttl_input,dst = dip)/ICMP()/"XXXXXXXXXXXXXXXXXXXXX")
+    send(IP(ttl=ttl_input,dst = dip)/TCP(seq=INITIAL_SEQ))
     
     
     return
 
-#send_pkt(30,"172.217.18.99")
+#send_pkt(2,"172.217.18.99")
 
-send_pkts(54,"172.217.18.99")   #54 is ttl i became back from destination
+#send_pkts(45,"172.217.18.99")   #54 is TTL that came back from destination
