@@ -8,9 +8,8 @@ from pathspider.base import SHUTDOWN_SENTINEL
 
 INITIAL_PORT = 10000
 INITIAL_SEQ = 10000
-FLOW_SENTINEL = "Flow-Sentinel"
 
-def send_pkts(hops,dip,src):
+def send_pkts(hops,src,inqueue):
     
     """Send TCP packet with increasing TTL for every hop to destination"""
     
@@ -30,13 +29,20 @@ def send_pkts(hops,dip,src):
      #   hops = 65 - ttl_input + hops_add
     #else:
      #   hops = 33 - ttl_input + hops_add
-  
-    for j in range(src):    #repeating with src different flows
-        for i in range(hops):
-            send(IP(ttl=(i+1),dst = dip, tos = 0x03 )/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), dataofs = 6, options = [('MSS', (536))]), verbose=0)
-            time.sleep(0.1)    
-        time.sleep(0.25)
-        logger.info(("Sending flow number %u finished"), (j+1))
+     
+    while True:
+    
+        dip = inqueue.get()
+        
+        if dip == SHUTDOWN_SENTINEL:
+            break
+        else:
+            for j in range(src):    #repeating with src different flows
+                for i in range(hops):
+                    send(IP(ttl=(i+1),dst = dip, tos = 0x03 )/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), dataofs = 6, options = [('MSS', (536))]), verbose=0)
+                    time.sleep(0.1)    
+                time.sleep(0.25)
+                logger.info(("Sending flow %u of %s finished "), (j+1), dip)
 
     
     return
