@@ -7,6 +7,8 @@
 from pathspider.chains.base import Chain
 from pathspider.traceroute_send import INITIAL_SEQ
 from pathspider.traceroute_send import INITIAL_PORT
+from pip._vendor.progress import counter
+import base64
 
 #: ICMPv4 Message Type - Unreachable
 ICMP4_UNREACHABLE = 3
@@ -65,6 +67,7 @@ class tracerouteChain(Chain):
         
         #rec['Number of hops to reach destination'] = 0
         rec['ttl_exceeded'] = False
+        #rec['Number of TCP packets sent'] = 0
         return True
     
     
@@ -87,7 +90,12 @@ class tracerouteChain(Chain):
         """Check if received tcp package from destination matches the sent out one then get number of hops from
         ack number, since this is one more than the received seq number which indicates the number of hops"""
         
-        #if rev and rec['Number of hops to reach destination'] == 0: #check if first time we reached destination
+        if not rev:
+            #rec['Number of TCP packets sent'] += 1
+            timeinit = tcp.seconds
+            sequence = tcp.seq_nbr
+            rec[sequence] = timeinit
+            
             #rec['Number of hops to reach destination'] = tcp.ack_nbr - (INITIAL_SEQ-2)
         
     
@@ -115,16 +123,38 @@ class tracerouteChain(Chain):
             
             box_ip = str(ip.src_prefix)
             
-            rec['Destination'] = str(ip.icmp.payload.dst_prefix)
-
+            #rec['Destination'] = str(ip.icmp.payload.dst_prefix)
+            
+            """Packet arrival time"""
+            time = ip.seconds
+            
             
             """Identification of hop number via sequence number"""
             hopnumber = ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)        
             
-            """Identification of hop number via port number"""
-            #hopnumber = ip.icmp.payload.tcp.dst_port - (INITIAL_PORT-1)
+            """length of payload that comes back to identify RFC1812-compliant routers"""
+            pp = ip.icmp.payload.payload
             
-            rec[box_ip] = [hopnumber, "time"]
+            try:
+                #tcpp = ip.icmp.payload.tcp.doff
+                tcppp = ip.icmp.payload.tcp.option_numbers
+                tcpp = str(tcppp[0])
+            except TypeError:
+                tcpp = 0
+            
+            payload = str(ip.icmp.payload.payload)
+
+            payload_len = len(pp)
+            
+            ecn = ip.icmp.payload.traffic_class % 4
+            
+            #try:
+                #print(base64.b64encode(pp))
+             #   print (pp.encode())
+            #except ValueError:
+            #    pass
+            
+            rec[hopnumber] = [box_ip, time, payload_len, ecn]
             
             return True
         
@@ -156,8 +186,7 @@ class tracerouteChain(Chain):
             box_ip = str(ip6.src_prefix)
             hopnumber = ip6.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)
             #hopnumber = ip.icmp.payloaf.tcp.dst_port - (INITIAL_PORT-1)
-            rec[box_ip] = hopnumber
-            
+            rec[hopnumber] = box_ip            
             return True
             
         return False
