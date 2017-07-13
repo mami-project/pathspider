@@ -20,6 +20,8 @@ from pathspider.observer import Observer
 from pathspider.network import interface_up
 
 from pathspider.traceroute_send import send_pkts
+from pathspider.traceroute_send import FLOW_SENTINEL
+
 import multiprocessing as mp
 
 chains = load("pathspider.chains", subclasses=Chain)
@@ -48,47 +50,73 @@ def run_traceroute(args):
     flowqueue = queue.Queue(QUEUE_SIZE)
     observer = Observer("int:" + args.interface, chosen_chains)
 
-    logger.info("starting observer...")
+    logger.info("Starting observer...")
     threading.Thread(target=observer.run_flow_enqueuer, args=(flowqueue,observer_shutdown_queue)).start()
     
     
     """Setting up sender"""
-    timequeue = queue.Queue(QUEUE_SIZE) #reicht diese queue size????
-    mp.Process(target=send_pkts,args=(args.hops,args.IP,args.flows,timequeue)).start()
+    send = mp.Process(target=send_pkts,args=(args.hops,args.IP,args.flows))
+    send.start()
 
-
-    logger.info("opening output file " + args.output)
+    logger.info("Opening output file " + args.output)
     with open(args.output, 'w') as outputfile:
-        logger.info("registering interrupt...")
-        def signal_handler(signal, frame):
+        logger.info("Registering interrupt...")
+        def signal_handler(signal, frame):          #ctrl-c shutdown
             observer_shutdown_queue.put(True)
         signal.signal(signal.SIGINT, signal_handler)
+        
+        signal.signal(signal.SIGALRM, signal_handler)  #shutdown after sender has finished               
+        first = False
+        
         while True:
-                    
+            
+            if not send.is_alive() and not first: #check if sender is finished but do only first time after finishing
+                signal.alarm(3)
+                first = True
+      
             result = flowqueue.get()
-                     
+                           
             if result == SHUTDOWN_SENTINEL:
-                logger.info("output complete")
+                logger.info("Output complete")
                 break
-            """Only get the flows with the ttl_exceeded message and add timestamp"""
-            result = filter(result, timequeue)
+            
+            #Only get the flows with the ttl_exceeded message and add timestamp
+            result = filter(result)
+            
+            
             
             if result != []:
                 outputfile.write(json.dumps(result) + "\n")
                 logger.debug("wrote a result")
 
-def filter(res,timequeue):
+def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
     
+    #only icmp ttl_exceeded messages are wanted
     for entry in res:
         if entry == 'ttl_exceeded' and res[entry] == False:
             return []
-        """ADD shutdown senitnel und auch noch etwas anderes? zb zwischen flosws... queue grösse usw"""
-        #abc = timequeue.get()
-        #rtt = time.clock()-abc
-        #print(rtt)
-        #else:
-         #   for i in range
-    return res
+    res2=res.copy()
+    
+    """delete unnecessary things and calculate round-trip time in milliseconds"""
+    for entry in res.copy():
+        if entry == 'ttl_exceeded' or entry == '_idle_bin' or entry == 'pkt_first' or entry == 'pkt_last':
+                del res[entry]
+        else:
+            for entry2 in res.copy():
+                if entry2 == 'ttl_exceeded' or entry2 == '_idle_bin' or entry2 == 'pkt_first' or entry2 == 'pkt_last':
+                    del entry2
+                elif (int(entry)+9999) == int(entry2):
+                    rtt= (res[entry][1]- res[entry2])*1000
+                    rtt = round(rtt,3)
+                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3]]
+                    del res[entry2]
+    
+    # remove sequence number entries that have not been used                
+    for entrytest in res.copy():
+        if int(entrytest) > 100:
+            del res[entrytest]
+                
+    return res.copy()
 
 def register_args(subparsers):
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
