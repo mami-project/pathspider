@@ -7,12 +7,14 @@ import pathspider.cmd.measure
 import pathspider.cmd.observe
 import pathspider.cmd.test
 import pathspider.cmd.wizard
+import pathspider.cmd.traceroute
 
 cmds = [
     pathspider.cmd.measure,
     pathspider.cmd.observe,
     pathspider.cmd.test,
     pathspider.cmd.wizard,
+    pathspider.cmd.traceroute,
 ]
 
 def handle_args(argv):
