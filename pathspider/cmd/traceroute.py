@@ -20,9 +20,10 @@ from pathspider.observer import Observer
 from pathspider.network import interface_up
 
 from pathspider.traceroute_send import send_pkts
-from pathspider.traceroute_send import FLOW_SENTINEL
 
 import multiprocessing as mp
+from pathspider.base import SHUTDOWN_SENTINEL
+
 
 chains = load("pathspider.chains", subclasses=Chain)
 
@@ -55,7 +56,12 @@ def run_traceroute(args):
     
     
     """Setting up sender"""
-    send = mp.Process(target=send_pkts,args=(args.hops,args.IP,args.flows))
+    ipqueue = mp.Queue(QUEUE_SIZE)
+    
+    inputfile = "ip_input.txt"       #TODO make this an input argument
+    threading.Thread(target=queue_feeder, args=(inputfile, ipqueue)).start()
+    #queue_feeder(inputfile, ipqueue)
+    send = mp.Process(target=send_pkts,args=(args.hops,args.flows,ipqueue))
     send.start()
 
     logger.info("Opening output file " + args.output)
@@ -95,7 +101,9 @@ def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
     for entry in res:
         if entry == 'ttl_exceeded' and res[entry] == False:
             return []
+            pas
     res2=res.copy()
+    
     
     """delete unnecessary things and calculate round-trip time in milliseconds"""
     for entry in res.copy():
@@ -103,12 +111,19 @@ def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
                 del res[entry]
         else:
             for entry2 in res.copy():
+                diff = bytearray()
                 if entry2 == 'ttl_exceeded' or entry2 == '_idle_bin' or entry2 == 'pkt_first' or entry2 == 'pkt_last':
                     del entry2
-                elif (int(entry)+9999) == int(entry2):
-                    rtt= (res[entry][1]- res[entry2])*1000
+                elif (int(entry)+9999) == int(entry2):  #comparing sequencenumber of upstream entry2 with hopnumber of downstream entry
+                    rtt= (res[entry][1]- res[entry2][0])*1000
                     rtt = round(rtt,3)
-                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3]]
+                    
+                    """bytearray comparison still doesn't work properly -.-"""
+                    #for i in range(15):
+                     #   diff = diff + bytearray(res[entry][3][i]^res[entry2][1][i])
+                    
+                    #diff = bytearray(res[entry][3][0]^res[entry2][1][0])
+                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3]]#, str(diff)]#str(res[entry][3]), str(res[entry2][1])]
                     del res[entry2]
     
     # remove sequence number entries that have not been used                
@@ -118,6 +133,19 @@ def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
                 
     return res.copy()
 
+def queue_feeder(inputfile, ipqueue):
+    with open(inputfile) as fh:
+        for line in fh:
+            try:
+                job = json.loads(line)
+                if 'dip' in job.keys():
+                    ipqueue.put(job['dip'])
+            except ValueError:
+                pass
+    ipqueue.put(SHUTDOWN_SENTINEL)
+
+
+       
 def register_args(subparsers):
     class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
         def _format_action(self, action):

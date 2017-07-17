@@ -37,9 +37,9 @@ def send_pkts(hops,src,inqueue):
         if dip == SHUTDOWN_SENTINEL:
             break
         else:
-            for j in range(src):    #repeating with src different flows
+            for j in range(src):    #repeating with src different flows  
                 for i in range(hops):
-                    send(IP(ttl=(i+1),dst = dip, tos = 0x03 )/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), dataofs = 6, options = [('MSS', (536))]), verbose=0)
+                    send(IP(ttl=(i+1),dst = dip, tos = 0x29)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j)), verbose=0)
                     time.sleep(0.1)    
                 time.sleep(0.25)
                 logger.info(("Sending flow %u of %s finished "), (j+1), dip)
