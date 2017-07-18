@@ -36,6 +36,16 @@ def run_traceroute(args):
         logger.error("Try --help for more information.")
         sys.exit(1)
 
+    """Check if inputfile or single IP was given as an input argument"""    
+    if args.input != 'null':
+        file = True
+    elif args.ip != 'null':
+        file = False
+    else:
+        logger.error('Please chose either an inputfile or a single IP to traceroute')
+        sys.exit(1)
+
+    
     logger.info("Creating observer...")
 
     chosen_chains = []
@@ -54,13 +64,16 @@ def run_traceroute(args):
     logger.info("Starting observer...")
     threading.Thread(target=observer.run_flow_enqueuer, args=(flowqueue,observer_shutdown_queue)).start()
     
-    
     """Setting up sender"""
     ipqueue = mp.Queue(QUEUE_SIZE)
     
-    inputfile = "ip_input.txt"       #TODO make this an input argument
-    threading.Thread(target=queue_feeder, args=(inputfile, ipqueue)).start()
-    #queue_feeder(inputfile, ipqueue)
+    """Read ips to file and add them to ipqueue for sender"""
+    if file:
+        threading.Thread(target=queue_feeder, args=(args.input, ipqueue)).start()
+    else:
+        ipqueue.put(args.ip)
+        ipqueue.put(SHUTDOWN_SENTINEL)
+    
     send = mp.Process(target=send_pkts,args=(args.hops,args.flows,ipqueue))
     send.start()
 
@@ -157,12 +170,14 @@ def register_args(subparsers):
 
     parser = subparsers.add_parser(name='traceroute',help="Perform a traceroute",
                                    formatter_class=SubcommandHelpFormatter)
-    parser.add_argument('IP', type = str, help="IP or URL for which traceroute should be performed")
     parser.add_argument('hops', type = int, help="Number of hops to destination IP")
+    parser.add_argument('--ip', type = str, default = 'null', help="IP or URL for which traceroute should be performed")
     parser.add_argument('-i', '--interface', default="eth0",
                         help="The interface to use for the observer. (Default: eth0)")
     parser.add_argument('-f','--flows', type = int, default = 1, 
                         help="Number of times the traceroute should be conducted with different flows. (Default: 1)")
+    parser.add_argument('--input', default='null', metavar='INPUTFILE', help=("A file containing a list of IPs to traceroute. "
+                              "Defaults to standard input."))
     parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',
                         help=("The file to output results data to. "
                               "Defaults to standard output."))

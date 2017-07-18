@@ -113,12 +113,12 @@ class tracerouteChain(Chain):
                 """length of payload that comes back to identify RFC1812-compliant routers"""
                 pp = ip.icmp.payload.payload
              
-                try:
-                    #tcpp = ip.icmp.payload.tcp.doff
-                    tcppp = ip.icmp.payload.tcp.option_numbers
-                    tcpp = str(tcppp[0])
-                except TypeError:
-                        tcpp = 0
+#                 try:
+#                     #tcpp = ip.icmp.payload.tcp.doff
+#                     tcppp = ip.icmp.payload.tcp.option_numbers
+#                     tcpp = str(tcppp[0])
+#                 except TypeError:
+#                         tcpp = 0
              
                 payload = ip.icmp.payload.payload
                  
