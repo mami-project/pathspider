@@ -119,12 +119,18 @@ class tracerouteChain(Chain):
 #                     tcpp = str(tcppp[0])
 #                 except TypeError:
 #                         tcpp = 0
+
              
                 payload = ip.icmp.payload.payload
                  
                 data = ip.icmp.payload.data
      
                 payload_len = len(pp)
+                
+                flags = -1
+                
+                if payload_len > 8:
+                    flags = ip.icmp.payload.tcp.data[13]
                  
                 ecn = ip.icmp.payload.traffic_class #% 4
              
@@ -135,7 +141,7 @@ class tracerouteChain(Chain):
                 #except ValueError:
                 #    pass
                  
-                rec[hopnumber] = [box_ip, time, payload_len, ecn]
+                rec[hopnumber] = [box_ip, time, payload_len, ecn, flags]
              
                 return True
             

@@ -136,7 +136,7 @@ def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
                      #   diff = diff + bytearray(res[entry][3][i]^res[entry2][1][i])
                     
                     #diff = bytearray(res[entry][3][0]^res[entry2][1][0])
-                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3]]#, str(diff)]#str(res[entry][3]), str(res[entry2][1])]
+                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3], res[entry][4]]#, str(diff)]#str(res[entry][3]), str(res[entry2][1])]
                     del res[entry2]
     
     # remove sequence number entries that have not been used                
