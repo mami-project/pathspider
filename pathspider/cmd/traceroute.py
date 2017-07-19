@@ -99,33 +99,31 @@ def run_traceroute(args):
                 logger.info("Output complete")
                 break
             
-            #Only get the flows with the ttl_exceeded message and add timestamp
-            result = filter(result)
+            #Only get the flows with the ttl_exceeded message
+            if filter(result):
+                continue
             
-            
-            
-            if result != []:
-                outputfile.write(json.dumps(result) + "\n")
-                logger.debug("wrote a result")
+            #get rtt and additional stuff 
+            result = operations(result)
+            outputfile.write(json.dumps(result) + "\n")
+            logger.debug("wrote a result")
 
 def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
     
-    #only icmp ttl_exceeded messages are wanted
+    #only flows with icmp ttl_exceeded messages are wanted
     for entry in res:
         if entry == 'ttl_exceeded' and res[entry] == False:
-            return []
-            pas
-    res2=res.copy()
+            return True
     
-    
+def operations(res):    
     """delete unnecessary things and calculate round-trip time in milliseconds"""
     for entry in res.copy():
-        if entry == 'ttl_exceeded' or entry == '_idle_bin' or entry == 'pkt_first' or entry == 'pkt_last':
+        if entry == 'ttl_exceeded' or entry == '_idle_bin' or entry == 'pkt_first' or entry == 'pkt_last' or entry == 'Destination':
                 del res[entry]
         else:
             for entry2 in res.copy():
                 diff = bytearray()
-                if entry2 == 'ttl_exceeded' or entry2 == '_idle_bin' or entry2 == 'pkt_first' or entry2 == 'pkt_last':
+                if entry2 == 'ttl_exceeded' or entry2 == '_idle_bin' or entry2 == 'pkt_first' or entry2 == 'pkt_last' or entry2 == 'Destination':
                     del entry2
                 elif (int(entry)+9999) == int(entry2):  #comparing sequencenumber of upstream entry2 with hopnumber of downstream entry
                     rtt= (res[entry][1]- res[entry2][0])*1000
@@ -136,13 +134,16 @@ def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
                      #   diff = diff + bytearray(res[entry][3][i]^res[entry2][1][i])
                     
                     #diff = bytearray(res[entry][3][0]^res[entry2][1][0])
-                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3], res[entry][4]]#, str(diff)]#str(res[entry][3]), str(res[entry2][1])]
+                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3], res[entry][4], res[entry][5]]#, str(diff)]#str(res[entry][3]), str(res[entry2][1])]
                     del res[entry2]
     
     # remove sequence number entries that have not been used                
     for entrytest in res.copy():
-        if int(entrytest) > 100:
-            del res[entrytest]
+        try:
+            if int(entrytest) > 100:
+                del res[entrytest]
+        except ValueError:
+            pass
                 
     return res.copy()
 
@@ -151,7 +152,7 @@ def queue_feeder(inputfile, ipqueue):
         for line in fh:
             try:
                 job = json.loads(line)
-                if 'dip' in job.keys():
+                if job['conditions'][0] == "ecn.connectivity.offline":# in job.keys():
                     ipqueue.put(job['dip'])
             except ValueError:
                 pass

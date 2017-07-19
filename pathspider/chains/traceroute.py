@@ -89,10 +89,19 @@ class tracerouteChain(Chain):
         
         if not rev and ip.tcp:
             ip_data = ip.data
-            
+             
             timeinit = ip.tcp.seconds
             sequence = ip.tcp.seq_nbr
-            rec[sequence] = [timeinit, ip_data]
+            rec[sequence] = [timeinit]
+            
+        if rev and ip.tcp:
+            
+            sequence = ip.tcp.seq_nbr
+            rec['Destination'] = str(ip.src_prefix)
+         
+         
+        """Trying to get TCP stuff from destination"""
+         
             
             
         if rev and ip.icmp:
@@ -129,8 +138,25 @@ class tracerouteChain(Chain):
                 
                 flags = -1
                 
+                
+                
+                
                 if payload_len > 8:
                     flags = ip.icmp.payload.tcp.data[13]
+                    
+                    if (flags >> 4) % 2:
+                        ece = "ECE.set"
+                    else:
+                        ece = "ECE.notset"
+                        
+                    if (flags >> 5) % 2:
+                        cwr = "CWR.set"
+                    else:
+                        cwr = "CWR.notset"
+                        
+                else:
+                    cwr = "ECE.?"
+                    ece = "CWR.?"
                  
                 ecn = ip.icmp.payload.traffic_class #% 4
              
@@ -141,7 +167,7 @@ class tracerouteChain(Chain):
                 #except ValueError:
                 #    pass
                  
-                rec[hopnumber] = [box_ip, time, payload_len, ecn, flags]
+                rec[hopnumber] = [box_ip, time, payload_len, ecn, ece, cwr]
              
                 return True
             
