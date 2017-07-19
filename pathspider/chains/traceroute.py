@@ -144,19 +144,19 @@ class tracerouteChain(Chain):
                 if payload_len > 8:
                     flags = ip.icmp.payload.tcp.data[13]
                     
-                    if (flags >> 4) % 2:
+                    if (flags >> 6) % 2:
                         ece = "ECE.set"
                     else:
                         ece = "ECE.notset"
                         
-                    if (flags >> 5) % 2:
+                    if (flags >> 7) % 2:
                         cwr = "CWR.set"
                     else:
                         cwr = "CWR.notset"
                         
                 else:
-                    cwr = "ECE.?"
-                    ece = "CWR.?"
+                    cwr = "ECE??"
+                    ece = "CWR??"
                  
                 ecn = ip.icmp.payload.traffic_class #% 4
              
@@ -172,6 +172,91 @@ class tracerouteChain(Chain):
                 return True
             
             
+    def ip6(self, rec, ip, rev):
+        
+        if not rev and ip.tcp:
+            ip_data = ip.data
+             
+            timeinit = ip.tcp.seconds
+            sequence = ip.tcp.seq_nbr
+            rec[sequence] = [timeinit]
+            
+        if rev and ip.tcp:
+            
+            sequence = ip.tcp.seq_nbr
+            rec['Destination'] = str(ip.src_prefix)
+         
+         
+        """Trying to get TCP stuff from destination"""
+         
+            
+            
+        if rev and ip.icmp:
+            if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
+                rec['ttl_exceeded'] = True
+             
+                box_ip = str(ip.src_prefix)
+             
+                #rec['Destination'] = str(ip.icmp.payload.dst_prefix)
+             
+                """Packet arrival time"""
+                time = ip.seconds
+             
+             
+                """Identification of hop number via sequence number"""
+                hopnumber = ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)        
+             
+                """length of payload that comes back to identify RFC1812-compliant routers"""
+                pp = ip.icmp.payload.payload
+             
+#                 try:
+#                     #tcpp = ip.icmp.payload.tcp.doff
+#                     tcppp = ip.icmp.payload.tcp.option_numbers
+#                     tcpp = str(tcppp[0])
+#                 except TypeError:
+#                         tcpp = 0
+
+             
+                payload = ip.icmp.payload.payload
+                 
+                data = ip.icmp.payload.data
+     
+                payload_len = len(pp)
+                
+                flags = -1
+                
+                
+                
+                
+                if payload_len > 8:
+                    flags = ip.icmp.payload.tcp.data[13]
+                    
+                    if (flags >> 6) % 2:
+                        ece = "ECE.set"
+                    else:
+                        ece = "ECE.notset"
+                        
+                    if (flags >> 7) % 2:
+                        cwr = "CWR.set"
+                    else:
+                        cwr = "CWR.notset"
+                        
+                else:
+                    cwr = "ECE??"
+                    ece = "CWR??"
+                 
+                ecn = ip.icmp.payload.traffic_class #% 4
+             
+             
+                #try:
+                    #print(base64.b64encode(pp))
+                 #   print (pp.encode())
+                #except ValueError:
+                #    pass
+                 
+                rec[hopnumber] = [box_ip, time, payload_len, ecn, ece, cwr]
+             
+                return True
     
 #     def tcp(self, rec, tcp, rev):
 #     
@@ -255,33 +340,33 @@ class tracerouteChain(Chain):
 #             
 #         return False
 
-    def icmp6(self, rec, ip6, q, rev): # pylint: disable=no-self-use,unused-argument
-        """
-        Records ICMPv6 details.
-
-        :param rec: the flow record
-        :type rec: dict
-        :param ip: the IPv6 packet that was observed to be part of this flow
-                   and contained an ICMPv6 header
-        :type ip: plt.ip6
-        :param q: the ICMP quotation of the packet that triggered this message
-                  (if any)
-        :type q: plt.ip
-        :param rev: ``True`` if the packet was in the reverse direction,
-                    ``False`` if in the forward direction
-        :type rev: bool
-        """
-
-        
-        if rev and ip6.icmp6.type == ICMP6_TTLEXCEEDED:
-            rec['ttl_exceeded'] = True
-            
-            box_ip = str(ip6.src_prefix)
-            hopnumber = ip6.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)
-            #hopnumber = ip.icmp.payloaf.tcp.dst_port - (INITIAL_PORT-1)
-            rec[hopnumber] = box_ip            
-            return True
-            
-        return False
-    
+#     def icmp6(self, rec, ip6, q, rev): # pylint: disable=no-self-use,unused-argument
+#         """
+#         Records ICMPv6 details.
+# 
+#         :param rec: the flow record
+#         :type rec: dict
+#         :param ip: the IPv6 packet that was observed to be part of this flow
+#                    and contained an ICMPv6 header
+#         :type ip: plt.ip6
+#         :param q: the ICMP quotation of the packet that triggered this message
+#                   (if any)
+#         :type q: plt.ip
+#         :param rev: ``True`` if the packet was in the reverse direction,
+#                     ``False`` if in the forward direction
+#         :type rev: bool
+#         """
+# 
+#         
+#         if rev and ip6.icmp6.type == ICMP6_TTLEXCEEDED:
+#             rec['ttl_exceeded'] = True
+#             
+#             box_ip = str(ip6.src_prefix)
+#             hopnumber = ip6.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)
+#             #hopnumber = ip.icmp.payloaf.tcp.dst_port - (INITIAL_PORT-1)
+#             rec[hopnumber] = box_ip            
+#             return True
+#             
+#         return False
+#     
     
