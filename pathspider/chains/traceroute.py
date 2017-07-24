@@ -88,12 +88,13 @@ class tracerouteChain(Chain):
     
     def ip4(self, rec, ip, rev):
         
+        """Information about sent TCP messages like initial time and data"""
         if not rev and ip.tcp:
-            ip_data = ip.data
+            data = ip.data
              
             timeinit = ip.tcp.seconds
             sequence = ip.tcp.seq_nbr
-            rec[sequence] = [timeinit,]
+            rec[sequence] = [timeinit, data]
         
         
         """Destination Stuff like IP, flags and hop number"""    
@@ -195,7 +196,7 @@ class tracerouteChain(Chain):
                 else: 
                     ect2 = "ect2.notset"          
                  
-                rec[hopnumber] = [box_ip, time, payload_len, ect1, ect2, ece, cwr]
+                rec[hopnumber] = [box_ip, time, payload_len, ect1, ect2, ece, cwr, data]
              
                 return True
      
@@ -213,8 +214,8 @@ class tracerouteChain(Chain):
             else:
                 cwr = "CWR.notset"         
         else:
-            cwr = "ECE??"
-            ece = "CWR??"
+            ece = "ECE??"
+            cwr = "CWR??"
                 
                 
         """IP ECT FLAGS""" 

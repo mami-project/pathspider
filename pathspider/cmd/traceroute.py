@@ -129,12 +129,21 @@ def operations(res):
                     rtt= (res[entry][1]- res[entry2][0])*1000
                     rtt = round(rtt,3)
                     
-                    """bytearray comparison still doesn't work properly -.-"""
-                    #for i in range(15):
-                     #   diff = diff + bytearray(res[entry][3][i]^res[entry2][1][i])
+                    """bytearray comparison """
+                    length = int(len(res[entry][7])/2-1)
+                    fail = []
+                    for i in range(length): #TODO whats the problem with the length... why isnt it working ?
+                        try:
+                            bts = res[entry][7][i]^res[entry2][1][i]
+                            diff = diff + bts.to_bytes(1, byteorder='big')
+                        except IndexError:
+                            break
+                        if i != 8 and i != 10 and i != 11:  #check for differences beside ttl and checksum
+                            if bts != 0:
+                                fail.append(i)
                     
-                    #diff = bytearray(res[entry][3][0]^res[entry2][1][0])
-                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3], res[entry][4], res[entry][5], res[entry][6]]#, str(diff)]#str(res[entry][3]), str(res[entry2][1])]
+                        
+                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][3], res[entry][4], res[entry][5], res[entry][6], str(fail)]
                     del res[entry2]
     
     # remove sequence number entries that have not been used                
@@ -152,7 +161,7 @@ def queue_feeder(inputfile, ipqueue):
         for line in fh:
             try:
                 job = json.loads(line)
-                if job['conditions'][0] == "ecn.connectivity.offline":# in job.keys():
+                if job['conditions'][0] == "ecn.connectivity.broken":# in job.keys():
                     ipqueue.put(job['dip'])
             except ValueError:
                 pass
