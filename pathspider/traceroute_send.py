@@ -34,8 +34,12 @@ def send_pkts(hops,src,inqueue):
     
         dip = inqueue.get()
         
+        
+        
         if ":" in dip:
             ipv6 = True
+        else:
+            ipv6 = False
         
         if dip == SHUTDOWN_SENTINEL:
             break
@@ -44,7 +48,8 @@ def send_pkts(hops,src,inqueue):
                 for i in range(hops):
                     
                     if ipv6:
-                        send(IPv6(nh=(i+1),dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
+                        pass   #since not working correctly at the moment
+                        #send(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
                     else:
                         send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
                     time.sleep(0.1)    

@@ -67,6 +67,7 @@ class tracerouteChain(Chain):
         
         #rec['Number of hops to reach destination'] = 0
         rec['ttl_exceeded'] = False
+        rec['seq'] = 0
         #rec['Number of TCP packets sent'] = 0
         return True
     
@@ -92,17 +93,49 @@ class tracerouteChain(Chain):
              
             timeinit = ip.tcp.seconds
             sequence = ip.tcp.seq_nbr
-            rec[sequence] = [timeinit]
-            
+            rec[sequence] = [timeinit,]
+        
+        
+        """Destination Stuff like IP, flags and hop number"""    
         if rev and ip.tcp:
             
-            sequence = ip.tcp.seq_nbr
-            rec['Destination'] = str(ip.src_prefix)
-         
-         
-        """Trying to get TCP stuff from destination"""
-         
+            sequence = ip.tcp.ack_nbr
             
+            flags = ip.tcp.data[13]                   
+            if (flags >> 6) % 2:
+                ece = "ECE.set"
+            else:
+                ece = "ECE.notset"                    
+            if (flags >> 7) % 2:
+                cwr = "CWR.set"
+            else:
+                cwr = "CWR.notset"  
+                
+            """IP ECT FLAGS""" 
+            ecn = ip.traffic_class               
+            if (ecn % 2):
+                ect1 = "ect1.set"
+            else:
+                ect1 = "ect1.notset"
+            if (ecn >> 1) % 2:
+                ect2 = "ect2.set"
+            else: 
+                ect2 = "ect2.notset"
+                
+            """TCP SYN/ACK flags """
+            if (flags >> 1) % 2:
+                syn = "SYN.set"
+            else:
+                syn = "SYN.notset"     
+            if (flags >> 4) % 2:
+                ack = "ACK.set"
+            else:
+                ack = "ACK.notset"
+            
+            if rec['seq'] < sequence:
+                final_hop = sequence-1-INITIAL_SEQ #ACK_nbr -1 is final seq_number
+                rec['Destination'] = [str(ip.src_prefix), final_hop, ect1, ect2, ece, cwr, syn, ack]
+                rec['seq'] = sequence
             
         if rev and ip.icmp:
             if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
@@ -135,42 +168,67 @@ class tracerouteChain(Chain):
                 data = ip.icmp.payload.data
      
                 payload_len = len(pp)
-                
-                flags = -1
-                
-                
-                
-                
+                             
+                """TCP ECE and CWR flags"""
                 if payload_len > 8:
-                    flags = ip.icmp.payload.tcp.data[13]
-                    
+                    flags = ip.icmp.payload.tcp.data[13]                   
                     if (flags >> 6) % 2:
                         ece = "ECE.set"
                     else:
-                        ece = "ECE.notset"
-                        
+                        ece = "ECE.notset"                    
                     if (flags >> 7) % 2:
                         cwr = "CWR.set"
                     else:
-                        cwr = "CWR.notset"
-                        
+                        cwr = "CWR.notset"         
                 else:
                     cwr = "ECE??"
-                    ece = "CWR??"
+                    ece = "CWR??"      
+                        
+                """IP ECT FLAGS""" 
+                ecn = ip.icmp.payload.traffic_class               
+                if (ecn % 2):
+                    ect1 = "ect1.set"
+                else:
+                    ect1 = "ect1.notset"
+                if (ecn >> 1) % 2:
+                    ect2 = "ect2.set"
+                else: 
+                    ect2 = "ect2.notset"          
                  
-                ecn = ip.icmp.payload.traffic_class #% 4
-             
-             
-                #try:
-                    #print(base64.b64encode(pp))
-                 #   print (pp.encode())
-                #except ValueError:
-                #    pass
-                 
-                rec[hopnumber] = [box_ip, time, payload_len, ecn, ece, cwr]
+                rec[hopnumber] = [box_ip, time, payload_len, ect1, ect2, ece, cwr]
              
                 return True
-            
+     
+    def flags(self, ip, payload_len):
+        
+        """TCP ECE and CWR flags"""
+        if payload_len > 8:
+            flags = ip.icmp.payload.tcp.data[13]                   
+            if (flags >> 6) % 2:
+                ece = "ECE.set"
+            else:
+                ece = "ECE.notset"                    
+            if (flags >> 7) % 2:
+                cwr = "CWR.set"
+            else:
+                cwr = "CWR.notset"         
+        else:
+            cwr = "ECE??"
+            ece = "CWR??"
+                
+                
+        """IP ECT FLAGS""" 
+        ecn = ip.icmp.payload.traffic_class               
+        if (ecn % 2):
+            ect1 = "ect1.set"
+        else:
+            ect1 = "ect1.notset"
+        if (ecn >> 1) % 2:
+            ect2 = "ect2.set"
+        else: 
+            ect2 = "ect2.notset"  
+                    
+        return [ece, cwr, ect1, ect2]            
             
     def ip6(self, rec, ip, rev):
         
