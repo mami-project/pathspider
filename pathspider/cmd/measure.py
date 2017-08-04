@@ -77,7 +77,7 @@ def run_measurement(args):
 
         logger.info("activating spider...")
 
-        spider.start()
+        spider.start(args.trace)
 
         logger.debug("starting job feeder...")
         if args.csv_input:
@@ -129,6 +129,7 @@ def register_args(subparsers):
                               "Defaults to standard output."))
     parser.add_argument('--output-flows', action='store_true',
                         help="Include flow results in output.")
+    parser.add_argument('--trace', action='store_true', help="Enable tracerouting")
 
     # Set the command entry point
     parser.set_defaults(cmd=run_measurement)

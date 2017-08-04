@@ -33,6 +33,7 @@ import threading
 import multiprocessing as mp
 import queue
 from datetime import datetime
+from scapy.all import *
 
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
@@ -50,6 +51,9 @@ PORT_FAILED_AGAIN = -1
 
 QUEUE_SIZE = 1000
 QUEUE_SLEEP = 0.5
+
+INITIAL_PORT = 10000
+INITIAL_SEQ = 10000
 
 SHUTDOWN_SENTINEL = "SHUTDOWN_SENTINEL"
 NO_FLOW = None
@@ -107,6 +111,8 @@ class Spider:
         self.resqueue = queue.Queue(QUEUE_SIZE)
         self.flowqueue = mp.Queue(QUEUE_SIZE)
         self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
+        self.ipqueue = mp.Queue(QUEUE_SIZE)
+        self.tracemergequeue = queue.Queue(QUEUE_SIZE)
 
         self.jobtab = {}
         self.comparetab = {}
@@ -116,6 +122,7 @@ class Spider:
         self.flowreap_size = min(self.worker_count * 100, 10000)
 
         self.outqueue = queue.Queue(QUEUE_SIZE)
+        self.traceoutqueue = queue.Queue(QUEUE_SIZE)
 
         self.observer = None
 
@@ -240,7 +247,12 @@ class Spider:
             if flow == SHUTDOWN_SENTINEL:
                 self.__logger.debug("stopping flow merging on sentinel")
                 return False
-
+             
+            # If flow has trace flag set send it to traceroute merger
+            if flow['trace'] == True:
+                self.tracemergequeue.put(flow)
+                return True           
+            
             flowkey = self._key(flow)
             self.__logger.debug("got a flow (" + repr(flowkey) + ")")
 
@@ -339,11 +351,13 @@ class Spider:
         :class:`pathspider.base.Spider` class and must be implemented by any
         plugin.
         """
-
+        
+        
+        
         if flow == NO_FLOW:
             flow = {'observed': False}
         else:
-            flow['observed'] = True
+            flow['observed'] = True     
 
         for key in res.keys():
             if key in flow.keys():
@@ -378,6 +392,9 @@ class Spider:
             job['conditions'] = self.combine_flows(flows)
             if job['conditions'] is None:
                 job.pop('conditions')
+            if "ecn.negotiation.failed" in job['conditions']: #TODO make changeable
+                dip = job['dip']
+                self.ipqueue.put(dip)
             self.outqueue.put(job)
 
     def combine_flows(self, flows):
@@ -408,8 +425,81 @@ class Spider:
             conn['jobId'] = jobId
             self.resqueue.put(conn)
             config += 1
+            
+    def sender(self):
+        """Send TCP packet with increasing TTL for every hop to destination"""
+    
+        #TODO integrate TTL and src for number of flows
+        hops_add = 3        # buffer for additional hops
+        hops = 25 + hops_add
+        src = 1
+        self.__logger.debug("Sender started")
+        while True:
+            try:
+                dip = self.ipqueue.get_nowait()
+            except queue.Empty:
+                time.sleep(QUEUE_SLEEP)
+                self.__logger.info("IP queue is empty")
+            else:
+                if dip == SHUTDOWN_SENTINEL:
+                    break
+                else:
+                    for j in range(src):    #repeating with src different flows  
+                        self.__logger.info(("Test %u "), j+1)
+                        for i in range(hops):                   
+                            if ':' in dip: #IPv6
+                                pass   #since not working correctly at the moment
+                                #send(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
+                            else:
+                                send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0, inter=0.1)    
+                        time.sleep(0.25)
+                        self.__logger.debug(("Sending flow %u of %s finished "), (j+1), dip)
+        
+    def trace_merger(self):
+        
+        while True:  # TODO try with except value error???
+            res = self.tracemergequeue.get()
+        
+            self.__logger.debug("MERGERMERGERMGERGER %s", res)
+            
+            for entry in res.copy():
+                if entry.isdigit(): 
+                    for entry2 in res.copy():
+                        diff = bytearray()
+                        if entry2.isdigit():
+                            if (int(entry)+9999) == int(entry2):  #comparing sequencenumber of upstream entry2 with hopnumber of downstream entry
+                                rtt= (res[entry][1]- res[entry2][0])*1000
+                                rtt = round(rtt,3)
+                        
+                                """bytearray comparison """
+                                length = int(len(res[entry][3])/2-1)
+                                fail = []
+                                for i in range(length): #TODO whats the problem with the length... why isnt it working ?
+                                    try:
+                                        bts = res[entry][3][i]^res[entry2][1][i]
+                                        diff = diff + bts.to_bytes(1, byteorder='big')
+                                    except IndexError:
+                                        pass
+                                    else:
+                                        if bts != 0:# and i != 8 and i != 10 and i != 11:  #check for differences beside ttl and checksum
+                                            fail.append("%d: %d" % (i, bts))
+                                
+                                    
+                                res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][4], res[entry][5], res[entry][6], res[entry][7], res[entry][8], str(fail)]
+                                del res[entry2]
+    
+            # remove sequence number entries that have not been used                
+            for entrytest in res.copy():
+                try:
+                    if int(entrytest) > 100:
+                        del res[entrytest]
+                except ValueError:
+                    pass
+                        
+            self.traceoutqueue.put(res.copy())
+            
 
-    def start(self):
+    def start(self, trace):
         """
         This function starts a PATHspider plugin by:
 
@@ -440,7 +530,24 @@ class Spider:
                 daemon=True)
             self.observer_process.start()
             self.__logger.debug("observer forked")
-
+            
+            if trace:
+                self.trace_merger_thread = threading.Thread(
+                    args=(self.trace_merger,),
+                    target=self.exception_wrapper,
+                    name="trace_merger",
+                    daemon=True)
+                self.trace_merger_thread.start()
+                self.__logger.debug("traceroute-merger up")
+                
+                self.packet_sender_process = mp.Process(
+                    args=(self.sender,),
+                    target=self.exception_wrapper,
+                    name='packet_sender',
+                    daemon=True)
+                self.packet_sender_process.start()
+                self.__logger.debug("packet-sender up")
+            
             # now start up ecnspider, backwards
             self.merger_thread = threading.Thread(
                 args=(self.merger,),
@@ -495,6 +602,8 @@ class Spider:
                     worker.join()
             self.__logger.debug("all workers joined")
 
+            self.packet_sender_process.join()
+
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
             self.observer_process.join()
@@ -504,6 +613,11 @@ class Spider:
             self.resqueue.put(SHUTDOWN_SENTINEL)
             self.merger_thread.join()
             self.__logger.debug("merger shutdown")
+
+            #Tell packet sender to shut down    #doesn't work because of the observer and i merger cant be shutdown before merger
+            #self.ipqueue.put(SHUTDOWN_SENTINEL)
+            #self.packet_sender_process.join()
+            self.__logger.debug("sender shutdown")
 
             # Wait for merged results to be written
             self.outqueue.join()

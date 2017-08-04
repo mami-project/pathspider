@@ -10,14 +10,14 @@ from pathspider.chains.tcp import TCPChain
 from pathspider.chains.tcp import TCP_SAE
 from pathspider.chains.tcp import TCP_SAEC
 from pathspider.chains.ecn import ECNChain
-
+from pathspider.chains.traceroute import tracerouteChain
 
 class ECN(SynchronizedSpider, PluggableSpider):
 
     name = "ecn"
     description = "Explicit Congestion Notification"
     version = pathspider.base.__version__
-    chains = [BasicChain, TCPChain, ECNChain]
+    chains = [BasicChain, TCPChain, ECNChain, tracerouteChain]
     connect_supported = ["http", "https", "tcp", "dnstcp"]
 
     def config_no_ecn(self): # pylint: disable=no-self-use
