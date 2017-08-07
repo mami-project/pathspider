@@ -113,6 +113,7 @@ class Spider:
         self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
         self.ipqueue = mp.Queue(QUEUE_SIZE)
         self.tracemergequeue = queue.Queue(QUEUE_SIZE)
+        self.sendresqueue = queue.Queue(QUEUE_SIZE)
 
         self.jobtab = {}
         self.comparetab = {}
@@ -439,13 +440,12 @@ class Spider:
                 dip = self.ipqueue.get_nowait()
             except queue.Empty:
                 time.sleep(QUEUE_SLEEP)
-                self.__logger.info("IP queue is empty")
+                self.__logger.debug("IP queue is empty")
             else:
                 if dip == SHUTDOWN_SENTINEL:
                     break
                 else:
                     for j in range(src):    #repeating with src different flows  
-                        self.__logger.info(("Test %u "), j+1)
                         for i in range(hops):                   
                             if ':' in dip: #IPv6
                                 pass   #since not working correctly at the moment
@@ -453,7 +453,7 @@ class Spider:
                             else:
                                 send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0, inter=0.1)    
                         time.sleep(0.25)
-                        self.__logger.debug(("Sending flow %u of %s finished "), (j+1), dip)
+                        self.__logger.info(("Sending flow %u of %s finished "), (j+1), dip)
         
     def trace_merger(self):
         
@@ -602,8 +602,10 @@ class Spider:
                     worker.join()
             self.__logger.debug("all workers joined")
 
-            self.packet_sender_process.join()
-
+            #self.packet_sender_process.join()
+            
+            time.sleep(25)
+            
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
             self.observer_process.join()
@@ -615,14 +617,19 @@ class Spider:
             self.__logger.debug("merger shutdown")
 
             #Tell packet sender to shut down    #doesn't work because of the observer and i merger cant be shutdown before merger
-            #self.ipqueue.put(SHUTDOWN_SENTINEL)
-            #self.packet_sender_process.join()
+            self.ipqueue.put(SHUTDOWN_SENTINEL)
+            self.packet_sender_process.join()
             self.__logger.debug("sender shutdown")
+
+            self.traceoutqueue.join()
 
             # Wait for merged results to be written
             self.outqueue.join()
             self.__logger.debug("all results retrieved")
-
+            
+            
+            self.traceoutqueue.put(SHUTDOWN_SENTINEL)
+            
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
 

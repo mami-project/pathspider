@@ -57,8 +57,37 @@ def job_feeder_csv(inputfile, spider):
         spider.shutdown()
         logger.debug("job_feeder: stopped")
 
+def file_write(args, spider):
+    logger = logging.getLogger("writer")    
+    with open(args.output, 'w') as outputfile:
+        logger.info("opening output file "+args.output)
+        while True:
+            result = spider.outqueue.get()
+            if result == SHUTDOWN_SENTINEL:
+                logger.info("output complete")
+                break
+            if not args.output_flows:
+                result.pop("flow_results", None)
+            outputfile.write(json.dumps(result) + "\n")
+            logger.debug("wrote a result")
+            spider.outqueue.task_done()
+    
+def file_trace_write(outfile, spider):
+    logger = logging.getLogger("writer")
+    trace_outfile = outfile[:-7]
+    trace_outfile = trace_outfile + "_trace.ndjson"
 
-
+            
+    with open(trace_outfile, 'w') as trace_out:
+        logger.info("opening output file "+ trace_outfile)
+        while True:
+            result2 = spider.traceoutqueue.get()
+            if result2 == SHUTDOWN_SENTINEL:
+                logger.info("output complete")
+                break
+            trace_out.write(json.dumps(result2) + "\n")
+            logger.debug("wrote a result")
+            spider.traceoutqueue.task_done()
 
 def run_measurement(args):
     logger = logging.getLogger("pathspider")
@@ -86,19 +115,11 @@ def run_measurement(args):
             job_feeder = job_feeder_ndjson
             
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
-
-        with open(args.output, 'w') as outputfile:
-            logger.info("opening output file "+args.output)
-            while True:
-                result = spider.outqueue.get()
-                if result == SHUTDOWN_SENTINEL:
-                    logger.info("output complete")
-                    break
-                if not args.output_flows:
-                    result.pop("flow_results", None)
-                outputfile.write(json.dumps(result) + "\n")
-                logger.debug("wrote a result")
-                spider.outqueue.task_done()
+        
+        threading.Thread(target=file_write, args=(args, spider)).start()
+        
+        if args.trace:
+            threading.Thread(target=file_trace_write, args=(args.output, spider)).start()
 
     except KeyboardInterrupt:
         logger.error("Received keyboard interrupt, dying now.")
