@@ -14,7 +14,7 @@ from pathspider.network import interface_up
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
-def job_feeder_ndjson(inputfile, spider):
+def job_feeder_ndjson(inputfile, spider, trace):
     logger = logging.getLogger("feeder")
     seen_targets = set()
     with open(inputfile) as fh:
@@ -32,10 +32,10 @@ def job_feeder_ndjson(inputfile, spider):
                 logger.warning("Unable to decode JSON for a job, skipping...")
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
-        spider.shutdown()
+        spider.shutdown(trace)
         logger.debug("job_feeder: stopped")
 
-def job_feeder_csv(inputfile, spider):
+def job_feeder_csv(inputfile, spider, trace):
     logger = logging.getLogger("feeder")
     seen_targets = set()
     with open(inputfile) as csvfile:
@@ -54,7 +54,7 @@ def job_feeder_csv(inputfile, spider):
                 logger.warning("Unable to read row for a job, skipping...")
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
-        spider.shutdown()
+        spider.shutdown(trace)
         logger.debug("job_feeder: stopped")
 
 def file_write(args, spider):
@@ -114,7 +114,7 @@ def run_measurement(args):
         else:
             job_feeder = job_feeder_ndjson
             
-        threading.Thread(target=job_feeder, args=(args.input, spider)).start()
+        threading.Thread(target=job_feeder, args=(args.input, spider, args.trace)).start()
         
         threading.Thread(target=file_write, args=(args, spider)).start()
         

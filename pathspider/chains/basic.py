@@ -43,6 +43,8 @@ class BasicChain(Chain):
         if rev:
             rec["pkt_rev"] += 1
             rec["oct_rev"] += ip.size
+            
+            rec["hops"] = ip.ttl
         else:
             rec["pkt_fwd"] += 1
             rec["oct_fwd"] += ip.size

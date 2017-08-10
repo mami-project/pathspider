@@ -52,8 +52,8 @@ def send_pkts(hops,src,inqueue):
                         #send(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
                     else:
                         send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
-                    time.sleep(0.1)    
-                time.sleep(0.25)
+                    #time.sleep(0.1)    
+                #time.sleep(0.25)
                 logger.info(("Sending flow %u of %s finished "), (j+1), dip)
 
     
