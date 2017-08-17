@@ -9,6 +9,20 @@ from pathspider.traceroute_send import INITIAL_SEQ
 from pathspider.traceroute_send import INITIAL_PORT
 from pip._vendor.progress import counter
 import base64
+import logging
+
+from straight.plugin import load
+
+chain = load("pathspider.chains", subclasses=Chain)
+
+
+# TODO PLUGIN works but which plugin do i want to make sth???????????????
+
+chosen_chains = []
+
+for abc in chain:
+        if "_trace" in abc.__name__.lower():
+            chosen_chains.append(abc)
 
 #: ICMPv4 Message Type - Unreachable
 ICMP4_UNREACHABLE = 3
@@ -68,33 +82,17 @@ class tracerouteChain(Chain):
          rec['trace'] = False
          rec['seq'] = 0
          return True
-     
-     
-    
-#     def ttl_in_hops(self,ttl_input):
-#         
-#         if ttl_input > 128:
-#             hops = 256 - ttl_input
-#         elif ttl_input > 64:
-#             hops = 129 - ttl_input
-#         elif ttl_input > 32:
-#             hops = 65 - ttl_input
-#         else:
-#             hops = 33 - ttl_input
-#         
-#         return hops
-    
+        
     def ip4(self, rec, ip, rev):
          
          
-        #TODO write this stuff not in chain but give it directly to merger via queue from sender
         """Information about sent TCP messages like initial time and data"""
         if not rev and ip.tcp:
             data = ip.data
               
             timeinit = ip.tcp.seconds
-            sequence = ip.tcp.seq_nbr
-            rec[str(sequence)] = [timeinit, data]
+            sequence = str(ip.tcp.seq_nbr)
+            rec[sequence] = {'rtt': timeinit, 'data': data}
          
          
         """Destination Stuff like IP, flags and hop number"""    
@@ -137,7 +135,7 @@ class tracerouteChain(Chain):
                 time = ip.seconds
                            
                 """Identification of hop number via sequence number"""
-                hopnumber = ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1)        
+                hopnumber = str(ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1))     
               
                 """length of payload that comes back to identify RFC1812-compliant routers"""
                 pp = ip.icmp.payload.payload
@@ -152,14 +150,21 @@ class tracerouteChain(Chain):
                     flags = ip.icmp.payload.tcp.data[13]
                 else:
                     flags = 0 #we don't care
-                 
-                [ece, cwr, ect1, ect2] = self.ecn_flags(ecn, flags, payload_len)
-                     
-                dscp = ecn >> 2          
-                  
-                rec[str(hopnumber)] = [box_ip, time, payload_len, data, ect1, ect2, ece, cwr, dscp]
-              
+                
+                rec[hopnumber] = {'from': box_ip, 'rtt': time, 'size': payload_len, 'data': data}
+                
+                """Additional 'conditions' info of other traceroutechain"""
+                
+                if len(chosen_chains) > 0:
+                    for c in chosen_chains:
+                        
+                        mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
+                        plugin_out = c.box_info(ip, rev)
+                        
+                    rec[hopnumber]['conditions'] = plugin_out
+ 
         return True
+    
       
     def ecn_flags(self, ecn, flags, payload_len):
         
@@ -187,7 +192,7 @@ class tracerouteChain(Chain):
             ect2 = "ect2.set"
         else: 
             ect2 = "ect2.notset"  
-                    
+              
         return [ece, cwr, ect1, ect2]            
             
     def ip6(self, rec, ip, rev):
@@ -276,3 +281,7 @@ class tracerouteChain(Chain):
 #              
                  return True
 #     
+class PluggabbleTracerouteChain(Chain):
+    @staticmethod
+    def register_args(subparsers):
+        raise NotImplementedError("Cannot register an abstract plugin")

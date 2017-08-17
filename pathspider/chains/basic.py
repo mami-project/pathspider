@@ -25,6 +25,8 @@ class BasicChain(Chain):
         rec['pkt_rev'] = 0
         rec['oct_fwd'] = 0
         rec['oct_rev'] = 0
+        
+        rec['hops'] = 0
 
         # we want to keep this flow
         return True
