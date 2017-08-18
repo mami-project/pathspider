@@ -339,17 +339,19 @@ class Spider:
             self.merge(NO_FLOW, res)
             
         """Measure workflow has finished, now only the traceroute packets have to be merged"""
-        while True:
-            try:
-                flow = self.flowqueue.get_nowait()
-            except queue.Empty:
-                time.sleep(QUEUE_SLEEP)
-            else:
-                if flow == SHUTDOWN_SENTINEL:
-                    self.__logger.debug("stopping flow merging on sentinel")
-                    break
-                if flow['trace'] == True:
-                    self.tracemergequeue.put(flow)
+        if self.args.trace:
+            while True:
+                try:
+                    flow = self.flowqueue.get_nowait()
+                except queue.Empty:
+                    time.sleep(QUEUE_SLEEP)
+                else:
+                    if flow == SHUTDOWN_SENTINEL:
+                        self.__logger.debug("stopping flow merging on sentinel")
+                        break
+                    if self.args.trace:
+                        if flow['trace'] == True:
+                            self.tracemergequeue.put(flow)
 
             
 
@@ -416,11 +418,8 @@ class Spider:
             conditions = self.traceroute_conditions
             for i in conditions:
                 if i in job['conditions']: 
-                    try:
-                        info = {'dip' : job['dip'], 'hops' : flow['hops']}
-                        self.ipqueue.put(info)
-                    except KeyError:
-                        pass
+                    info = {'dip' : job['dip'], 'hops' : flow['hops']}
+                    self.ipqueue.put(info)
             self.outqueue.put(job)
 
     def combine_flows(self, flows):
@@ -529,7 +528,8 @@ class Spider:
                                 res[entry]['data'] = str(off)   
                                 final[entry] = res[entry]#[res[entry][0], rtt, res[entry][2], str(off)] #res[entry][4], res[entry][5], res[entry][6], res[entry][7], res[entry][8], str(off)]
                                 del res[entry2]
-    
+                if entry == 'Destination':
+                    final['Destination'] = res['Destination']
             # remove sequence number entries that have not been used                
             for entrytest in res.copy():
                 try:
@@ -541,7 +541,7 @@ class Spider:
             self.traceoutqueue.put(final)
             
 
-    def start(self, trace):
+    def start(self):
         """
         This function starts a PATHspider plugin by:
 
@@ -573,7 +573,9 @@ class Spider:
             self.observer_process.start()
             self.__logger.debug("observer forked")
             
-            if trace:
+            self.__logger.info(self.args.trace)
+            
+            if self.args.trace:
                 self.trace_merger_thread = threading.Thread(
                     args=(self.trace_merger,),
                     target=self.exception_wrapper,
@@ -619,7 +621,7 @@ class Spider:
                 worker_thread.start()
             self.__logger.debug("workers up")
 
-    def shutdown(self, trace):
+    def shutdown(self):
         """
         Shut down PathSpider in an orderly fashion,
         ensuring that all queued jobs complete,
@@ -644,13 +646,13 @@ class Spider:
                     worker.join()
             self.__logger.debug("all workers joined")
             
-            if trace:
+            if self.args.trace:
                 time.sleep(10) #guarantees that all relevant flows are pushed out from the expiry bin into the emmited flow (5 secs expiry_time plus 5 secs as buffer)
                 #5 secs expiry time gelten wegen der tcp connection die den flow beendet, sobald ein fin FLAG gesichtet wurde und der 3whs abgeschlossen ist,was falls keine TCP connection???
                 self.flowqueue.put(INTERMEDIATE_SENTINEL)
                 self.resqueue.put(SHUTDOWN_SENTINEL)
                 
-                #Tell packet sender to shut down    #doesn't work because of the observer and i merger cant be shutdown before merger
+                #Tell packet sender to shut down
                 self.ipqueue.put(SHUTDOWN_SENTINEL)
                 self.packet_sender_process.join()
                 self.__logger.debug("sender shutdown")
@@ -667,7 +669,7 @@ class Spider:
             self.merger_thread.join()
             self.__logger.debug("merger shutdown")
                 
-            if trace: 
+            if self.args.trace: 
                 self.tracemergequeue.put(SHUTDOWN_SENTINEL)
                 self.trace_merger_thread.join()
                 self.__logger.debug("trace-merger joined")

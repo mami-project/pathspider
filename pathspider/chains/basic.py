@@ -27,6 +27,7 @@ class BasicChain(Chain):
         rec['oct_rev'] = 0
         
         rec['hops'] = 0
+        rec['trace'] = False
 
         # we want to keep this flow
         return True
@@ -47,6 +48,11 @@ class BasicChain(Chain):
             rec["oct_rev"] += ip.size
             
             rec["hops"] = ip.ttl
+            
+            if ip.icmp:
+                if ip.icmp.type == 11:
+                    rec['trace'] = True
+            
         else:
             rec["pkt_fwd"] += 1
             rec["oct_fwd"] += ip.size

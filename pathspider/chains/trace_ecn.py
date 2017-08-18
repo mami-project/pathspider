@@ -37,40 +37,33 @@ class ECNChain_trace(Chain):
         pass
     
     def box_info(ip, rev):
-         
-        
-        #def ip4(self, rec, ip, rev):
              
-            #"""Destination Stuff like IP, flags and hop number"""    
-    #         if rev and ip.tcp:
-    #              
-    #             sequence = ip.tcp.ack_nbr             
-    #                  
-    #             """ECN-specific stuff like flags and DSCP"""
-    #             ecn = ip.traffic_class
-    #             flags = ip.tcp.data[13]                   
-    #             payload_len = 9  #we don't care but needs to be bigger than 9 for ecn_flags to work properly
-    #              
-    #             [ece, cwr, ect1, ect2] = self.ecn_flags(ecn, flags, payload_len)      
-    #             dscp = ecn >> 2                      
-    #              
-    #             """TCP SYN/ACK flags """
-    #             if (flags >> 1) % 2:
-    #                 syn = "SYN.set"
-    #             else:
-    #                 syn = "SYN.notset"     
-    #             if (flags >> 4) % 2:
-    #                 ack = "ACK.set"
-    #             else:
-    #                 ack = "ACK.notset"
-    #              
-    #             """Calculating final hop with sequence number """
-    #             if rec['seq'] < sequence:
-    #                 final_hop = sequence-1-INITIAL_SEQ #ACK_nbr -1 is final seq_number
-    #                 rec['Destination'] = [str(ip.src_prefix), final_hop, ect1, ect2, ece, cwr, dscp, syn, ack]
-    #                 rec['seq'] = sequence
+        """ECN-specific Destination Stuff"""    
+        if rev and ip.tcp:
+           
+            """ECN-specific stuff like flags and DSCP"""
+            ecn = ip.traffic_class
+            flags = ip.tcp.data[13]                   
+            payload_len = 9  #we don't care but needs to be bigger than 9 for ecn_flags to work properly
+                       
+            dscp = ecn >> 2                      
+              
+            """TCP SYN/ACK flags """
+            if (flags >> 1) % 2:
+                syn = "SYN.set"
+            else:
+                syn = "SYN.notset"     
+            if (flags >> 4) % 2:
+                ack = "ACK.set"
+            else:
+                ack = "ACK.notset"
+              
+            """Calculating final hop with sequence number """
+            [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
+
+            return [ece, cwr, ect, syn, ack, ("DSCP: %u" %dscp)]              
              
-        #"""If incoming packet has ICMP TTL exceeded message""" 
+        """ECN-specific traceroute Stuff""" 
         if rev and ip.icmp:
             if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
                     
@@ -83,15 +76,15 @@ class ECNChain_trace(Chain):
                 data = ip.icmp.payload.data
           
                 """ECN-specific stuff like flags and DSCP"""
-                ecn = ip.icmp.payload.data[1]
+                ecn = ip.icmp.payload.traffic_class
                 if payload_len > 8:
                     flags = ip.icmp.payload.tcp.data[13]
                 else:
                     flags = 0 #we don't care
                  
-                [ece, cwr, ect1, ect2] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
+                [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
               
-        return [ece, cwr, ect1, ect2]
+        return [ece, cwr, ect]
           
     def ecn_flags( ecn, flags, payload_len):
         
@@ -111,15 +104,19 @@ class ECNChain_trace(Chain):
                 
                 
         """IP ECT FLAGS"""                
-        if (ecn % 2):
-            ect1 = "ect1.set"
-        else:
-            ect1 = "ect1.notset"
-        if (ecn >> 1) % 2:
-            ect2 = "ect2.set"
-        else: 
-            ect2 = "ect2.notset"  
+        ECT_ZERO = 0x02
+        ECT_ONE = 0x01
+        ECT_CE = 0x03
+
+        ect = 'ecn_no_ect'
+
+        if ecn & ECT_CE == ECT_ZERO:
+            ect = 'ecn_ect0'
+        if ecn & ECT_CE == ECT_ONE:
+            ect = 'ecn_ect1'
+        if ecn & ECT_CE == ECT_CE:
+            ect = 'ecn_ce'  
                     
-        return [ece, cwr, ect1, ect2]            
+        return [ece, cwr, ect]            
                 
                

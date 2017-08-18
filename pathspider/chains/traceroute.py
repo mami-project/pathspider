@@ -79,7 +79,7 @@ class tracerouteChain(Chain):
          :rtype: bool
          """
          
-         rec['trace'] = False
+         #rec['trace'] = False
          rec['seq'] = 0
          return True
         
@@ -121,17 +121,25 @@ class tracerouteChain(Chain):
             """Calculating final hop with sequence number """
             if rec['seq'] < sequence:
                 final_hop = sequence-1-INITIAL_SEQ #ACK_nbr -1 is final seq_number
-                rec['Destination'] = [str(ip.src_prefix), final_hop, ect1, ect2, ece, cwr, dscp, syn, ack]
+                rec['Destination'] = {'from': str(ip.src_prefix),'hops': final_hop}#, ect1, ect2, ece, cwr, dscp, syn, ack}
                 rec['seq'] = sequence
+                
+                if len(chosen_chains) > 0:
+                    for c in chosen_chains:
+                        
+                        mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
+                        plugin_out = c.box_info(ip, rev)
+                        
+                    rec['Destination']['conditions'] = plugin_out
          
         """If incoming packet has ICMP TTL exceeded message"""    
         if rev and ip.icmp:
             if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
-                rec['trace'] = True
+                #rec['trace'] = True
               
                 box_ip = str(ip.src_prefix)
               
-                """Packet arrival time for calculation of rrt in merger"""
+                """Packet arrival time for calculation of rtt in merger"""
                 time = ip.seconds
                            
                 """Identification of hop number via sequence number"""

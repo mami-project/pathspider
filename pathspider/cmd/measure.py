@@ -14,7 +14,7 @@ from pathspider.network import interface_up
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
-def job_feeder_ndjson(inputfile, spider, trace):
+def job_feeder_ndjson(inputfile, spider):
     logger = logging.getLogger("feeder")
     seen_targets = set()
     with open(inputfile) as fh:
@@ -32,10 +32,10 @@ def job_feeder_ndjson(inputfile, spider, trace):
                 logger.warning("Unable to decode JSON for a job, skipping...")
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
-        spider.shutdown(trace)
+        spider.shutdown()
         logger.debug("job_feeder: stopped")
 
-def job_feeder_csv(inputfile, spider, trace):
+def job_feeder_csv(inputfile, spider):
     logger = logging.getLogger("feeder")
     seen_targets = set()
     with open(inputfile) as csvfile:
@@ -54,7 +54,7 @@ def job_feeder_csv(inputfile, spider, trace):
                 logger.warning("Unable to read row for a job, skipping...")
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
-        spider.shutdown(trace)
+        spider.shutdown()
         logger.debug("job_feeder: stopped")
 
 def file_write(args, spider):
@@ -83,7 +83,7 @@ def file_trace_write(outfile, spider):
         while True:
             result2 = spider.traceoutqueue.get()
             if result2 == SHUTDOWN_SENTINEL:
-                logger.info("output complete")
+                logger.info("trace output complete")
                 break
             trace_out.write(json.dumps(result2) + "\n")
             logger.debug("wrote a result")
@@ -106,7 +106,7 @@ def run_measurement(args):
 
         logger.info("activating spider...")
 
-        spider.start(args.trace)
+        spider.start()
 
         logger.debug("starting job feeder...")
         if args.csv_input:
@@ -114,7 +114,7 @@ def run_measurement(args):
         else:
             job_feeder = job_feeder_ndjson
             
-        threading.Thread(target=job_feeder, args=(args.input, spider, args.trace)).start()
+        threading.Thread(target=job_feeder, args=(args.input, spider)).start()
         
         threading.Thread(target=file_write, args=(args, spider)).start()
         
