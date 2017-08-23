@@ -79,7 +79,7 @@ class tracerouteChain(Chain):
          :rtype: bool
          """
          
-         #rec['trace'] = False
+         rec['trace'] = False
          rec['seq'] = 0
          return True
         
@@ -135,7 +135,7 @@ class tracerouteChain(Chain):
         """If incoming packet has ICMP TTL exceeded message"""    
         if rev and ip.icmp:
             if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
-                #rec['trace'] = True
+                rec['trace'] = True
               
                 box_ip = str(ip.src_prefix)
               

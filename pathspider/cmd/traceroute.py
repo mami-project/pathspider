@@ -20,9 +20,9 @@ from pathspider.observer import Observer
 from pathspider.network import interface_up
 
 from pathspider.traceroute_send import send_pkts
+from pathspider.traceroute_base import traceroute
 
 import multiprocessing as mp
-from pathspider.base import SHUTDOWN_SENTINEL
 
 
 chains = load("pathspider.chains", subclasses=Chain)
@@ -65,23 +65,27 @@ def run_traceroute(args):
     logger.info("Starting observer...")
     threading.Thread(target=observer.run_flow_enqueuer, args=(flowqueue,observer_shutdown_queue),daemon = True).start()
     
+    mergequeue = queue.Queue(QUEUE_SIZE)
+    filter_queue = threading.Thread(target = filter, args=(flowqueue, mergequeue), daemon = True).start()
+    
+    """ Setting up merger"""
+    logger.info("Starting merger...")
+    outqueue = queue.Queue(QUEUE_SIZE)
+    merge = threading.Thread(target=traceroute.trace_merger, args=(mergequeue, mergequeue, outqueue), daemon = True)
+    merge.start()
+    
     """Setting up sender"""
-    ipqueue = mp.Queue(QUEUE_SIZE)
-    timequeue = mp.Queue(QUEUE_SIZE)
+    logger.info("Starting sender...")
+    ipqueue = mp.Queue(QUEUE_SIZE) 
+    send = mp.Process(target=traceroute.sender, args=(ipqueue,ipqueue), daemon = True)
+    send.start()
     
     """Read ips to file and add them to ipqueue for sender, if no file, just put single ip"""
     if file:
-        threading.Thread(target=queue_feeder, args=(args.input, ipqueue), daemon = True).start()
+        threading.Thread(target=queue_feeder, args=(args.cond, args.input, ipqueue), daemon = True).start()
     else:
         ipqueue.put(args.ip)
         ipqueue.put(SHUTDOWN_SENTINEL)
-    
-    send = mp.Process(target=send_pkts,args=(args.hops,args.flows,ipqueue))
-    send.start()
-    
-    """ Setting up merger"""
-    #merge = threading.Thread(target=output_merger, args=(flowqueue, timequeue))
-    #merge.start
 
     logger.info("Opening output file " + args.output)
     with open(args.output, 'w') as outputfile:
@@ -94,88 +98,47 @@ def run_traceroute(args):
         first = False
         
         while True:
-            
             if not send.is_alive() and not first: #check if sender is finished but do only first time after finishing
                 signal.alarm(3)
                 first = True
-      
-            result = flowqueue.get()
-                           
+            result = outqueue.get()
+               
             if result == SHUTDOWN_SENTINEL:
                 logger.info("Output complete")
                 break
-            
-            #Only get the flows with the ttl_exceeded message
-            if filter(result):
-                continue
-             
-            #get rtt and additional stuff 
-            result = operations(result)
-            outputfile.write(json.dumps(str(result)) + "\n")
+
+            outputfile.write(json.dumps(result) + "\n")
             logger.debug("wrote a result")
 
-def filter(res): #TODO what happens when we get SHUTDOWN SENTINEL?
-    
-    #only flows with icmp ttl_exceeded messages are wanted
-    for entry in res:
-        if entry == 'trace' and res[entry] == False:
-            return True
-    
-def operations(res):    
-    """delete unnecessary things and calculate round-trip time in milliseconds"""
-    for entry in res.copy():
-        if entry == 'trace' or entry == '_idle_bin' or entry == 'pkt_first' or entry == 'pkt_last' or entry == 'seq':
-                del res[entry]
-        elif entry == 'Destination':
-            pass
-        else:
-            for entry2 in res.copy():
-                diff = bytearray()
-                if entry2 == 'trace' or entry2 == '_idle_bin' or entry2 == 'pkt_first' or entry2 == 'pkt_last' or entry2 == 'seq':
-                    del entry2
-                elif entry2 == 'Destination':
-                    pass
-                elif (int(entry)+9999) == int(entry2):  #comparing sequencenumber of upstream entry2 with hopnumber of downstream entry
-                    rtt= (res[entry][1]- res[entry2][0])*1000
-                    rtt = round(rtt,3)
-                    
-                    """bytearray comparison """
-                    length = int(len(res[entry][3])/2-1)
-                    fail = []
-                    for i in range(length): #TODO whats the problem with the length... why isnt it working ?
-                        try:
-                            bts = res[entry][3][i]^res[entry2][1][i]
-                            diff = diff + bts.to_bytes(1, byteorder='big')
-                        except IndexError:
-                            pass
-                        else:
-                            if bts != 0:# and i != 8 and i != 10 and i != 11:  #check for differences beside ttl and checksum
-                                fail.append("%d: %d" % (i, bts))
-                    
-                        
-                    res[entry] = [res[entry][0], rtt, res[entry][2], res[entry][4], res[entry][5], res[entry][6], res[entry][7], res[entry][8], str(fail)]
-                    del res[entry2]
-    
-    # remove sequence number entries that have not been used                
-    for entrytest in res.copy():
+def filter(res, merge): #Only flows with trace flag should go to merger
+    while True:
+        entry = res.get()
+        if entry == SHUTDOWN_SENTINEL:
+            merge.put(SHUTDOWN_SENTINEL)
+            break
         try:
-            if int(entrytest) > 100:
-                del res[entrytest]
-        except ValueError:
+            if entry['trace'] == True:
+                merge.put(entry)
+        except KeyError:
             pass
-                
-    return res.copy()
 
-def queue_feeder(inputfile, ipqueue):
+def queue_feeder(cond, inputfile, ipqueue):
+    logger = logging.getLogger("pathspider")
     with open(inputfile) as fh:
         for line in fh:
-            try:
-                job = json.loads(line)
-                if job['conditions'][0] == "ecn.connectivity.broken":# in job.keys():
-                    
-                    ipqueue.put(job['dip'])  #old
-            except ValueError:
-                pass
+            job = json.loads(line)
+            if cond != None:   #Check if condition in cmd line is given for tracerouting
+                try:
+                    if cond in job['conditions']:
+                        inp = {'dip': job['dip'], 'hops': 30}
+                        ipqueue.put(inp)
+                except KeyError:
+                    logger.debug("Job has no 'conditions' field, skipping")
+                    pass
+            else:
+                inp = {'dip': job['dip'], 'hops': 30} #fixed number of hops at the moment!!!!
+                ipqueue.put(inp)  
+            
     ipqueue.put(SHUTDOWN_SENTINEL)
 
 
@@ -197,6 +160,7 @@ def register_args(subparsers):
                         help="The interface to use for the observer. (Default: eth0)")
     parser.add_argument('-f','--flows', type = int, default = 1, 
                         help="Number of times the traceroute should be conducted with different flows. (Default: 1)")
+    parser.add_argument('-cond', type = str, default = None, help="Condition in inputfile for doing tracerouting")
     parser.add_argument('--input', default='null', metavar='INPUTFILE', help=("A file containing a list of IPs to traceroute. "
                               "Defaults to standard input."))
     parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',

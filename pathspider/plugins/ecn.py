@@ -6,13 +6,14 @@ from pathspider.base import PluggableSpider
 from pathspider.base import CONN_OK
 from pathspider.sync import SynchronizedSpider
 from pathspider.chains.basic import BasicChain
+from pathspider.traceroute_base import traceroute
 from pathspider.chains.tcp import TCPChain
 from pathspider.chains.tcp import TCP_SAE
 from pathspider.chains.tcp import TCP_SAEC
 from pathspider.chains.ecn import ECNChain
 from pathspider.chains.traceroute import tracerouteChain
 
-class ECN(SynchronizedSpider, PluggableSpider):
+class ECN(SynchronizedSpider, PluggableSpider, traceroute):
 
     name = "ecn"
     description = "Explicit Congestion Notification"

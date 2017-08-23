@@ -450,96 +450,6 @@ class Spider:
             conn['jobId'] = jobId
             self.resqueue.put(conn)
             config += 1
-            
-    def sender(self):
-        """Send TCP packet with increasing TTL for every hop to destination"""
-    
-        #TODO integrate src for number of flows
-
-        src = 1
-        self.__logger.debug("Sender started")
-        while True:
-            try:
-                info = self.ipqueue.get_nowait()
-            except queue.Empty:
-                time.sleep(QUEUE_SLEEP)
-                self.__logger.debug("IP queue is empty")
-            else:
-                if info == SHUTDOWN_SENTINEL:
-                    break
-                else:
-                    dip = info['dip']
-                    ttl = self._ttl_to_hops(info['hops'])                    
-                    for j in range(src):    #repeating with src different flows  
-                        for i in range(ttl):                   
-                            if ':' in dip: #IPv6
-                                pass   #since not working correctly at the moment
-                                #send(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
-                            else:
-                                send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0, inter=0.1)    
-                        #time.sleep(0.25)
-                        self.__logger.info(("Sending flow %u of %s finished "), (j+1), dip)
-                        
-    def _ttl_to_hops(self, ttl_input):
-        offset = 5  #buffer
-         
-        if ttl_input > 128:
-            hops = 256 - ttl_input
-        elif ttl_input > 64:
-            hops = 129 - ttl_input
-        elif ttl_input > 32:
-            hops = 65 - ttl_input
-        else:
-            hops = 33 - ttl_input
-        
-        hops = hops + offset
-         
-        return hops
-        
-    def trace_merger(self):
-        
-        while True:  
-            res = self.tracemergequeue.get()
-            if res == SHUTDOWN_SENTINEL:
-                break          
-            final = {}
-            for entry in res.copy():
-                if entry.isdigit(): 
-                    for entry2 in res.copy():
-                        diff = bytearray()
-                        if entry2.isdigit():
-                            if (int(entry)+INITIAL_SEQ-1) == int(entry2):  #comparing sequencenumber of upstream entry2 with hopnumber of downstream entry
-                                rtt= (res[entry]['rtt']- res[entry2]['rtt'])*1000
-                                res[entry]['rtt'] = round(rtt,3)
-                         
-                                """bytearray comparison """
-                                length = int(len(res[entry]['data'])/2-1)
-                                off = []
-                                for i in range(length): #TODO whats the problem with the length... why isnt it working ?
-                                    try:
-                                        bts = res[entry]['data'][i]^res[entry2]['data'][i]
-                                        diff = diff + bts.to_bytes(1, byteorder='big')
-                                    except IndexError:
-                                        pass
-                                    else:
-                                        if bts != 0:# and i != 8 and i != 10 and i != 11:  #check for differences beside ttl and checksum
-                                            off.append("%d: %d" % (i, bts))
-                                
-                                res[entry]['data'] = str(off)   
-                                final[entry] = res[entry]#[res[entry][0], rtt, res[entry][2], str(off)] #res[entry][4], res[entry][5], res[entry][6], res[entry][7], res[entry][8], str(off)]
-                                del res[entry2]
-                if entry == 'Destination':
-                    final['Destination'] = res['Destination']
-            # remove sequence number entries that have not been used                
-            for entrytest in res.copy():
-                try:
-                    if int(entrytest) > 100:
-                        del res[entrytest]
-                except ValueError:
-                    pass
-                        
-            self.traceoutqueue.put(final)
-            
 
     def start(self):
         """
@@ -573,11 +483,11 @@ class Spider:
             self.observer_process.start()
             self.__logger.debug("observer forked")
             
-            self.__logger.info(self.args.trace)
-            
             if self.args.trace:
                 self.trace_merger_thread = threading.Thread(
-                    args=(self.trace_merger,),
+                    args=(self.trace_merger,
+                          self.tracemergequeue,
+                          self.traceoutqueue),
                     target=self.exception_wrapper,
                     name="trace_merger",
                     daemon=True)
@@ -585,7 +495,8 @@ class Spider:
                 self.__logger.debug("traceroute-merger up")
                 
                 self.packet_sender_process = mp.Process(
-                    args=(self.sender,),
+                    args=(self.sender,
+                          self.ipqueue),
                     target=self.exception_wrapper,
                     name='packet_sender',
                     daemon=True)
@@ -673,14 +584,11 @@ class Spider:
                 self.tracemergequeue.put(SHUTDOWN_SENTINEL)
                 self.trace_merger_thread.join()
                 self.__logger.debug("trace-merger joined")
-                self.traceoutqueue.join()
+                #self.traceoutqueue.join()
 
             # Wait for merged results to be written
             self.outqueue.join()
             self.__logger.debug("all results retrieved")
-            
-            
-            self.traceoutqueue.put(SHUTDOWN_SENTINEL)
             
             # Propagate shutdown sentinel and tell threads to stop
             self.outqueue.put(SHUTDOWN_SENTINEL)
