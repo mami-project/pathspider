@@ -80,6 +80,7 @@ class tracerouteChain(Chain):
          """
          
          rec['trace'] = False
+         rec['hops'] = 0
          rec['seq'] = 0
          return True
         
@@ -97,7 +98,7 @@ class tracerouteChain(Chain):
          
         """Destination Stuff like IP, flags and hop number"""    
         if rev and ip.tcp:
-             
+            rec['hops'] = ip.ttl 
             sequence = ip.tcp.ack_nbr             
                  
             """ECN-specific stuff like flags and DSCP"""
@@ -134,42 +135,42 @@ class tracerouteChain(Chain):
          
         """If incoming packet has ICMP TTL exceeded message"""    
         if rev and ip.icmp:
-            if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
-                rec['trace'] = True
-              
-                box_ip = str(ip.src_prefix)
-              
-                """Packet arrival time for calculation of rtt in merger"""
-                time = ip.seconds
-                           
-                """Identification of hop number via sequence number"""
-                hopnumber = str(ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1))     
-              
-                """length of payload that comes back to identify RFC1812-compliant routers"""
-                pp = ip.icmp.payload.payload
-                payload_len = len(pp)
-                 
-                """payload data of returning packet for bitwise comparison in merger""" 
-                data = ip.icmp.payload.data
+            #if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
+            rec['trace'] = True
           
-                """ECN-specific stuff like flags and DSCP"""
-                ecn = ip.icmp.payload.data[1]
-                if payload_len > 8:
-                    flags = ip.icmp.payload.tcp.data[13]
-                else:
-                    flags = 0 #we don't care
-                
-                rec[hopnumber] = {'from': box_ip, 'rtt': time, 'size': payload_len, 'data': data}
-                
-                """Additional 'conditions' info of other traceroutechain"""
-                
-                if len(chosen_chains) > 0:
-                    for c in chosen_chains:
-                        
-                        mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
-                        plugin_out = c.box_info(ip, rev)
-                        
-                    rec[hopnumber]['conditions'] = plugin_out
+            box_ip = str(ip.src_prefix)
+          
+            """Packet arrival time for calculation of rtt in merger"""
+            time = ip.seconds
+                       
+            """Identification of hop number via sequence number"""
+            hopnumber = str(ip.icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1))     
+          
+            """length of payload that comes back to identify RFC1812-compliant routers"""
+            pp = ip.icmp.payload.payload
+            payload_len = len(pp)
+             
+            """payload data of returning packet for bitwise comparison in merger""" 
+            data = ip.icmp.payload.data
+      
+            """ECN-specific stuff like flags and DSCP"""
+            ecn = ip.icmp.payload.data[1]
+            if payload_len > 8:
+                flags = ip.icmp.payload.tcp.data[13]
+            else:
+                flags = 0 #we don't care
+            
+            rec[hopnumber] = {'from': box_ip, 'rtt': time, 'size': payload_len, 'data': data}
+            
+            """Additional 'conditions' info of other traceroutechain"""
+            
+            if len(chosen_chains) > 0:
+                for c in chosen_chains:
+                    
+                    mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
+                    plugin_out = c.box_info(ip, rev)
+                    
+                rec[hopnumber]['conditions'] = plugin_out
  
         return True
     

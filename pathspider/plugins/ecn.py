@@ -20,7 +20,7 @@ class ECN(SynchronizedSpider, PluggableSpider, traceroute):
     version = pathspider.base.__version__
     chains = [BasicChain, TCPChain, ECNChain, tracerouteChain]
     connect_supported = ["http", "https", "tcp", "dnstcp"]
-    traceroute_conditions = ["ecn.connectivity.broken", "ecn.negotiation.failed"]
+    traceroute_conditions = ["ecn.connectivity.works", "ecn.negotiation.failed"]
 
     def config_no_ecn(self): # pylint: disable=no-self-use
         """

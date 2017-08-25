@@ -420,6 +420,7 @@ class Spider:
                 if i in job['conditions']: 
                     info = {'dip' : job['dip'], 'hops' : flow['hops']}
                     self.ipqueue.put(info)
+                    break
             self.outqueue.put(job)
 
     def combine_flows(self, flows):

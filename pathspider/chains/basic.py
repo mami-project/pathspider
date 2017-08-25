@@ -26,7 +26,7 @@ class BasicChain(Chain):
         rec['oct_fwd'] = 0
         rec['oct_rev'] = 0
         
-        rec['hops'] = 0
+#         rec['hops'] = 0
         rec['trace'] = False
 
         # we want to keep this flow
@@ -47,11 +47,11 @@ class BasicChain(Chain):
             rec["pkt_rev"] += 1
             rec["oct_rev"] += ip.size
             
-            rec["hops"] = ip.ttl
-            
-            if ip.icmp:
-                if ip.icmp.type == 11:
-                    rec['trace'] = True
+#             rec["hops"] = ip.ttl
+#             
+        if ip.icmp:
+            #if ip.icmp.type == 11:
+            rec['trace'] = True
             
         else:
             rec["pkt_fwd"] += 1

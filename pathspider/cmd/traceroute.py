@@ -24,6 +24,8 @@ from pathspider.traceroute_base import traceroute
 
 import multiprocessing as mp
 
+HOPS = 30
+
 
 chains = load("pathspider.chains", subclasses=Chain)
 
@@ -84,7 +86,8 @@ def run_traceroute(args):
     if file:
         threading.Thread(target=queue_feeder, args=(args.cond, args.input, ipqueue), daemon = True).start()
     else:
-        ipqueue.put(args.ip)
+        inp = {'dip': args.ip, 'hops': HOPS} #fixed number of hops at the moment!!!!
+        ipqueue.put(inp)
         ipqueue.put(SHUTDOWN_SENTINEL)
 
     logger.info("Opening output file " + args.output)
@@ -130,13 +133,13 @@ def queue_feeder(cond, inputfile, ipqueue):
             if cond != None:   #Check if condition in cmd line is given for tracerouting
                 try:
                     if cond in job['conditions']:
-                        inp = {'dip': job['dip'], 'hops': 30}
+                        inp = {'dip': job['dip'], 'hops': HOPS}
                         ipqueue.put(inp)
                 except KeyError:
                     logger.debug("Job has no 'conditions' field, skipping")
                     pass
             else:
-                inp = {'dip': job['dip'], 'hops': 30} #fixed number of hops at the moment!!!!
+                inp = {'dip': job['dip'], 'hops': HOPS} #fixed number of hops at the moment!!!!
                 ipqueue.put(inp)  
             
     ipqueue.put(SHUTDOWN_SENTINEL)
