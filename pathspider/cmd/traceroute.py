@@ -88,7 +88,7 @@ def run_traceroute(args):
     else:
         inp = {'dip': args.ip, 'hops': HOPS} #fixed number of hops at the moment!!!!
         ipqueue.put(inp)
-        ipqueue.put(SHUTDOWN_SENTINEL)
+    ipqueue.put(SHUTDOWN_SENTINEL)
 
     logger.info("Opening output file " + args.output)
     with open(args.output, 'w') as outputfile:
@@ -141,8 +141,6 @@ def queue_feeder(cond, inputfile, ipqueue):
             else:
                 inp = {'dip': job['dip'], 'hops': HOPS} #fixed number of hops at the moment!!!!
                 ipqueue.put(inp)  
-            
-    ipqueue.put(SHUTDOWN_SENTINEL)
 
 
        

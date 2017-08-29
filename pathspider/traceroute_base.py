@@ -22,7 +22,7 @@ class traceroute(Spider):
 
         logger = logging.getLogger('sender')
 
-        src = 1
+        src = 1 #placeholder as long as I don't know what to do with it
         logger.info("Sender started")
         while True:
             try:
@@ -43,11 +43,9 @@ class traceroute(Spider):
                     for j in range(src):    #repeating with src different flows  
                         for i in range(ttl):                   
                             if ':' in dip: #IPv6
-                                pass   #since not working correctly at the moment
-                                #send(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
+                                sendp(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
                             else:
-                                send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0, inter=0.1)    
-                        #time.sleep(0.25)
+                                send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)    #inter=0.1 for pause between packets
                         logger.info(("Sending flow %u of %s finished "), (j+1), dip)
                         
     def _ttl_to_hops(self, ttl_input):

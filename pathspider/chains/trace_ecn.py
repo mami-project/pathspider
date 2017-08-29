@@ -1,43 +1,26 @@
 """
 .. module:: pathspider.chains.traceroute
-   :synopsis: A flow analysis chain for traceroute messages especially ismp messages
+   :synopsis: A flow analysis chain for traceroute messages especially icmp messages
 
 """
 
 from pathspider.chains.base import Chain
-from pathspider.traceroute_send import INITIAL_SEQ
-from pathspider.traceroute_send import INITIAL_PORT
+from pathspider.traceroute_base import INITIAL_SEQ
+from pathspider.traceroute_base import INITIAL_PORT
 from pip._vendor.progress import counter
 import base64
+#from pathspider.chains.traceroute import ICMP4_TTLEXCEEDED
+#from pathspider.chains.traceroute import ICMP6_TTLEXCEEDED
 
 ICMP4_TTLEXCEEDED = 11
-
-
-#class ecn_traceChain(Chain):
-#     """
-#     This flow analysis chain records details of ICMP messages in
-#     the flow record. It will record when a message of certain types have been
-#     seen during a flow.
-# 
-#     +----------------------+--------+-------------------------------------------------------------+
-#     | Field Name           | Type   | Meaning                                                     |
-#     +======================+========+=============================================================+
-#     | ``icmp_unreachable`` | bool   | An ICMP unreachable message was seen in the reverse         |
-#     |                      |        | direction                                                   |
-#     +----------------------+--------+-------------------------------------------------------------+
-#     | ``icmp_ttlexceeded`` | bool   | An ICMP TTL exceeded message was seen in the reverse        |
-#     |                      |        | direction                                                   |
-#     +----------------------+--------+-------------------------------------------------------------|
-#     """
-
+ICMP6_TTLEXCEEDED = 3
 class ECNChain_trace(Chain):
 
     
     def __init__(self):
         pass
     
-    def box_info(ip, rev):
-             
+    def box_info(ip, rev):    
         """ECN-specific Destination Stuff"""    
         if rev and ip.tcp:
            
@@ -67,7 +50,6 @@ class ECNChain_trace(Chain):
         if rev and ip.icmp:
             if ip.icmp.type == ICMP4_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
                     
-              
                 """length of payload that comes back to identify RFC1812-compliant routers"""
                 pp = ip.icmp.payload.payload
                 payload_len = len(pp)
@@ -83,8 +65,7 @@ class ECNChain_trace(Chain):
                     flags = 0 #we don't care
                  
                 [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
-              
-        return [ece, cwr, ect]
+                return [ece, cwr, ect]
           
     def ecn_flags( ecn, flags, payload_len):
         
@@ -119,4 +100,49 @@ class ECNChain_trace(Chain):
                     
         return [ece, cwr, ect]            
                 
-               
+    def box_info6(ip, rev):     
+        """ECN-specific Destination Stuff"""    
+        if rev and ip.tcp:
+           
+            """ECN-specific stuff like flags and DSCP"""
+            ecn = ip.traffic_class
+            flags = ip.tcp.data[13]                   
+            payload_len = 9  #we don't care but needs to be bigger than 9 for ecn_flags to work properly
+                       
+            dscp = ecn >> 2                      
+              
+            """TCP SYN/ACK flags """
+            if (flags >> 1) % 2:
+                syn = "SYN.set"
+            else:
+                syn = "SYN.notset"     
+            if (flags >> 4) % 2:
+                ack = "ACK.set"
+            else:
+                ack = "ACK.notset"
+              
+            """Calculating final hop with sequence number """
+            [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
+
+            return [ece, cwr, ect, syn, ack, ("DSCP: %u" %dscp)]              
+             
+        """ECN-specific traceroute Stuff""" 
+        if rev and ip.icmp6:
+            if ip.icmp6.type == ICMP6_TTLEXCEEDED:# or ip.icmp.type == ICMP4_UNREACHABLE:
+                    
+                """length of payload that comes back to identify RFC1812-compliant routers"""
+                pp = ip.icmp6.payload.payload
+                payload_len = len(pp)
+                 
+                """payload data of returning packet for bitwise comparison in merger""" 
+                data = ip.icmp6.payload.data
+          
+                """ECN-specific stuff like flags and DSCP"""
+                ecn = ip.icmp6.payload.traffic_class
+                if payload_len > 8:
+                    flags = ip.icmp6.payload.payload[13]
+                else:
+                    flags = 0 #we don't care
+                 
+                [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
+                return [ece, cwr, ect]   
