@@ -24,22 +24,26 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
         else:
             curlopts[pycurl.INTERFACE] = source[0]
 
+    if ':' in job['dip']:
+        ipString = '[' + job['dip'] + ']'
+    else:
+        ipString = job['dip']
+
     if pycurl.URL not in curlopts:
-        if ':' in job['dip']:
-            domainPart = '[' + job['dip'] + ']'
+        if 'domain' in job:
+            url = "http://" + job['domain'] + ":" + str(job['dp']) + "/"
         else:
-            domainPart = job['dip']
-        url = "http://" + domainPart + ":" + str(job['dp']) + "/"
+            url = "http://" + ipString + ":" + str(job['dp']) + "/"
+    else:
         curlopts[pycurl.URL] = url
 
     if pycurl.USERAGENT not in curlopts:
         useragent = "PATHspider (https://pathspider.net/)"
         curlopts[pycurl.USERAGENT] = useragent
 
-    if 'domain' in job:
-        curlopts[pycurl.HTTPHEADER] = ["Host: " + job['domain']]
-
     curlopts[pycurl.TIMEOUT] = conn_timeout
+
+    curlopts[pycurl.CONNECT_TO] = ["::{}:{}".format(ipString, job['dp'])]
 
     header = BytesIO()
     curlopts[pycurl.HEADERFUNCTION] = header.write
@@ -79,12 +83,17 @@ def connect_https(source, job, conn_timeout, curlopts=None, curlinfos=None):
     if curlopts is None:
         curlopts = {}
 
+    if ':' in job['dip']:
+        ipString = '[' + job['dip'] + ']'
+    else:
+        ipString = job['dip']
+
     if pycurl.URL not in curlopts:
-        if ':' in job['dip']:
-            domainPart = '[' + job['dip'] + ']'
+        if 'domain' in job:
+            url = "http://" + job['domain'] + ":" + str(job['dp']) + "/"
         else:
-            domainPart = job['dip']
-        url = "https://" + domainPart + ":" + str(job['dp']) + "/"
+            url = "http://" + ipString + ":" + str(job['dp']) + "/"
+    else:
         curlopts[pycurl.URL] = url
 
     if pycurl.SSL_VERIFYHOST not in curlopts:
