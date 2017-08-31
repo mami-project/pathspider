@@ -36,6 +36,10 @@ from datetime import datetime
 
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
+from pathspider.network import ipv4_address_public
+from pathspider.network import ipv6_address_public
+from pathspider.network import ipv4_asn
+from pathspider.network import ipv6_asn
 
 __version__ = "2.0.0.dev0"
 
@@ -129,8 +133,13 @@ class Spider:
         self.exception = None
 
         if libtrace_uri.startswith('int'):
+            # TODO: Refactor this
             self.source = (ipv4_address(self.libtrace_uri[4:]),
                            ipv6_address(self.libtrace_uri[4:]))
+            self.source_public = (ipv4_address_public(self.libtrace_uri[4:]),
+                                  ipv6_address_public(self.libtrace_uri[4:]))
+            self.source_asn = (ipv4_asn(self.libtrace_uri[4:]),
+                               ipv6_asn(self.libtrace_uri[4:]))
         else:
             self.source = ("127.0.0.1", "::1")
 
@@ -589,6 +598,12 @@ class Spider:
 
         if self.stopping:
             return
+
+        if not self.server_mode:
+            sourceindex = 1 if ':' in job['dip'] else 0
+            job['sip'] = self.source[sourceindex]
+            job['sip_public'] = self.source_public[sourceindex]
+            job['sip_asn'] = self.source_asn[sourceindex]
 
         self.jobqueue.put(job)
 
