@@ -33,8 +33,6 @@ import threading
 import multiprocessing as mp
 import queue
 from datetime import datetime
-from scapy.all import *
-#from pathspider.traceroute_base import traceroute
 
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
@@ -152,6 +150,9 @@ class Spider:
             self.controller = stem.control.Controller.from_port()
             self.controller.authenticate()
 
+    def plugin(self):
+        """Helper method to give current plugin name to traceroutechain"""
+        return args.plugin
 
     def configurator(self):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
@@ -255,7 +256,7 @@ class Spider:
                 return False
              
             # If flow has trace flag set send it to traceroute merger
-            if flow['trace'] == True:
+            if self.args.trace and flow['trace'] == True:
                 self.tracemergequeue.put(flow)
                 return True           
             
@@ -415,12 +416,14 @@ class Spider:
             job['conditions'] = self.combine_flows(flows)
             if job['conditions'] is None:
                 job.pop('conditions')
-            conditions = self.traceroute_conditions
-            for i in conditions:
-                if i in job['conditions']: 
-                    info = {'dip' : job['dip'], 'hops' : flow['hops']}
-                    self.ipqueue.put(info)
-                    break
+            if self.args.trace:
+                conditions = self.traceroute_conditions
+                for i in conditions:
+                    if i in job['conditions']: 
+                        print("in ipqueue")
+                        info = {'dip' : job['dip'], 'hops' : flow['hops']}
+                        self.ipqueue.put(info)
+                        break
             self.outqueue.put(job)
 
     def combine_flows(self, flows):
@@ -671,7 +674,7 @@ class Spider:
 
         if self.stopping:
             return
-
+        
         self.jobqueue.put(job)
 
 class PluggableSpider:

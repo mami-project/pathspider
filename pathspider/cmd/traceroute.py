@@ -19,7 +19,6 @@ from pathspider.observer import Observer
 
 from pathspider.network import interface_up
 
-from pathspider.traceroute_send import send_pkts
 from pathspider.traceroute_base import traceroute
 
 import multiprocessing as mp
@@ -73,13 +72,13 @@ def run_traceroute(args):
     """ Setting up merger"""
     logger.info("Starting merger...")
     outqueue = queue.Queue(QUEUE_SIZE)
-    merge = threading.Thread(target=traceroute.trace_merger, args=(mergequeue, mergequeue, outqueue), daemon = True)
+    merge = threading.Thread(target=traceroute.trace_merger, args=(mergequeue, mergequeue, outqueue), daemon = True)#create instance to use self
     merge.start()
     
     """Setting up sender"""
     logger.info("Starting sender...")
     ipqueue = mp.Queue(QUEUE_SIZE) 
-    send = mp.Process(target=traceroute.sender, args=(ipqueue,ipqueue), daemon = True)
+    send = mp.Process(target=traceroute.sender, args=(ipqueue,ipqueue), daemon = True)#create instance to use self
     send.start()
     
     """Read ips to file and add them to ipqueue for sender, if no file, just put single ip"""
