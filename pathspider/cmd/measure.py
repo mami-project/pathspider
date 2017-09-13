@@ -72,11 +72,15 @@ def file_write(args, spider):
             logger.debug("wrote a result")
             spider.outqueue.task_done()
     
-def file_trace_write(outfile, spider):
+def file_trace_write(args, spider):
     logger = logging.getLogger("writer")
-    trace_outfile = outfile[:-7]
-    trace_outfile = trace_outfile + "_trace.ndjson"
-
+    
+    """If outputfile was given: add _trace, if no outputfile: write in console"""
+    if args.output != "/dev/stdout":
+        trace_outfile = args.output[:-7]
+        trace_outfile = trace_outfile + "_trace.ndjson"
+    else:
+        trace_outfile = "/dev/stdout"
             
     with open(trace_outfile, 'w') as trace_out:
         logger.info("opening output file "+ trace_outfile)
@@ -119,7 +123,7 @@ def run_measurement(args):
         threading.Thread(target=file_write, args=(args, spider)).start()
         
         if args.trace:
-            threading.Thread(target=file_trace_write, args=(args.output, spider)).start()
+            threading.Thread(target=file_trace_write, args=(args, spider)).start()
 
     except KeyboardInterrupt:
         logger.error("Received keyboard interrupt, dying now.")

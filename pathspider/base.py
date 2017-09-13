@@ -420,7 +420,6 @@ class Spider:
                 conditions = self.traceroute_conditions
                 for i in conditions:
                     if i in job['conditions']: 
-                        print("in ipqueue")
                         info = {'dip' : job['dip'], 'hops' : flow['hops']}
                         self.ipqueue.put(info)
                         break
@@ -500,7 +499,8 @@ class Spider:
                 
                 self.packet_sender_process = mp.Process(
                     args=(self.sender,
-                          self.ipqueue),
+                          self.ipqueue,
+                          1),   #temporary for number of flows
                     target=self.exception_wrapper,
                     name='packet_sender',
                     daemon=True)

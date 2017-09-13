@@ -67,18 +67,20 @@ def run_traceroute(args):
     threading.Thread(target=observer.run_flow_enqueuer, args=(flowqueue,observer_shutdown_queue),daemon = True).start()
     
     mergequeue = queue.Queue(QUEUE_SIZE)
-    filter_queue = threading.Thread(target = filter, args=(flowqueue, mergequeue), daemon = True).start()
+    threading.Thread(target = filter, args=(flowqueue, mergequeue), daemon = True).start()
+    
+    trace = traceroute()
     
     """ Setting up merger"""
     logger.info("Starting merger...")
     outqueue = queue.Queue(QUEUE_SIZE)
-    merge = threading.Thread(target=traceroute.trace_merger, args=(mergequeue, mergequeue, outqueue), daemon = True)#create instance to use self
+    merge = threading.Thread(target=trace.trace_merger, args=(mergequeue, outqueue), daemon = True)
     merge.start()
     
     """Setting up sender"""
     logger.info("Starting sender...")
     ipqueue = mp.Queue(QUEUE_SIZE) 
-    send = mp.Process(target=traceroute.sender, args=(ipqueue,ipqueue), daemon = True)#create instance to use self
+    send = mp.Process(target=trace.sender, args=(ipqueue, args.flows), daemon = True)
     send.start()
     
     """Read ips to file and add them to ipqueue for sender, if no file, just put single ip"""
@@ -87,7 +89,7 @@ def run_traceroute(args):
     else:
         inp = {'dip': args.ip, 'hops': HOPS} #fixed number of hops at the moment!!!!
         ipqueue.put(inp)
-    ipqueue.put(SHUTDOWN_SENTINEL)
+        ipqueue.put(SHUTDOWN_SENTINEL)
 
     logger.info("Opening output file " + args.output)
     with open(args.output, 'w') as outputfile:
@@ -124,7 +126,7 @@ def filter(res, merge): #Only flows with trace flag should go to merger
         except KeyError:
             pass
 
-def queue_feeder(cond, inputfile, ipqueue):
+def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessary!!!
     logger = logging.getLogger("pathspider")
     with open(inputfile) as fh:
         for line in fh:
@@ -139,7 +141,8 @@ def queue_feeder(cond, inputfile, ipqueue):
                     pass
             else:
                 inp = {'dip': job['dip'], 'hops': HOPS} #fixed number of hops at the moment!!!!
-                ipqueue.put(inp)  
+                ipqueue.put(inp)
+    ipqueue.put(SHUTDOWN_SENTINEL) 
 
 
        

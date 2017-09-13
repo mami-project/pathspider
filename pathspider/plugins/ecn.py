@@ -12,6 +12,7 @@ from pathspider.chains.tcp import TCP_SAE
 from pathspider.chains.tcp import TCP_SAEC
 from pathspider.chains.ecn import ECNChain
 from pathspider.chains.traceroute import tracerouteChain
+from pathspider.chains.trace_ecn import ECNChain_trace
 
 class ECN(SynchronizedSpider, PluggableSpider, traceroute):
 
@@ -19,6 +20,7 @@ class ECN(SynchronizedSpider, PluggableSpider, traceroute):
     description = "Explicit Congestion Notification"
     version = pathspider.base.__version__
     chains = [BasicChain, TCPChain, ECNChain, tracerouteChain]
+    trace_chains = [ECNChain_trace]
     connect_supported = ["http", "https", "tcp", "dnstcp"]
     traceroute_conditions = ["ecn.connectivity.works", "ecn.connectivity.broken"]
 

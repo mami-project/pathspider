@@ -2,7 +2,7 @@ from scapy.all import *
 import time
 import queue
 import logging
-from pathspider.base import Spider
+#from pathspider.base import Spider
 from pathspider.base import QUEUE_SIZE
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.base import QUEUE_SLEEP
@@ -10,19 +10,19 @@ from pathspider.base import QUEUE_SLEEP
 INITIAL_PORT = 10000
 INITIAL_SEQ = 10000
 
-class traceroute(Spider):
+class traceroute():
     
-#      def __init__(self):
-#          pass
+    def __init__(self):
+        logging.getLogger("traceroute")
         
-    def sender(self, ipqueue):
+    def sender(self, ipqueue, flows):
         """Send TCP packet with increasing TTL for every hop to destination"""
     
         #TODO integrate src for number of flows
 
         logger = logging.getLogger('sender')
-
-        src = 1 #placeholder as long as I don't know what to do with it
+        
+        src = flows
         logger.info("Sender started")
         while True:
             try:

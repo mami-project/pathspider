@@ -9,7 +9,7 @@ from pathspider.traceroute_base import INITIAL_SEQ
 from pip._vendor.progress import counter
 import base64
 import logging
-
+from pathspider.base import Spider
 from straight.plugin import load
 
 chain = load("pathspider.chains", subclasses=Chain)
@@ -36,7 +36,9 @@ class tracerouteChain(Chain):
     """
     This flow analysis chain is the basic chain for tracerouting 
     """
-
+    
+    #print(self.args)
+    
     def new_flow(self, rec, ip):
          """
          For a new flow, all fields will be initialised to ``False`` or 0.
@@ -52,7 +54,7 @@ class tracerouteChain(Chain):
          
          rec['trace'] = False
          rec['hops'] = 0
-         rec['_seq'] = 100000
+         rec['_seq'] = 11000
          return True
         
     def ip4(self, rec, ip, rev):
@@ -85,17 +87,23 @@ class tracerouteChain(Chain):
         """Timestamp for calculating rtt in tracemerger"""              
         timeinit = ip.tcp.seconds
         """Sequence number to find the corresponding packets"""
-        sequence = str(ip.tcp.seq_nbr)
-        rec[sequence] = {'rtt': timeinit, 'data': data}          
+        try:
+            sequence = str(ip.tcp.seq_nbr)
+            rec[sequence] = {'rtt': timeinit, 'data': data}
+        except AttributeError:
+            print("Sequence Attribute Error!")
+          
         
     def dest_trace(self, rec, ip):
+        print("dest_trace works!!")
         """Hops used to reach destination to give to the ipqueue"""
         rec['hops'] = ip.ttl  
         """Acknowledge number of destination -1 is sequence number of received package"""
         seq_nbr = (ip.tcp.ack_nbr-1)                      
-          
+        print(seq_nbr)  
+        print(rec['_seq'])
         """Calculating final hop with sequence number """
-        if rec['_seq'] > seq_nbr:
+        if rec['_seq'] > seq_nbr and rec['_seq'] > 10000:
             final_hop = seq_nbr-INITIAL_SEQ
             rec['Destination'] = {'from': str(ip.src_prefix),'hops': final_hop}
             rec['_seq'] = seq_nbr
@@ -113,28 +121,31 @@ class tracerouteChain(Chain):
         """Packets should be merged by tracemerger"""
         rec['trace'] = True
         
-        """Identification of hop number via sequence number"""
-        hopnumber = str(icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1))
-        
-        """IP of middlebox"""
-        box_ip = str(ip.src_prefix)
-          
-        """Packet arrival time for calculation of rtt in merger"""
-        time = ip.seconds
-                   
-        """length of payload that comes back to identify RFC1812-compliant routers"""
-        pp = icmp.payload.payload
-        payload_len = len(pp)
-         
-        """payload data of returning packet for bitwise comparison in merger""" 
-        data = icmp.payload.data
-        
-        rec[hopnumber] = {'from': box_ip, 'rtt': time, 'size': payload_len, 'data': data}
-        
-        """Additional 'conditions' info of additional plugin chains"""      
-        if len(chosen_chains) > 0:
-            for c in chosen_chains:               
-                #mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
-                plugin_out = c.box_info(ip)
-                
-            rec[hopnumber]['conditions'] = plugin_out             
+        """Identification of hop number via sequence number""" #check if it works now... problem if icmp has no tcp??
+        try:
+            hopnumber = str(icmp.payload.tcp.seq_nbr - (INITIAL_SEQ-1))
+        except AttributeError:
+            print("Sequence Attribute Error!")
+        else:
+            """IP of middlebox"""
+            box_ip = str(ip.src_prefix)
+              
+            """Packet arrival time for calculation of rtt in merger"""
+            time = ip.seconds
+                       
+            """length of payload that comes back to identify RFC1812-compliant routers"""
+            pp = icmp.payload.payload
+            payload_len = len(pp)
+             
+            """payload data of returning packet for bitwise comparison in merger""" 
+            data = icmp.payload.data
+            
+            rec[hopnumber] = {'from': box_ip, 'rtt': time, 'size': payload_len, 'data': data}
+            
+            """Additional 'conditions' info of additional plugin chains"""      
+            if len(chosen_chains) > 0:
+                for c in chosen_chains:               
+                    #mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
+                    plugin_out = c.box_info(ip)
+                    
+                rec[hopnumber]['conditions'] = plugin_out             
