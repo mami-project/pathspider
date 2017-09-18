@@ -55,7 +55,7 @@ def run_traceroute(args):
     for abc in chains:
         if "traceroutechain" == abc.__name__.lower():
             chosen_chains.append(abc)
-
+    print(chosen_chains)
 
     """Setting up observer"""
     observer_shutdown_queue = queue.Queue(QUEUE_SIZE)
@@ -85,6 +85,7 @@ def run_traceroute(args):
     
     """Read ips to file and add them to ipqueue for sender, if no file, just put single ip"""
     if file:
+        logger.info("Starting queue feeder")
         threading.Thread(target=queue_feeder, args=(args.cond, args.input, ipqueue), daemon = True).start()
     else:
         inp = {'dip': args.ip, 'hops': HOPS} #fixed number of hops at the moment!!!!
@@ -129,6 +130,7 @@ def filter(res, merge): #Only flows with trace flag should go to merger
 def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessary!!!
     logger = logging.getLogger("pathspider")
     with open(inputfile) as fh:
+        logger.info("Feeder runs!")
         for line in fh:
             job = json.loads(line)
             if cond != None:   #Check if condition in cmd line is given for tracerouting
@@ -136,6 +138,7 @@ def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessa
                     if cond in job['conditions']:
                         inp = {'dip': job['dip'], 'hops': HOPS}
                         ipqueue.put(inp)
+                        logger.info("added job")
                 except KeyError:
                     logger.debug("Job has no 'conditions' field, skipping")
                     pass

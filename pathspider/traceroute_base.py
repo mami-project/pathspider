@@ -98,6 +98,12 @@ class traceroute():
                                 del res[entry2]
                 if entry == 'Destination':
                     final['Destination'] = res['Destination']
+            """Doesn't work at the moment look, why it doesn't... basichain problem???"""
+            #write dip for case we don't get tcp answer from destination
+            try:
+                final['dip'] == res['dip']
+            except KeyError:
+                print('no dip')
             # remove sequence number entries that have not been used                
             for entrytest in res.copy():
                 try:

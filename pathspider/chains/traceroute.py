@@ -52,6 +52,8 @@ class tracerouteChain(Chain):
          :rtype: bool
          """
          
+         #rec ['dip']=str(ip.dst_prefix)
+         #print(rec['dip'])
          rec['trace'] = False
          rec['hops'] = 0
          rec['_seq'] = 11000
@@ -95,13 +97,11 @@ class tracerouteChain(Chain):
           
         
     def dest_trace(self, rec, ip):
-        print("dest_trace works!!")
         """Hops used to reach destination to give to the ipqueue"""
         rec['hops'] = ip.ttl  
         """Acknowledge number of destination -1 is sequence number of received package"""
         seq_nbr = (ip.tcp.ack_nbr-1)                      
-        print(seq_nbr)  
-        print(rec['_seq'])
+
         """Calculating final hop with sequence number """
         if rec['_seq'] > seq_nbr and rec['_seq'] > 10000:
             final_hop = seq_nbr-INITIAL_SEQ

@@ -85,31 +85,75 @@ class ECNFLAGS(SynchronizedSpider, PluggableSpider, traceroute):
         
         work = 0
         success = 0
-        ect1 = 0
+        ect1success = "False"
+        ect0success = "False"
+        cesuccess = "False"
         ect0 = 0
+        ect1 = 0
         ce = 0
         
         if flows[0]['spdr_state'] == CONN_OK:
             conditions.append("non-ecn.connectivity.works")
         
+
         for i in range(1,len(flows)):
             if flows[i]['spdr_state'] == CONN_OK:
                 work += 1
-            #if flows[i]['observed'] and flows[i]['tcp_connected']:
-            if flows[i]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
-                success += 1
-            if flows[i]['ecn_ect1_syn_fwd']:
-                ect1 += 1
-            if flows[i]['ecn_ect0_syn_fwd']:
-                ect0 += 1
-            if flows[i]['ecn_ce_syn_fwd']:
-                ce += 1
+            if flows[i]['observed'] and flows[i]['tcp_connected']:
+                try:
+                    
+                    if flows[i]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
+                        success += 1
+                except TypeError:
+                    print("Type error in flow i %u"%i)
+            
+            try:        
+                if flows[i]['ecn_ect1_syn_rev']:
+                    ect1 += 1
+                if flows[i]['ecn_ect0_syn_rev']:
+                    ect0 += 1
+                if flows[i]['ecn_ce_syn_rev']:
+                    ce += 1
+            except KeyError:
+                print("Key error in ecn_syn_rev")
+        try:       
+            if flows[2]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
+                ect0success = "True"
+        except TypeError:
+            print("Type error in flow 2")
+            ect0success = "FAILFAIL1"
+        except KeyError:
+            print("Key error in flow 2")
+            ect0success = "FAILFAIL2"
+        try:
+            if flows[3]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
+                ect1success = "True"
+        except TypeError:
+            print("Type error in flow 3")
+            ect1success = "FAILFAIL1"
+        except KeyError:
+            print("Key error in flow 3")
+            ect1success = "FAILFAIL2"
+        try:
+            if flows[4]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
+                cesuccess = "True"
+        except TypeError:
+            print("Type error in flow 4")
+            cesuccess = "FAILFAIL1"
+        except KeyError:
+            print("Key error in flow 4")
+            ect1success = "FAILFAIL2"   
+                    
+
                 
         conditions.append('ecn.connectivity.works %s/%s' %(work,len(flows)-1))
         conditions.append('ecn.negotiation.succeeded %s/%s' %(success,len(flows)-1) )
-        conditions.append('ecn.ect0.seen %s/%s' %(ect0,len(flows)-1))
-        conditions.append('ecn.ect1.seen %s/%s' %(ect1,len(flows)-1))
-        conditions.append('ecn.ce.seen %s/%s' %(ce,len(flows)-1))
+        conditions.append('ecn.ect0.success %s' %(ect0success))
+        conditions.append('ecn.ect1.success %s' %(ect1success))
+        conditions.append('ecn.ce.success %s' %(cesuccess))
+        conditions.append('ecn.ect0.rev.seen %s/%s' %(ect0,len(flows)-1) )
+        conditions.append('ecn.ect1.rev.seen %s/%s' %(ect1,len(flows)-1) )
+        conditions.append('ecn.ce.rev.seen %s/%s' %(ce,len(flows)-1) )
 
 
 
