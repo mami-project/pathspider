@@ -51,11 +51,12 @@ def run_traceroute(args):
 
     chosen_chains = []
     
-    """geht besser oder???"""    
+    """geht besser oder???"""   #Auch wichtig noch möglich machen für andere extensions, dh hinzufügen von auswahlmöglichkeit in cmdline 
     for abc in chains:
         if "traceroutechain" == abc.__name__.lower():
             chosen_chains.append(abc)
-    print(chosen_chains)
+        if "basicchain" == abc.__name__.lower():
+            chosen_chains.append(abc)
 
     """Setting up observer"""
     observer_shutdown_queue = queue.Queue(QUEUE_SIZE)
@@ -118,6 +119,7 @@ def run_traceroute(args):
 def filter(res, merge): #Only flows with trace flag should go to merger
     while True:
         entry = res.get()
+        
         if entry == SHUTDOWN_SENTINEL:
             merge.put(SHUTDOWN_SENTINEL)
             break
@@ -160,7 +162,7 @@ def register_args(subparsers):
 
     parser = subparsers.add_parser(name='traceroute',help="Perform a traceroute",
                                    formatter_class=SubcommandHelpFormatter)
-    parser.add_argument('-hops', type = int, help="Number of hops to destination IP", default = 25)
+    parser.add_argument('-hops', type = int, help="Number of hops to destination IP", default = HOPS)
     parser.add_argument('--ip', type = str, default = 'null', help="IP or URL for which traceroute should be performed")
     parser.add_argument('-i', '--interface', default="eth0",
                         help="The interface to use for the observer. (Default: eth0)")

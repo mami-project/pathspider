@@ -29,7 +29,6 @@ class traceroute():
                 info = ipqueue.get_nowait()
             except queue.Empty:
                 time.sleep(QUEUE_SLEEP)
-                logger.debug("IP queue is empty")
             else:
                 if info == SHUTDOWN_SENTINEL:
                     break
@@ -72,6 +71,10 @@ class traceroute():
                 break          
             final = {}
             for entry in res.copy():
+                if entry == 'dip':
+                    final['dip'] = res[entry]
+                if entry == 'sip':
+                    final['sip'] = res[entry]
                 if entry.isdigit(): 
                     for entry2 in res.copy():
                         diff = bytearray()
@@ -99,11 +102,6 @@ class traceroute():
                 if entry == 'Destination':
                     final['Destination'] = res['Destination']
             """Doesn't work at the moment look, why it doesn't... basichain problem???"""
-            #write dip for case we don't get tcp answer from destination
-            try:
-                final['dip'] == res['dip']
-            except KeyError:
-                print('no dip')
             # remove sequence number entries that have not been used                
             for entrytest in res.copy():
                 try:
