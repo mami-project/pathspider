@@ -170,22 +170,25 @@ class Observer:
         keep_flow = True
 
         # run IP header chains
-        if self._pkt.ip:
-            for fn in self._get_chains("ip4"):
-                keep_flow = keep_flow and fn(rec, self._pkt.ip, rev=rev)
-            if self._pkt.icmp:
-                for fn in self._get_chains("icmp4"):
-                    q = self._pkt.icmp.payload # pylint: disable=no-member
-                    keep_flow = keep_flow and fn(rec, self._pkt.ip, q, rev=rev)
-
-        elif self._pkt.ip6:
-            for fn in self._get_chains("ip6"):
-                keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
-            if self._pkt.icmp6:
-                for fn in self._get_chains("icmp6"):
-                    q = self._pkt.icmp6.payload # pylint: disable=no-member
-                    keep_flow = keep_flow and fn(
-                        rec, self._pkt.ip6, q, rev=rev)
+        try:
+            if self._pkt.ip:
+                for fn in self._get_chains("ip4"):
+                    keep_flow = keep_flow and fn(rec, self._pkt.ip, rev=rev)
+                if self._pkt.icmp:
+                    for fn in self._get_chains("icmp4"):
+                        q = self._pkt.icmp.payload # pylint: disable=no-member
+                        keep_flow = keep_flow and fn(rec, self._pkt.ip, q, rev=rev)
+    
+            elif self._pkt.ip6:
+                for fn in self._get_chains("ip6"):
+                    keep_flow = keep_flow and fn(rec, self._pkt.ip6, rev=rev)
+                if self._pkt.icmp6:
+                    for fn in self._get_chains("icmp6"):
+                        q = self._pkt.icmp6.payload # pylint: disable=no-member
+                        keep_flow = keep_flow and fn(
+                            rec, self._pkt.ip6, q, rev=rev)
+        except ValueError:
+            return True        
 
         # run transport header chains
         if self._pkt.tcp:
