@@ -115,12 +115,14 @@ class ECNFLAGS(SynchronizedSpider, PluggableSpider, traceroute):
                 if flows[i]['ecn_ce_syn_rev']:
                     ce += 1
             except KeyError:
-                print("Key error in ecn_syn_rev")
+            
+                print("Key error in ecn_syn_rev: %s"%str(flows[i]['dip']))
+            
         try:       
             if flows[2]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
                 ect0success = "True"
         except TypeError:
-            print("Type error in flow 2")
+            print("Type error in flow 2 %s"%str(flows[2]['tcp_synflags_rev']))
             ect0success = "FAILFAIL1"
         except KeyError:
             print("Key error in flow 2")
@@ -129,7 +131,7 @@ class ECNFLAGS(SynchronizedSpider, PluggableSpider, traceroute):
             if flows[3]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
                 ect1success = "True"
         except TypeError:
-            print("Type error in flow 3")
+            print("Type error in flow 3 %s"%str(flows[3]['tcp_synflags_rev']))
             ect1success = "FAILFAIL1"
         except KeyError:
             print("Key error in flow 3")
@@ -138,7 +140,7 @@ class ECNFLAGS(SynchronizedSpider, PluggableSpider, traceroute):
             if flows[4]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
                 cesuccess = "True"
         except TypeError:
-            print("Type error in flow 4")
+            print("Type error in flow 4 %s"%str(flows[4]['tcp_synflags_rev']))
             cesuccess = "FAILFAIL1"
         except KeyError:
             print("Key error in flow 4")

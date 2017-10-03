@@ -17,6 +17,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     version = pathspider.base.__version__
     chains = [BasicChain, DSCPChain, TCPChain, DNSChain]
     connect_supported = ["http", "tcp", "dnstcp", "dnsudp"]
+    traceroute_conditions = []
 
     def config_no_dscp(self):  # pylint: disable=no-self-use
         """
