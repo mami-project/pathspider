@@ -1,7 +1,7 @@
 
 import pkg_resources
 
-from pathspider.cmd.measure import job_feeder
+from pathspider.cmd.measure import job_feeder_ndjson as job_feeder
 
 class FakeSpider:
     def __init__(self):

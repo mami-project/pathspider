@@ -166,8 +166,8 @@ def register_args(subparsers):
     parser.add_argument('--ip', type = str, default = 'null', help="IP or URL for which traceroute should be performed")
     parser.add_argument('-i', '--interface', default="eth0",
                         help="The interface to use for the observer. (Default: eth0)")
-    parser.add_argument('-f','--flows', type = int, default = 1, 
-                        help="Number of times the traceroute should be conducted with different flows. (Default: 1)")
+    parser.add_argument('-f','--flows', type = int, default = 3, 
+                        help="Number of times the traceroute should be conducted with different flows. (Default: 3)")
     parser.add_argument('-cond', type = str, default = None, help="Condition in inputfile for doing tracerouting")
     parser.add_argument('--input', default='null', metavar='INPUTFILE', help=("A file containing a list of IPs to traceroute. "
                               "Defaults to standard input."))

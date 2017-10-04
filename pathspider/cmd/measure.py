@@ -117,7 +117,7 @@ def run_measurement(args):
             job_feeder = job_feeder_csv
         else:
             job_feeder = job_feeder_ndjson
-            
+
         threading.Thread(target=job_feeder, args=(args.input, spider)).start()
         
         threading.Thread(target=file_write, args=(args, spider)).start()
@@ -155,6 +155,8 @@ def register_args(subparsers):
     parser.add_argument('--output-flows', action='store_true',
                         help="Include flow results in output.")
     parser.add_argument('--trace', action='store_true', help="Enable tracerouting")
+    parser.add_argument('-f', '--flows', type=int, default = 3, 
+                        help="Number of times the traceroute should be conducted for the same IP. (Default: 3)")
 
     # Set the command entry point
     parser.set_defaults(cmd=run_measurement)

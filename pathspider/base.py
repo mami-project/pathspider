@@ -420,7 +420,13 @@ class Spider:
                 conditions = self.traceroute_conditions
                 for i in conditions:
                     if i in job['conditions']: 
-                        info = {'dip' : job['dip'], 'hops' : flow['hops']}
+                        try:
+                            info = {'dip' : job['dip'], 'hops' : job['flow_results'][0]['hops']}
+                        except KeyError:
+                            try:
+                                info = {'dip' : job['dip'], 'hops' : job['flow_results'][1]['hops']}
+                            except KeyError:
+                                info = {'dip' : job['dip'], 'hops' : 40}  #'hops' could not be found in flow
                         self.ipqueue.put(info)
                         break
             self.outqueue.put(job)
@@ -500,7 +506,7 @@ class Spider:
                 self.packet_sender_process = mp.Process(
                     args=(self.sender,
                           self.ipqueue,
-                          1),   #temporary for number of flows
+                          self.args.flows),
                     target=self.exception_wrapper,
                     name='packet_sender',
                     daemon=True)
