@@ -3,16 +3,13 @@
    :synopsis: A flow analysis chain for traceroute messages especially icmp messages
 
 """
-
 from pathspider.chains.base import Chain
-from pathspider.traceroute_base import INITIAL_SEQ
-from pathspider.traceroute_base import INITIAL_PORT
-from pip._vendor.progress import counter
-import base64
 
 class ECNChain_trace(Chain):
+    
+    
 
-    def box_info(ip):    
+    def box_info(self, ip):    
         """ECN-specific Destination Stuff"""    
         if ip.tcp:
            
@@ -23,10 +20,10 @@ class ECNChain_trace(Chain):
                        
             dscp = ecn >> 2                      
               
-            [syn, ack] = ECNChain_trace.syn_flags(flags)
+            [syn, ack] = self.syn_flags(flags)
               
             """Calculating final hop with sequence number """
-            [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
+            [ece, cwr, ect] = self.ecn_flags(ecn, flags, payload_len)
 
             return [ece, cwr, ect, syn, ack, ("DSCP: %u" %dscp)]              
              
@@ -49,10 +46,10 @@ class ECNChain_trace(Chain):
                 
             dscp = ecn >> 2
              
-            [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
+            [ece, cwr, ect] = self.ecn_flags(ecn, flags, payload_len)
             return [ece, cwr, ect, ("DSCP: %u" %dscp)]
           
-    def ecn_flags( ecn, flags, payload_len):
+    def ecn_flags(self, ecn, flags, payload_len):
         
         """TCP ECE and CWR flags"""
         if payload_len > 8:                   
@@ -85,7 +82,7 @@ class ECNChain_trace(Chain):
                     
         return [ece, cwr, ect] 
     
-    def syn_flags(flags):
+    def syn_flags(self, flags):
         """TCP SYN/ACK flags """
         if (flags >> 1) % 2:
             syn = "SYN.set"
@@ -97,41 +94,4 @@ class ECNChain_trace(Chain):
             ack = "ACK.notset"           
          
         return [syn, ack] 
-                
-    def box_info6(ip, rev):     
-        """ECN-specific Destination Stuff"""    
-        if ip.tcp:
-           
-            """ECN-specific stuff like flags and DSCP"""
-            ecn = ip.traffic_class
-            flags = ip.tcp.data[13]                   
-            payload_len = 9  #we don't care but needs to be bigger than 9 for ecn_flags to work properly
-                       
-            dscp = ecn >> 2                      
-              
-            [syn, ack] = ECNChain_trace.syn_flags(flags)
-              
-            """Calculating final hop with sequence number """
-            [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
-
-            return [ece, cwr, ect, syn, ack, ("DSCP: %u" %dscp)]              
-             
-        """ECN-specific traceroute Stuff""" 
-        if ip.icmp6:
-                    
-            """length of payload that comes back to identify RFC1812-compliant routers"""
-            pp = ip.icmp6.payload.payload
-            payload_len = len(pp)
-             
-            """payload data of returning packet for bitwise comparison in merger""" 
-            data = ip.icmp6.payload.data
-      
-            """ECN-specific stuff like flags and DSCP"""
-            ecn = ip.icmp6.payload.traffic_class
-            if payload_len > 8:
-                flags = ip.icmp6.payload.payload[13]
-            else:
-                flags = 0 #we don't care
-             
-            [ece, cwr, ect] = ECNChain_trace.ecn_flags(ecn, flags, payload_len) # !!!!!Why is self.ecn... not working?
-            return [ece, cwr, ect]   
+    

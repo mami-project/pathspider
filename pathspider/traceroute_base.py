@@ -75,32 +75,44 @@ class traceroute():
                     final['dip'] = res[entry]
                 if entry == 'sip':
                     final['sip'] = res[entry]
+                if entry == 'Destination':
+                    final['Destination'] = res['Destination']
                 if entry.isdigit(): 
                     for entry2 in res.copy():
+                        
                         diff = bytearray()
+                        options = False                                                        
+                        off = []
+                        
                         if entry2.isdigit():
                             if (int(entry)+INITIAL_SEQ-1) == int(entry2):  #comparing sequencenumber of upstream entry2 with hopnumber of downstream entry
                                 rtt= (res[entry]['rtt']- res[entry2]['rtt'])*1000
                                 res[entry]['rtt'] = round(rtt,3)
                           
                                 """bytearray comparison """
-                                length = int(len(res[entry]['data'])/2-1)
-                                off = []
-                                for i in range(length): #TODO whats the problem with the length... why isnt it working ?
+                                length = int(len(res[entry]['data']))
+                                if len(res[entry]['data']) > len(res[entry2]['data']):
+                                    length = int(len(res[entry2]['data']))
+                                    options = True
+                                else:
+                                    length = int(len(res[entry]['data']))
+                                
+                                for i in range(length):
                                     try:
                                         bts = res[entry]['data'][i]^res[entry2]['data'][i]
                                         diff = diff + bts.to_bytes(1, byteorder='big')
                                     except IndexError:
+                                        print(i)
                                         pass
                                     else:
                                         if bts != 0:# and i != 8 and i != 10 and i != 11:  #check for differences beside ttl and checksum
                                             off.append("%d: %d" % (i, bts))
-                                 
+                                if options == True:
+                                    off.append('options') 
                                 res[entry]['data'] = str(off)   
-                                final[entry] = res[entry]#[res[entry][0], rtt, res[entry][2], str(off)] #res[entry][4], res[entry][5], res[entry][6], res[entry][7], res[entry][8], str(off)]
+                                final[entry] = res[entry]
                                 del res[entry2]
-                if entry == 'Destination':
-                    final['Destination'] = res['Destination']
+                                
             """Doesn't work at the moment look, why it doesn't... basichain problem???"""
             # remove sequence number entries that have not been used                
             for entrytest in res.copy():

@@ -142,7 +142,7 @@ def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessa
                         ipqueue.put(inp)
                         logger.info("added job")
                 except KeyError:
-                    logger.debug("Job has no 'conditions' field, skipping")
+                    logger.debug("Job has no 'conditions' list, skipping")
                     pass
             else:
                 inp = {'dip': job['dip'], 'hops': HOPS} #fixed number of hops at the moment!!!!

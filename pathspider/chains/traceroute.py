@@ -1,15 +1,13 @@
 """
 .. module:: pathspider.chains.traceroute
-   :synopsis: A flow analysis chain for traceroute messages especially ismp messages
+   :synopsis: A flow analysis chain for traceroute messages especially icmp messages
 
 """
 
 from pathspider.chains.base import Chain
 from pathspider.traceroute_base import INITIAL_SEQ
-from pip._vendor.progress import counter
-import base64
 import logging
-from pathspider.base import Spider
+#from pathspider.base import Spider
 from straight.plugin import load
 
 chain = load("pathspider.chains", subclasses=Chain)
@@ -17,7 +15,7 @@ chain = load("pathspider.chains", subclasses=Chain)
 #plug = PluggableSpider()
 #current_plugin = plug.plugin()
 
-# TODO PLUGIN works but which plugin do i want to make sth???????????????
+# TODO PLUGIN works but I just take the one plugin with _trace:  ecn_trace???????????????
 
 chosen_chains = []
 
@@ -52,8 +50,6 @@ class tracerouteChain(Chain):
          :rtype: bool
          """
          
-         #rec ['dip']=str(ip.dst_prefix)
-         #print(rec['dip'])
          rec['trace'] = False
          rec['hops'] = 0
          rec['_seq'] = 11000
@@ -111,10 +107,10 @@ class tracerouteChain(Chain):
             """Conditions of chain for special measurements""" 
             if len(chosen_chains) > 0:
                 for c in chosen_chains: 
-                    #mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
-                    plugin_out = c.box_info(ip)
-                     
-                rec['Destination']['conditions'] = plugin_out
+                    ch = c()
+                    if hasattr(ch, 'box_info'):
+                        plugin_out = getattr(ch, "box_info")(ip)
+                        rec['Destination']['conditions'] = plugin_out
     
     def trace(self, rec, ip, icmp):
         
@@ -144,8 +140,8 @@ class tracerouteChain(Chain):
             
             """Additional 'conditions' info of additional plugin chains"""      
             if len(chosen_chains) > 0:
-                for c in chosen_chains:               
-                    #mic = getattr(c, "box_info")# if hasattr(c, box_info) #c.__name__
-                    plugin_out = c.box_info(ip)
-                    
-                rec[hopnumber]['conditions'] = plugin_out             
+                for c in chosen_chains: 
+                    ch = c()
+                    if hasattr(ch, 'box_info'):
+                        plugin_out = getattr(ch, "box_info")(ip)
+                        rec[hopnumber]['conditions'] = plugin_out             
