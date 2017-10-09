@@ -31,7 +31,6 @@ setup(
 
         # The UI
         'Environment :: Console',
-        'Environment :: X11 Applications :: Qt',
 
         # Indicate who your project is intended for
         'Intended Audience :: Science/Research',

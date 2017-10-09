@@ -3,4 +3,3 @@ disable=C0103
 
 [TYPECHECK]
 generated-members=pycurl.*
-extension-pkg-whitelist=PyQt5
