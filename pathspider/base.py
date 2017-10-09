@@ -384,7 +384,13 @@ class Spider:
             job = self.jobtab.pop(flow['jobId'])
             job['flow_results'] = flows
             job['time'] = {'from': start, 'to': stop}
+            job['missed_flows'] = 0
+            for flow in flows:
+                if flow['observed']:
+                    job['missed_flows'] = job['missed_flows'] + 1
             job['conditions'] = self.combine_flows(flows)
+            if job['missed_flows'] > 0:
+                job['conditions'].append("pathspider.missed_flows")
             if job['conditions'] is None:
                 job.pop('conditions')
             self.outqueue.put(job)

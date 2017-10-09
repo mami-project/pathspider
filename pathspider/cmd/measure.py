@@ -96,6 +96,7 @@ def run_measurement(args):
                     break
                 if not args.output_flows:
                     result.pop("flow_results", None)
+                    result.pop("missed_flows", None)
                 outputfile.write(json.dumps(result) + "\n")
                 logger.debug("wrote a result")
                 spider.outqueue.task_done()
