@@ -12,7 +12,7 @@ from pathspider.helpers.http import connect_http
 from pathspider.helpers.http import connect_https
 from pathspider.helpers.dns import connect_dns_tcp
 from pathspider.helpers.dns import connect_dns_udp
-
+from pathspider.base import CONN_DISCARD
 
 class SynchronizedSpider(Spider):
     # pylint: disable=W0223
@@ -138,6 +138,7 @@ class SynchronizedSpider(Spider):
                     self.pre_connect(job)
 
                     conns = []
+                    should_discard = False
 
                     for config in range(0, len(self.configurations)):
                         # Wait for configuration
@@ -145,17 +146,21 @@ class SynchronizedSpider(Spider):
 
                         # Connect in configuration
                         conn = self._connect_wrapper(job, config)
+                        if 'spdr_state' in conn:
+                            if conn['spdr_state'] == CONN_DISCARD:
+                                should_discard = True
                         conns.append(conn)
 
                         # Wait for next configuration
                         self.__semaphores[(config + 1) % len(
                             self.configurations)][1].release()
 
-                    # Save job record for combiner
-                    self.jobtab[jobId] = job
+                    if not should_discard:
+                        # Save job record for combiner
+                        self.jobtab[jobId] = job
 
-                    # Finish connections and pass on for merging
-                    self._finalise_conns(job, jobId, conns)
+                        # Finish connections and pass on for merging
+                        self._finalise_conns(job, jobId, conns)
 
                     self.__logger.debug("job complete: " + repr(job))
                     self.jobqueue.task_done()
