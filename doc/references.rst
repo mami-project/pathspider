@@ -6,8 +6,9 @@ References
 .. [Gubser15] Gubser, E., `Measuring Explicit Congestion Negotiation (ECN) support based on P2P networks <http://www.tik.ee.ethz.ch/file/973ad8a64cf6599471c10df95e4ba93f/MT>`_, 2015.
 .. [RFC792] Postel, J., 1981, :rfc:`Internet Control Message Protocol <792>`. RFC Editor.
 .. [RFC793] Postel, J., 1981, :rfc:`Transmission Control Protocol <793>`. RFC Editor.
+.. [RFC1035] Mockapetris, P., 1987. :rfc:`Domain Names - Impelmentation and Specification <1035>`. RFC Editor.
 .. [RFC2474] Nichols, K., Blake, S., Baker, F. and Black, D., 1998. :rfc:`Definition of the Differentiated Services Field (DS Field) in the IPv4 and IPv6 Headers <2474>`. RFC Editor.
-.. [RFC3186] Ramakrishnan, K., Floyd, S. and Black, D., 2001. :rfc:`The addition of explicit congestion notification (ECN) to IP <3186>`. RFC Editor.
+.. [RFC3168] Ramakrishnan, K., Floyd, S. and Black, D., 2001. :rfc:`The addition of explicit congestion notification (ECN) to IP <3168>`. RFC Editor.
 .. [RFC3260] Grossman, D., 2002. :rfc:`New terminology and clarifications for DiffServ <3260>`. RFC Editor.
 .. [RFC4443] Conta, A., Deering, S., Gupta, M., 2006. :rfc:`Internet Control Message Protocol (ICMPv6) for the Internet Protocol Version 6 (IPv6) Specification <4443>`. RFC Editor.
 .. [RFC6994] Touch, J., 2013. :rfc:`Shared Use of Experimental TCP Options <6994>`. RFC Editor.
