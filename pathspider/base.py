@@ -608,8 +608,18 @@ class Spider:
         if not self.server_mode:
             sourceindex = 1 if ':' in job['dip'] else 0
             job['sip'] = self.source[sourceindex]
+            job['path'] = [job['sip']]
             job['sip_public'] = self.source_public[sourceindex]
+            if not ( job['sip'] == job['sip_public'] ):
+                job['path'].append(job['sip_public'])
             job['sip_asn'] = self.source_asn[sourceindex]
+            job['path'].append("AS" + str(job['sip_asn']))
+            if 'dip_asn' in job.keys():
+                job['path'].append("AS" + job['dip_asn'])
+            elif 'info' in job.keys():
+                if 'ASN' in job['info'].keys():
+                    job['path'].append("AS" + str(job['info']['ASN']))
+            job['path'].append(job['dip'])
 
         self.jobqueue.put(job)
 
