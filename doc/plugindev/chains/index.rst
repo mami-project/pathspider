@@ -50,7 +50,6 @@ extensions:
    ecn.rst
    icmp.rst
    tcp.rst
-   tfo.rst
 
 .. toctree::
    :hidden:

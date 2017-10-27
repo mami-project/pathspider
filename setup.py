@@ -46,7 +46,7 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
 
-    keywords='internet measurement ecn tfo dns web www analysis router congestion path transparency latency diffserv dscp',
+    keywords='internet measurement ecn dns web www analysis router congestion path transparency latency diffserv dscp',
 
     packages=find_packages(exclude=['contrib', 'doc', 'examples']),
     include_package_data=True,

@@ -11,8 +11,6 @@ References
 .. [RFC3168] Ramakrishnan, K., Floyd, S. and Black, D., 2001. :rfc:`The addition of explicit congestion notification (ECN) to IP <3168>`. RFC Editor.
 .. [RFC3260] Grossman, D., 2002. :rfc:`New terminology and clarifications for DiffServ <3260>`. RFC Editor.
 .. [RFC4443] Conta, A., Deering, S., Gupta, M., 2006. :rfc:`Internet Control Message Protocol (ICMPv6) for the Internet Protocol Version 6 (IPv6) Specification <4443>`. RFC Editor.
-.. [RFC6994] Touch, J., 2013. :rfc:`Shared Use of Experimental TCP Options <6994>`. RFC Editor.
-.. [RFC7413] Cheng, Y., Chu, J., Radhakrishnan, S. and Jain, A., 2014. :rfc:`TCP Fast Open <7413>`. RFC Editor.
 .. [RIPEAtlas] Ripe, N.C.C.. `RIPE atlas <http://atlas.ripe.net>`_.
 .. [Filasto12] Filasto, A. and Appelbaum, J., 2012, August. `OONI: Open Observatory of Network Interference <https://www.usenix.org/system/files/conference/foci12/foci12-final12.pdf>`_. In FOCI.
 .. [Kreibich10] Kreibich, C., Weaver, N., Nechaev, B. and Paxson, V., 2010, November. `Netalyzr: illuminating the edge network <http://dl.acm.org/citation.cfm?id=1879173>`_. In Proceedings of the 10th ACM SIGCOMM conference on Internet measurement (pp. 246-259). ACM.

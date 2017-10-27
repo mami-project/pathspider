@@ -69,7 +69,6 @@ if it detects that the chosen interface is not active.
  Plugins:
    The following plugins are available for use:
 
-     tfo                 TCP Fast Open
      ecn                 Explicit Congestion Notification
      h2                  HTTP/2
      dscp                Differentiated Services Codepoints
