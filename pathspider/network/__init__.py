@@ -38,14 +38,17 @@ def ipv4_address_public(ifname):
     return json.loads((body.getvalue()).decode('utf-8'))['data']['ip']
 
 def ipv6_address_public(ifname):
-    c = pycurl.Curl()
-    body = BytesIO()
-    c.setopt(c.URL, "https://stat.ripe.net/data/whats-my-ip/data.json")
-    c.setopt(c.INTERFACE, ifname)
-    c.setopt(c.WRITEDATA, body)
-    c.setopt(c.IPRESOLVE, c.IPRESOLVE_V6)
-    c.perform()
-    return json.loads((body.getvalue()).decode('utf-8'))['data']['ip']
+    try:
+        c = pycurl.Curl()
+        body = BytesIO()
+        c.setopt(c.URL, "https://stat.ripe.net/data/whats-my-ip/data.json")
+        c.setopt(c.INTERFACE, ifname)
+        c.setopt(c.WRITEDATA, body)
+        c.setopt(c.IPRESOLVE, c.IPRESOLVE_V6)
+        c.perform()
+        return json.loads((body.getvalue()).decode('utf-8'))['data']['ip']
+    except pycurl.error:
+        return "::"
 
 def ipv4_asn(ifname):
     c = pycurl.Curl()
@@ -62,15 +65,18 @@ def ipv4_asn(ifname):
         return None
 
 def ipv6_asn(ifname):
-    c = pycurl.Curl()
-    body = BytesIO()
-    c.setopt(c.URL, "https://stat.ripe.net/data/prefix-overview/data.json?resource={}"
-             .format(ipv6_address_public(ifname)))
-    c.setopt(c.INTERFACE, ifname)
-    c.setopt(c.WRITEDATA, body)
-    c.perform()
-    asns = json.loads((body.getvalue()).decode('utf-8'))['data']['asns']
-    if len(asns) == 1:
-        return asns[0]['asn']
-    else:
+    try:
+        c = pycurl.Curl()
+        body = BytesIO()
+        c.setopt(c.URL, "https://stat.ripe.net/data/prefix-overview/data.json?resource={}"
+                 .format(ipv6_address_public(ifname)))
+        c.setopt(c.INTERFACE, ifname)
+        c.setopt(c.WRITEDATA, body)
+        c.perform()
+        asns = json.loads((body.getvalue()).decode('utf-8'))['data']['asns']
+        if len(asns) == 1:
+            return asns[0]['asn']
+        else:
+            return None
+    except pycurl.error:
         return None
