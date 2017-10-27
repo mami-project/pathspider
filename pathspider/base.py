@@ -41,7 +41,7 @@ from pathspider.network import ipv6_address_public
 from pathspider.network import ipv4_asn
 from pathspider.network import ipv6_asn
 
-__version__ = "2.0.0.dev0"
+__version__ = "2.0.0.a1"
 
 CONN_OK = 0
 CONN_FAILED = 1
