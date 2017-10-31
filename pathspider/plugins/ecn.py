@@ -61,6 +61,11 @@ class ECN(SynchronizedSpider, PluggableSpider):
         else:
             conditions.append('ecn.connectivity.offline')
 
+        for f in flows:
+            if not f['observed']:
+                conditions.append('pathspider.not_observed')
+                break
+
         if flows[1]['observed'] and flows[1]['tcp_connected']:
             if flows[1]['tcp_synflags_rev'] & TCP_SAEC == TCP_SAE:
                 conditions.append('ecn.negotiation.succeeded')
