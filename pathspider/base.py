@@ -389,6 +389,8 @@ class Spider:
                 if flow['observed']:
                     job['missed_flows'] = job['missed_flows'] + 1
             job['conditions'] = self.combine_flows(flows)
+            if "pathspider.not_observed" in job['conditions']:
+                self.__logger.warning("At least one flow was not observed and so conditions could not be fully generated (if at all)")
             if job['missed_flows'] > 0:
                 job['conditions'].append("pathspider.missed_flows")
             if job['conditions'] is None:
