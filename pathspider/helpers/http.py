@@ -31,11 +31,9 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
 
     if pycurl.URL not in curlopts:
         if 'domain' in job:
-            url = "http://" + job['domain'] + ":" + str(job['dp']) + "/"
+            curlopts[pycurl.URL] = "http://" + job['domain'] + ":" + str(job['dp']) + "/"
         else:
-            url = "http://" + ipString + ":" + str(job['dp']) + "/"
-    else:
-        curlopts[pycurl.URL] = url
+            curlopts[pycurl.URL] = "http://" + ipString + ":" + str(job['dp']) + "/"
 
     if pycurl.USERAGENT not in curlopts:
         useragent = "PATHspider (https://pathspider.net/)"
