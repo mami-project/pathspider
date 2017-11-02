@@ -131,22 +131,28 @@ def filter(res, merge): #Only flows with trace flag should go to merger
 
 def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessary!!!
     logger = logging.getLogger("pathspider")
+    seen_targets = set()
     with open(inputfile) as fh:
         logger.info("Feeder runs!")
         for line in fh:
             job = json.loads(line)
+            if job['dip'] in seen_targets:
+                logger.info("This target has already had a job submitted, skipping.")
+                continue
             if cond != None:   #Check if condition in cmd line is given for tracerouting
-                try:
+                try:    
                     if cond in job['conditions']:
                         inp = {'dip': job['dip'], 'hops': HOPS}
                         ipqueue.put(inp)
                         logger.info("added job")
+                        seen_targets.append(job['dip'])
                 except KeyError:
                     logger.debug("Job has no 'conditions' list, skipping")
                     pass
             else:
                 inp = {'dip': job['dip'], 'hops': HOPS} #fixed number of hops at the moment!!!!
                 ipqueue.put(inp)
+                seen_targets.add(job['dip'])
     ipqueue.put(SHUTDOWN_SENTINEL) 
 
 

@@ -46,7 +46,7 @@ def job_feeder_csv(inputfile, spider):
                 job = {'dip': row[0], 'dp': row[1], 'domain': row[2], 'rank': row[3]}
                 if 'dip' in job.keys():
                     if job['dip'] in seen_targets:
-                        logger.debug("This target has already had a job submitted, skipping.")
+                        logger.info("This target has already had a job submitted, skipping.")
                         continue
                     seen_targets.add(job['dip'])
                 spider.add_job(job)
