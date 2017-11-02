@@ -137,15 +137,15 @@ def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessa
         for line in fh:
             job = json.loads(line)
             if job['dip'] in seen_targets:
-                logger.info("This target has already had a job submitted, skipping.")
+                logger.debug("This target has already had a job submitted, skipping.")
                 continue
             if cond != None:   #Check if condition in cmd line is given for tracerouting
                 try:    
                     if cond in job['conditions']:
                         inp = {'dip': job['dip'], 'hops': HOPS}
                         ipqueue.put(inp)
-                        logger.info("added job")
-                        seen_targets.append(job['dip'])
+                        logger.debug("added job")
+                        seen_targets.add(job['dip'])
                 except KeyError:
                     logger.debug("Job has no 'conditions' list, skipping")
                     pass
