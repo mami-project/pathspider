@@ -67,8 +67,8 @@ class ECNChain_trace(Chain):
                 
                 
         """IP ECT FLAGS"""                
-        ECT_ZERO = 0x02
-        ECT_ONE = 0x01
+        ECT_ZERO = 0x01
+        ECT_ONE = 0x02
         ECT_CE = 0x03
 
         ect = 'ecn_no_ect'
