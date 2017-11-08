@@ -42,7 +42,7 @@ class traceroute():
                     for j in range(src):    #repeating with src different flows  
                         for i in range(ttl):                   
                             if ':' in dip: #IPv6
-                                sendp(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
+                                send(IPv6(hlim=(i+1), tc=0,dst = dip)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)
                             else:
                                 send(IP(ttl=(i+1),dst = dip, tos = 0x00)/TCP(seq=(INITIAL_SEQ+i),sport = (INITIAL_PORT+j), flags = 0xc2), verbose=0)    #inter=0.1 for pause between packets
                         logger.info(("Sending flow %u of %s finished "), (j+1), dip)
