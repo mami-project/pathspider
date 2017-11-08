@@ -12,6 +12,7 @@ from straight.plugin import load
 
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.base import QUEUE_SIZE
+from pathspider.base import QUEUE_SLEEP
 
 from pathspider.chains.base import Chain
 
@@ -23,7 +24,7 @@ from pathspider.traceroute_base import traceroute
 
 import multiprocessing as mp
 
-HOPS = 30
+HOPS = 40
 
 
 chains = load("pathspider.chains", subclasses=Chain)
@@ -87,9 +88,9 @@ def run_traceroute(args):
     """Read ips to file and add them to ipqueue for sender, if no file, just put single ip"""
     if file:
         logger.info("Starting queue feeder")
-        threading.Thread(target=queue_feeder, args=(args.cond, args.input, ipqueue), daemon = True).start()
+        threading.Thread(target=queue_feeder, args=(args.cond, args.input, ipqueue, args.hops), daemon = True).start()
     else:
-        inp = {'dip': args.ip, 'hops': HOPS} #fixed number of hops at the moment!!!!
+        inp = {'dip': args.ip, 'hops': args.hops}
         ipqueue.put(inp)
         ipqueue.put(SHUTDOWN_SENTINEL)
 
@@ -107,14 +108,19 @@ def run_traceroute(args):
             if not send.is_alive() and not first: #check if sender is finished but do only first time after finishing
                 signal.alarm(3)
                 first = True
-            result = outqueue.get()
-               
-            if result == SHUTDOWN_SENTINEL:
-                logger.info("Output complete")
-                break
+            
+            try:
+                result = outqueue.get_nowait()
+            except queue.Empty:
+                time.sleep(QUEUE_SLEEP)
+            else:
+                   
+                if result == SHUTDOWN_SENTINEL:
+                    logger.info("Output complete")
+                    break
 
-            outputfile.write(json.dumps(result) + "\n")
-            logger.debug("wrote a result")
+                outputfile.write(json.dumps(result) + "\n")
+                logger.debug("wrote a result")
 
 def filter(res, merge): #Only flows with trace flag should go to merger
     while True:
@@ -129,30 +135,42 @@ def filter(res, merge): #Only flows with trace flag should go to merger
         except KeyError:
             pass
 
-def queue_feeder(cond, inputfile, ipqueue): #needs work, some stuff is unnecessary!!!
+def queue_feeder(cond, inputfile, ipqueue, inputhops): #needs work, some stuff is unnecessary!!!
     logger = logging.getLogger("pathspider")
     seen_targets = set()
     with open(inputfile) as fh:
-        logger.info("Feeder runs!")
         for line in fh:
             job = json.loads(line)
-            if job['dip'] in seen_targets:
-                logger.debug("This target has already had a job submitted, skipping.")
+            try:    #check for 'dip' key in job
+                dip = job['dip']
+            except KeyError:
+                logger.warning("Entry does not contain 'dip', skipping")
                 continue
+            
+            if job['dip'] in seen_targets:
+                    logger.debug("This target has already had a job submitted, skipping.")
+                    continue
+            try:    #check for 'hops' key in job
+                hop = job['hops']
+            except KeyError:
+                logger.debug("Entry does not contain 'hops', taking default")
+                hop = inputhops
+            
+            inp = {'dip': dip, 'hops': hop}
+            
             if cond != None:   #Check if condition in cmd line is given for tracerouting
                 try:    
                     if cond in job['conditions']:
-                        inp = {'dip': job['dip'], 'hops': HOPS}
                         ipqueue.put(inp)
                         logger.debug("added job")
-                        seen_targets.add(job['dip'])
+                        seen_targets.add(dip)
                 except KeyError:
                     logger.debug("Job has no 'conditions' list, skipping")
-                    pass
+                    continue
             else:
-                inp = {'dip': job['dip'], 'hops': HOPS} #fixed number of hops at the moment!!!!
                 ipqueue.put(inp)
-                seen_targets.add(job['dip'])
+                logger.debug("added job")
+                seen_targets.add(dip)
     ipqueue.put(SHUTDOWN_SENTINEL) 
 
 
