@@ -9,7 +9,7 @@ class ECNChain_trace(Chain):
     
     
 
-    def box_info(self, ip):    
+    def box_info(self, ip, icmp):    
         """ECN-specific Destination Stuff"""    
         if ip.tcp:
            
@@ -28,19 +28,19 @@ class ECNChain_trace(Chain):
             return [ece, cwr, ect, syn, ack, ("DSCP: %u" %dscp)]              
              
         """ECN-specific traceroute Stuff""" 
-        if ip.icmp:
+        if icmp:
                 
             """length of payload that comes back to identify RFC1812-compliant routers"""
-            pp = ip.icmp.payload.payload
+            pp = icmp.payload.payload
             payload_len = len(pp)
              
             """payload data of returning packet for bitwise comparison in merger""" 
-            data = ip.icmp.payload.data
+            data = icmp.payload.data
       
             """ECN-specific stuff like flags and DSCP"""
-            ecn = ip.icmp.payload.traffic_class
+            ecn = icmp.payload.traffic_class
             if payload_len > 8:
-                flags = ip.icmp.payload.tcp.data[13]
+                flags = icmp.payload.payload[13]
             else:
                 flags = 0 #we don't care
                 

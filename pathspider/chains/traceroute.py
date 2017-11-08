@@ -59,14 +59,14 @@ class tracerouteChain(Chain):
         if ip.tcp and not rev: 
             self.dest_seq(rec, ip)
         if ip.tcp and rev:
-            self.dest_trace(rec, ip)
+            self.dest_trace(rec, ip, ip.icmp)
         return True
             
     def ip6(self, rec, ip6, rev):
         if ip6.tcp and not rev: 
             self.dest_seq(rec, ip6)
         if ip6.tcp and rev:
-            self.dest_trace(rec, ip6)
+            self.dest_trace(rec, ip6, ip6.icmp6)
         return True
             
     def icmp4(self, rec, ip, q, rev):
@@ -103,7 +103,7 @@ class tracerouteChain(Chain):
             print("Sequence Attribute Error!")
           
         
-    def dest_trace(self, rec, ip):
+    def dest_trace(self, rec, ip, icmp):
         """Hops used to reach destination to give to the ipqueue"""
         rec['hops'] = ip.ttl  
         """Acknowledge number of destination -1 is sequence number of received package"""
@@ -120,7 +120,7 @@ class tracerouteChain(Chain):
                 for c in chosen_chains: 
                     ch = c()
                     if hasattr(ch, 'box_info'):
-                        plugin_out = getattr(ch, "box_info")(ip)
+                        plugin_out = getattr(ch, "box_info")(ip, icmp)
                         rec['Destination']['conditions'] = plugin_out
     
     def trace(self, rec, ip, icmp, tcp_seq):
@@ -151,5 +151,5 @@ class tracerouteChain(Chain):
             for c in chosen_chains: 
                 ch = c()
                 if hasattr(ch, 'box_info'):
-                    plugin_out = getattr(ch, "box_info")(ip)
+                    plugin_out = getattr(ch, "box_info")(ip, icmp)
                     rec[hopnumber]['conditions'] = plugin_out             
