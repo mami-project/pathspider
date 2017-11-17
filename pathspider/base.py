@@ -428,6 +428,7 @@ class Spider:
                             except KeyError:
                                 info = {'dip' : job['dip'], 'hops' : 40}  #'hops' could not be found in flow
                         self.ipqueue.put(info)
+                        print("put in queue")
                         break
             self.outqueue.put(job)
 
@@ -570,16 +571,19 @@ class Spider:
             if self.args.trace:
                 time.sleep(10) #guarantees that all relevant flows are pushed out from the expiry bin into the emmited flow (5 secs expiry_time plus 5 secs as buffer)
                 #5 secs expiry time gelten wegen der tcp connection die den flow beendet, sobald ein fin FLAG gesichtet wurde und der 3whs abgeschlossen ist,was falls keine TCP connection???
-                self.flowqueue.put(INTERMEDIATE_SENTINEL)
-                self.resqueue.put(SHUTDOWN_SENTINEL)
+    
                 
+                self.flowqueue.put(INTERMEDIATE_SENTINEL)
+    
+                time.sleep(5)   #time to push out unobserved flows
+                self.resqueue.put(SHUTDOWN_SENTINEL)
+
                 #Tell packet sender to shut down
                 self.ipqueue.put(SHUTDOWN_SENTINEL)
                 self.packet_sender_process.join()
                 self.__logger.debug("sender shutdown")
             
                 time.sleep(5) #!!TODO!! brauchen wir hier noch ein zusätzliches timeout das garantiert dass der observer alle traceroute packete gesehen hat??
-            
             # Tell observer to shut down
             self.observer_shutdown_queue.put(True)
             self.observer_process.join()
