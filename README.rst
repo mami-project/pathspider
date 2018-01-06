@@ -16,7 +16,7 @@ PATHspider
 .. |Citation Information| image:: https://pathspider.net/doi.svg
    :target: http://dx.doi.org/10.1145/2959424.2959441
 
-.. figure:: https://pathspider.mami-project.eu/img/pathspider.png
+.. figure:: https://pathspider.net/img/pathspider-logo.png
    :alt: PATHspider Logo
 
 More information can be found at the project homepage:
