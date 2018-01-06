@@ -42,16 +42,23 @@ def job_feeder_csv(inputfile, spider):
         reader = csv.reader(csvfile)
         logger.debug("job_feeder: started")
         for row in reader:
-            if len(row) == 4:
+            if len(row) == 2:
+                job = {'rank': row[0], 'domain': row[1]}
+            elif len(row) == 3: # used in 0.9.x release series
+                job = {'dip': row[0], 'dp': row[1], 'domain': row[2]}
+            elif len(row) == 4: # used in 1.0.x release series
                 job = {'dip': row[0], 'dp': row[1], 'domain': row[2], 'rank': row[3]}
-                if 'dip' in job.keys():
-                    if job['dip'] in seen_targets:
-                        logger.debug("This target has already had a job submitted, skipping.")
-                        continue
-                    seen_targets.add(job['dip'])
-                spider.add_job(job)
             else:
                 logger.warning("Unable to read row for a job, skipping...")
+                continue
+
+            if 'dip' in job.keys():
+                if job['dip'] in seen_targets:
+                    logger.debug("This target has already had a job submitted, skipping.")
+                    continue
+                seen_targets.add(job['dip'])
+
+            spider.add_job(job)
 
         logger.info("job_feeder: all jobs added, waiting for spider to finish")
         spider.shutdown()
