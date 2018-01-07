@@ -37,7 +37,7 @@ Table of Contents
    using
    plugins
    observer
-   targets/index.rst
+   targets.rst
    plugindev/index.rst
    advanced
 
