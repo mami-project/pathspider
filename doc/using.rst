@@ -33,11 +33,11 @@ Performing Active Measurement
 PATHspider provides the "measure" command to perform active traffic generation
 and observation of that traffic for path transparency measurement. Based on
 the observations made, paths are assigned conditions such as
-"ecn.connectivity.works" indicating that the use of ECN does not cause
+`ecn.connectivity.works` indicating that the use of ECN does not cause
 connectivity impairment between the vantage point and the particular target.
 
 It is possible to enable the output of flow records along with the derived
-observations using the `--output-flows` flag. This will generate considerably
+observations using the ``--output-flows`` flag. This will generate considerably
 more output and so is disabled by default.
 
 You may specify input and output files using flags, however by default these
@@ -85,7 +85,8 @@ Quickstart Example
 
 You can run a small study using the ECN plugin and the included
 ``webtest.ndjson`` file to measure path transparency to ECN for a small selection
-of web servers and save the results in ``results.ndjson``:
+of web servers and save the results in ``results.ndjson`` (ensure to change the
+interface name to match an active interface on your machine):
 
 .. code-block:: shell
 
@@ -105,15 +106,16 @@ we do not attempt to determine path conditions during passive observation, and
 instead only output flow records. This may change in future versions of
 PATHspider.
 
-You can list the available chains with `--list-chains` and then select any
+You can list the available chains with ``--list-chains`` and then select any
 number of chains that you would like to use. It is recommended that you include
 the `basic` chain as this will add the IP addresses and port numbers to the
 flow records.
 
 You may specify the output file using a flag, however by default this is set to
-be stdout and so you can, and are recommended to, use shell redirection
-instead. You will be required to set your interface name and PATHspider will
-not start if it detects that the chosen interface is not active.
+be ``/dev/stdout`` and so you can, and are recommended to, use shell
+redirection instead. You will be required to set your interface name and
+PATHspider will not start if it detects that the chosen interface is not
+active.
 
 .. code-block:: text
 
@@ -165,6 +167,8 @@ documentation for the specific plugin for more information.
 
 Output Format
 ~~~~~~~~~~~~~
+
+.. todo:: This is wrong
 
 In flow record mode, PATHspider's output is in the form of two records per job
 as JSON dictionaries. One record will be for the baseline (A) connection, and
