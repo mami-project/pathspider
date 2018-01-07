@@ -70,11 +70,17 @@ stable:
 .. note:: This will install both the runtime and the build dependencies required
           for PATHspider, its testsuite and its documentation.
 
-On other platforms, you may install the dependencies required via pip:
+On other platforms, you may install most of the dependencies required via pip:
 
 .. code-block:: shell
 
  pip install -r requirements.txt
+
+Unfortunately, `python-libtrace
+<https://github.com/nevil-brownlee/python-libtrace>`_ is not available on PyPI
+and so must be installed seperately. You will also need to ensure that for both
+pycurl and python-libtrace you have the build dependencies available as these
+are compiled CPython modules.
 
 If you wish to build the documentation from source or to use the testsuite, and
 you are installing your dependencies via pip, you will also need the following
