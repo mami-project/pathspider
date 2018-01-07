@@ -1,5 +1,5 @@
 Using the DNS Resolver
-==================
+======================
 
 The resolver accepts input formatted as CSV in the style of the Alexa top 1 million website listing:
 
