@@ -386,7 +386,7 @@ class Spider:
             job['time'] = {'from': start, 'to': stop}
             job['missed_flows'] = 0
             for flow in flows:
-                if flow['observed']:
+                if not flow['observed']:
                     job['missed_flows'] = job['missed_flows'] + 1
             job['conditions'] = self.combine_flows(flows)
             if "pathspider.not_observed" in job['conditions']:
