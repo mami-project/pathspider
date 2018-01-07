@@ -1,7 +1,41 @@
+"""
+.. module:: pathspider.chains.basic
+   :synopsis: A flow analysis chain for basic TCP/IP flow information
+
+This module contains the BasicChain flow analysis chain which can be used by
+PATHspider's Observer for recording source and destination addresses and
+packet/octet counts.
+
+"""
 
 from pathspider.chains.base import Chain
 
 class BasicChain(Chain):
+    """
+    This flow analysis chain records details from the TCP/IP headers.
+
+    +------------+------+-----------------------------------------------------+
+    | Field Name | Type | Meaning                                             |
+    +============+======+=====================================================+
+    | dip        | str  | Layer 3 (IPv4/IPv6) source address                  |
+    +------------+------+-----------------------------------------------------+
+    | sp         | int  | Layer 4 (TCP/UDP) source port                       |
+    +------------+------+-----------------------------------------------------+
+    | dp         | int  | Layer 4 (TCP/UDP) destination port                  |
+    +------------+------+-----------------------------------------------------+
+    | pkt_fwd    | int  | A count of the number of packets seen in the        |
+    |            |      | forward direction                                   |
+    +------------+------+-----------------------------------------------------+
+    | pkt_rev    | int  | A count of the number of packets seen in the        |
+    |            |      | reverse direction                                   |
+    +------------+------+-----------------------------------------------------+
+    | oct_fwd    | int  | A count of the number of octets seen in the         |
+    |            |      | forward direction                                   |
+    +------------+------+-----------------------------------------------------+
+    | oct_rev    | int  | A count of the number of octets seen in the         |
+    |            |      | reverse direction                                   |
+    +------------+------+-----------------------------------------------------+
+    """
 
     def _extract_ports(self, ip):
         if ip.udp:
