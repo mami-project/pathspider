@@ -27,12 +27,6 @@ class DesynchronizedSpider(Spider):
             self.__logger.warning("Observer is not much use with Tor, disabling!")
             self.chains = []
 
-    def config_zero(self):
-        pass
-
-    def config_one(self):
-        pass
-
     def configurator(self):
         """
         Since there is no need for a configurator thread in a
