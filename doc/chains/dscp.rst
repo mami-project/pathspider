@@ -1,5 +1,5 @@
-pathspider.chains.dscp
-======================
+DSCP Chain
+==========
 
 .. automodule:: pathspider.chains.dscp
    :members:

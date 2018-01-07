@@ -21,5 +21,4 @@ without being a part of the PATHspider distribution.
    sync.rst
    desync.rst
    forge.rst
-   chains/index.rst
-
+   chains.rst

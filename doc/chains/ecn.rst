@@ -1,5 +1,5 @@
-pathspider.chains.ecn
-=====================
+ECN Chain
+=========
 
 .. automodule:: pathspider.chains.ecn
    :members:

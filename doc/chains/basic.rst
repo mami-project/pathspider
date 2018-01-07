@@ -1,5 +1,5 @@
-pathspider.chains.basic
-=======================
+Basic Chain
+===========
 
 .. automodule:: pathspider.chains.basic
    :members:

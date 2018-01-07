@@ -1,4 +1,4 @@
-.. _observer:
+.. _observer_internals:
 
 Observer
 ========

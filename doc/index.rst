@@ -36,6 +36,7 @@ Table of Contents
    installation
    using
    plugins
+   observer
    targets/index.rst
    plugindev/index.rst
    advanced

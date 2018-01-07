@@ -39,24 +39,7 @@ should be included in your plugin as its fields are used by the merger to match
 flow records with their corresponding jobs.
 
 PATHspider also provides library flow analysis chains for some protocols and
-extensions:
-
-.. toctree::
-   :titlesonly:
-
-   basic.rst
-   dns.rst
-   dscp.rst
-   ecn.rst
-   icmp.rst
-   tcp.rst
-   tfo.rst
-
-.. toctree::
-   :hidden:
-
-   base.rst
-   noop.rst
+extensions which you can find in the :ref:`Observer <observer>` page.
 
 Writing Flow Analysis Chains
 ----------------------------
