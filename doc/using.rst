@@ -20,10 +20,10 @@ the root user.
    --verbose   Enable verbose logging
 
  Commands:
+     filter    Pre-process a target list
      measure   Perform a PATHspider measurement
      observe   Passively observe network traffic
      test      Run the built in test suite
-     wizard    Graphical PATHspider Wizard
 
  Spider safely!
 
