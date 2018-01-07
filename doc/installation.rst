@@ -4,6 +4,9 @@ Installation
 Debian GNU/Linux
 ----------------
 
+.. note:: If there has not been much time since the release, the Debian
+          packages for the latest version may not yet be available.
+
 PATHspider is packaged for Debian and packages are made available for the
 testing and stable-backports distributions. If you are running Debian stable,
 ensure that you have `enabled the stable-backports repository
@@ -18,20 +21,42 @@ To install PATHspider, simply run:
 Vagrant
 -------
 
-On systems other than Linux systems, you may use Vagrant to run PATHspider.
-This may also be useful during development. A Vagrantfile is provided that
-will create a Debian-based virtual machine with all the PATHspider dependencies
-installed.
+.. warning:: Depending on the set up of your Vagrant virtualization provider,
+             some tests may be affected. It is wise to test against known
+             configurations to ensure that your networking set up has a clear
+             path to the Internet before running larger measurement campaigns.
 
-In the virtual machine, the PATHspider code will be mounted at
-`/home/vagrant/pathspider` and changes made inside or outside the VM will appear
-in both places. PATHspider is installed in development mode, meaning that
-this is also the location of the PATHspider code that will be run when
-running the `/usr/bin/pathspider` binary inside the virtual machine.
+On systems other than Linux systems, you may use `Vagrant
+<https://www.vagrantup.com/>`_ to run PATHspider.  This may also be useful
+during development. A Vagrantfile is provided that will create a Debian-based
+virtual machine with all the PATHspider dependencies installed.
 
+In the virtual machine, the PATHspider code will be copied to
+``/home/vagrant/pathspider``. To improve compatibility across platforms, this
+is not synchronised with the repository outside of the Vagrant image. Expert
+users may edit the ``Vagrantfile`` to achieve this. PATHspider is installed in
+development mode, meaning that this is also the location of the PATHspider code
+that will be run when running the ``/usr/bin/pspdr`` command inside the virtual
+machine.
+
+Assuming that you have Vagrant and a virtualisation provider (e.g. VirtualBox)
+installed, you can get started with:
+
+.. code-block:: shell
+
+   vagrant up
+   vagrant ssh
+
+Depending on the speed of your Internet connection, this may take a long time.
 
 Source
 ------
+
+.. warning:: PATHspider 2.0 depends on pycurl >= 7.43.0.1, released on the 7th
+             December 2017. If you have errors when running PATHspider similar
+             to ``AttributeError: module 'pycurl' has no attribute
+             'CONNECT_TO'`` then it is most likely the case that your version
+             of pycurl is too old.
 
 If you are working from the source distribution (e.g. cloned git repository)
 then you will need to install the required dependencies. On Debian GNU/Linux,
