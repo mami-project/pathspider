@@ -20,42 +20,71 @@ the use of a non-zero DSCP codepoint.
 Usage Example
 -------------
 
+.. note:: The path given to the example list of web servers is taken from a
+          Debian GNU/Linux installation and may differ on your computer. These
+          are the same examples that can be found in the `examples/` directory
+          of the source distribution.
+
 To use the DSCP plugin, specify ``dscp`` as the plugin to use on the command-line:
 
 .. code-block:: shell
 
- pathspider dscp </usr/share/doc/pathspider/examples/webtest.csv >results.txt
+ pspdr measure -i eth0 dscp </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
 
-This will run two TCP connections for each job input, one with the DSCP set to
-zero (best-effort) and one with the DSCP set to 46 (expedited forwarding). If
-you would like to specify the code point for use on the experimental flow, you
-may do this with the ``--codepoint`` option. For example, to use 42:
+This will run two HTTP GET request connections over TCP for each job input, one
+with the DSCP set to zero (best-effort) and one with the DSCP set to 46
+(expedited forwarding). If you would like to specify the code point for use on
+the experimental flow, you may do this with the ``--codepoint`` option. For
+example, to use 42:
 
 .. code-block:: shell
 
- pathspider dscp --codepoint 42 </usr/share/doc/pathspider/examples/webtest.csv >results.txt
+ pspdr measure -i eth0 dscp --codepoint 42 </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
 
-Output Fields
--------------
+Supported Connection Modes
+--------------------------
 
-In addition to the :ref:`default output fields <defaultoutput>`, the DSCP
-plugin also provides the following fields for each flow:
+This plugin supports the following connection modes:
 
-+---------------+-------------------------------------------------------------+
-| Key           | Description                                                 |
-+===============+=============================================================+
-| fwd_syn_dscp  | DiffServ code point as observed on the forward path for the |
-|               | first SYN in the flow.                                      |
-+---------------+-------------------------------------------------------------+
-| rev_syn_dscp  | DiffServ code point as observed on the reverse path for the |
-|               | first SYN in the flow (likely to be a SYN/ACK).             |
-+---------------+-------------------------------------------------------------+
-| fwd_data_dscp | DiffServ code point as observed on the forward path for the |
-|               | first data packet (i.e. with a payload) in the flow.        |
-+---------------+-------------------------------------------------------------+
-| rev_data_dscp | DiffServ code point as observed on the reverse path for the |
-|               | first data packet (i.e. with a payload) in the flow.        |
-+---------------+-------------------------------------------------------------+
+ * http - Performs a GET request
+ * tcp - Performs only a TCP 3WHS
+ * dnsudp - Performs a DNS query using UDP
+ * dnstcp - Performs a DNS query using TCP
+
+To use an alternative connection mode, add the ``--connect`` argument to the
+invocation of PATHspider:
+
+.. code-block:: shell
+
+ pspdr measure -i eth0 dscp --connect tcp </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
+
+Output Conditions
+-----------------
+
+The following conditions are generated for the DSCP plugin:
+
+dscp.X.connectivity.Y
+~~~~~~~~~~~~~~~~~~~~~
+
+For each connection that was observed by PATHspider, a connectivity condition
+will be generated to indicate whether or not connectivity was successful using
+codepoint X validated against a connection using codepoint 0 (zero).
+
+Y may have the following values:
+
+ * works - Both connections succeeded
+ * broken - Baseline connection succeeded where experimental connection failed
+ * offline - Both connections failed
+ * transient - Baseline connection failed where experimental connection
+   succeeded (this can be used to give an indication of transient failure rates
+   included in the "broken" set)
+
+dscp.X.replymark:
+~~~~~~~~~~~~~~~~~
+
+For each connection that was observed to have a response by PATHspider, a
+condition is generated to show values of codepoints set on response packets
+when codepoint X was set.
 
 Notes
 -----
