@@ -53,7 +53,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PATHspider'
-copyright = u'2016-2017, the PATHspider authors'
+copyright = u'2016-2018, the PATHspider authors'
 author = u'the PATHspider authors'
 
 # The version info for the project you're documenting, acts as replacement for
