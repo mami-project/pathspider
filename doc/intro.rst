@@ -20,6 +20,12 @@ uses a different transport protocol or set of TCP extensions. These connections
 are made as simultaneously as possible, to reduce the impact of transient
 network changes.
 
+Since PATHspider 2.0, it is also possible to perform more than one B test
+optionally performing an A test between each B test in order to revalidate the
+path. This can also be used to "prime" the path for a follow up connection if
+it is desirable to have devices on the path hold state before performing the
+test.
+
 PATHspider is a generalized version of the
 `ecnspider <https://github.com/britram/pathtools/tree/master/pathspider/ecnspider2>`_
 tool, used in previous studies to probe the paths from multiple vantage points
@@ -52,9 +58,9 @@ Architecture
 The PATHspider architecture has four components, illustrated in
 the diagram below the :func:`configurator
 <pathspider.base.Spider.configurator>`, the :func:`workers
-<pathspider.base.Spider.worker_thread>`, the :class:`observer
-<pathspider.observer.Observer>` and the :func:`merger
-<pathspider.base.Spider.merger_thread>`. Each component is implemented as one or more
+<pathspider.sync.SynchronizedSpider.worker>`, the :class:`observer
+<pathspider.observer.Observer>` and the :func:`combiner
+<pathspider.base.Spider.combine_flows>`. Each component is implemented as one or more
 threads, launched when PATHspider starts.
 
 .. figarch:
@@ -80,10 +86,13 @@ Some transport options require a system-wide parameter change, for example
 enabling ECN in the Linux kernel.  This requires locking and synchronisation.
 Using semaphores, the configurator waits for each worker to complete an
 operation and then changes the state to perform the next batch of operations.
-This process cycles continually until no more jobs remain. In a typical
-experiment, multiple workers (on the order of hundreds) are active, since much
-of the time in a connection test is spent waiting for an answer from the
-target or a timeout to fire.
+This process cycles continually until no more jobs remain.
+
+In a typical experiment, multiple workers (on the order of hundreds) are
+active, since much of the time in a connection test is spent waiting for an
+answer from the target or a timeout to fire. Where it is possible to peform the
+tests without a system-wide configuration it is possible to disable the
+semaphores to increase the speed of the test.
 
 In addition, packets are separately captured for analysis by the observer using
 `Python bindings for libtrace
@@ -107,30 +116,22 @@ Extensibility
 
 PATHspider plugins are built by extending an abstract class that
 implements the core behaviour, with functions for the
-configurator, workers, observer, and matcher.
+configurator, workers, observer, and merger. There are three main abstract
+classes that can be extended by plugins:
+:class:`pathspider.sync.SynchronizedSpider`,
+:class:`pathspider.desync.DesynchronizedSpider` and
+:class:`pathspider.forge.ForgeSpider`.
 
-There are two configurator functions: ``config_zero`` and ``config_one``,
-run by the configurator to prepare for each attempted connection mode.  Where
-system-wide configuration is not required, the configurator provides the
-semaphore-based locking functions. This makes the workers aware of the current
-configuration allowing the connection functions to change based on the current
-configuration mode.
+Depending on the type of plugin being created, these abstract classes are
+extended to include logic for generating the active measurement traffic.
 
-There are three connection functions: ``pre_connect``, ``connect`` and
-``post_connect``.  ``connect`` is the only required function. The call to
-this function is synchronised by the configurator. The ``pre_connect`` and
-``post_connect`` functions can preconfigure state and perform actions with
-the connections opened by the ``connect`` function without being synchronised
-by the configurator. This can help to speed-up release of the semaphores and
-complete jobs more efficiently. These actions can also perform data gathering
-functions, for example, a traceroute to the host being tested.
+Plugins can implement arbitrary functions for the observer function chain, or
+reuse library functions for some functionality.  These track the state of flows
+and build flow records for different packet classes: The first chain handles
+setup on the first packet of a new flow.  Separate chains chains for IP, TCP
+and UDP packets to allow different behaviours based on the IP version and
+transport protocol.
 
-Plugins can implement arbitrary functions for the observer function chain.
-These track the state of flows and build flow records for different packet
-classes: The first chain handles setup on the first packet of a new flow.
-Separate chains chains for IP, TCP and UDP packets to allow different
-behaviours based on the IP version and transport protocol.
-
-The final plugin function is the merger function. This takes
-a job record from a worker and a flow record from the observer and merges the
-records before passing the merged record back to PATHspider.
+The final plugin function is the combiner function. This takes
+a list of merged job records and flow records to produce "path conditions"
+before passing the final job record back to PATHspider for output.

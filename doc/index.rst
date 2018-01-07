@@ -22,9 +22,9 @@ protocol extensions to perform controlled experiments of protocol-dependent
 connectivity problems as well as differential treatment.
 
 PATHspider is a framework for performing and analyzing these measurements,
-while the actual A/B test can be easily customized. This documentation
+while the actual A/B tests can be easily customized. This documentation
 describes the architecture of PATHspider, the plugins available and how to use
-and develop the plugins.
+and develop and package the plugins.
 
 Table of Contents
 -----------------
