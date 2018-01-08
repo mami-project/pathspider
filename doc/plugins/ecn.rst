@@ -25,50 +25,84 @@ the use of ECN.
 Usage Example
 -------------
 
+.. note:: The path given to the example list of web servers is taken from a
+          Debian GNU/Linux installation and may differ on your computer. These
+	  are the same examples that can be found in the `examples/` directory
+          of the source distribution.
+
 To use the ECN plugin, specify ``ecn`` as the plugin to use on the command-line:
 
 .. code-block:: shell
 
- pathspider ecn </usr/share/doc/pathspider/examples/webtest.csv >results.txt
+ pspdr measure -i eth0 ecn </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
 
 This will run two TCP connections for each job input, one with ECN disabled in
 the kernel TCP/IP stack and one with ECN enabled in the kernel TCP/IP stack.
 
-Output Fields
--------------
+Supported Connection Modes
+--------------------------
 
-In addition to the :ref:`default output fields <defaultoutput>`, the ECN
-plugin also provides the following fields for each flow:
+This plugin supports the following connection modes:
 
-+---------------+-------------------------------------------------------------+
-| Key           | Description                                                 |
-+===============+=============================================================+
-| fwd_ez        | ECT(0) was observed in the forward direction.               |
-+---------------+-------------------------------------------------------------+
-| rev_ez        | ECT(0) was observed in the reverse direction.               |
-+---------------+-------------------------------------------------------------+
-| fwd_eo        | ECT(1) was observed in the forward direction.               |
-+---------------+-------------------------------------------------------------+
-| rev_eo        | ECT(1) was observed in the reverse direction.               |
-+---------------+-------------------------------------------------------------+
-| fwd_ce        | CE was observed in the forward direction.                   |
-+---------------+-------------------------------------------------------------+
-| rev_ce        | CE was observed in the reverse direction.                   |
-+---------------+-------------------------------------------------------------+
-| fwd_syn_flags | The SYN flags observed in the forward direction.            |
-+---------------+-------------------------------------------------------------+
-| rev_syn_flags | The SYN flags observed in the reverse direction.            |
-+---------------+-------------------------------------------------------------+
-| fwd_fin       | A FIN flag was observed in the forward direction.           |
-+---------------+-------------------------------------------------------------+
-| rev_fin       | A FIN flag was observed in the reverse direction.           |
-+---------------+-------------------------------------------------------------+
-| fwd_rst       | A RST flag was observed in the forward direction.           |
-+---------------+-------------------------------------------------------------+
-| rev_rst       | A RST flag was observed in the reverse direction.           |
-+---------------+-------------------------------------------------------------+
-| tcp_completed | A complete 3WHS for TCP was observed to be successful.      |
-+---------------+-------------------------------------------------------------+
+ * http - Performs a GET request
+ * https - Performs a GET request using HTTPS
+ * tcp - Performs only a TCP 3WHS
+ * dnstcp - Performs a DNS query using TCP
+
+To use an alternative connection mode, add the ``--connect`` argument to the
+invocation of PATHspider:
+
+.. code-block:: shell
+
+ pspdr measure -i eth0 ecn --connect tcp </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
+
+Output Conditions
+-----------------
+
+The following conditions are generated for the ECN plugin:
+
+ecn.connectivity.Y
+~~~~~~~~~~~~~~~~~~
+
+For each connection that was observed by PATHspider, a connectivity condition
+will be generated to indicate whether or not connectivity was successful using
+ECN against a connection not using ECN.
+
+Y may have the following values:
+
+ * works - Both connections succeeded
+ * broken - Baseline connection succeeded where experimental connection failed
+ * offline - Both connections failed
+ * transient - Baseline connection failed where experimental connection
+   succeeded (this can be used to give an indication of transient failure rates
+   included in the "broken" set)
+
+
+ecn.negotiation.Y
+~~~~~~~~~~~~~~~~~
+
+For each experimental connection that was observed to have a response by PATHspider, a
+condition is generated to show whether or not ECN negotiation succeded between
+the two hosts.
+
+Y may have the following values:
+ 
+ * succeeded -  ECN negotiation succeeded
+ * reflected -  ECN negotiation failed, with both ECE and CWR set on reply SYN
+ * failed - ECN negotiation failed
+
+ecn.ipmark.X.Y
+~~~~~~~~~~~~~~
+
+For each connection that was observed by PATHspider, a condition is generated
+to record the ECN marks seen.  Y has two possible values, "seen" or "not_seen",
+corresponding to whether or not mark X was encountered.
+
+X may have the following values:
+
+ * ect0 - ECN Capable Transport (0)
+ * ect1 - ECN Capable Transport (1)
+ * ce - Congestion Experienced
 
 Notes
 -----
