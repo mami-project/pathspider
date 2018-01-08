@@ -1,6 +1,11 @@
 TFO Plugin
 ==========
 
+.. danger:: This plugin uses experimental features in cURL that have not yet
+            been accepted upstream. This plugin is very unlikely to work for
+            you. For more information see
+            https://github.com/curl/curl/issues/1332.
+
 TCP Fast Open (TFO) is an extension to speed up the opening of successive
 Transmission Control Protocol (TCP) connections between two endpoints. It works
 by using a TFO cookie (a TCP option), which is a cryptographic cookie stored on
@@ -19,38 +24,84 @@ implementation anomalies.
 Usage Example
 -------------
 
+.. note:: The path given to the example list of web servers is taken from a
+          Debian GNU/Linux installation and may differ on your computer. These
+          are the same examples that can be found in the `examples/` directory
+          of the source distribution.
+
 To use the TFO plugin, specify ``tfo`` as the plugin to use on the command-line:
 
 .. code-block:: shell
 
- pathspider tfo </usr/share/doc/pathspider/examples/webtest.csv >results.txt
+ pspdr measure -i eth0 tfo </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
 
-For the baseline test, the plugin will perform a TCP connection to the target
-host. For the experimental case, the plugin will perform two TCP connections to
-the target host. The first experimental connection is run to acquire a TFO
-cookie and the second to check that it can be used.
+This will run two HTTP GET request connections over TCP for each job input, one
+without using TCP Fast Open and one using it.
 
-Output Fields
--------------
+.. code-block:: shell
 
-In addition to the :ref:`default output fields <defaultoutput>`, the TFO
-plugin also provides the following fields for each flow:
+ pspdr measure -i tfo </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
 
-+---------------+-------------------------------------------------------------+
-| Key           | Description                                                 |
-+===============+=============================================================+
-| tfo_synkind   | TCP Option Kind of TFO option on SYN (34, 254; 0 = none)    |
-+---------------+-------------------------------------------------------------+
-| tfo_ackkind   | TCP Option Kind of TFO option on SYN/ACK (34, 254; 0 = none)|
-+---------------+-------------------------------------------------------------+
-| tfo_synclen   | TFO Cookie Length on SYN                                    |
-+---------------+-------------------------------------------------------------+
-| tfo_ackclen   | TFO Cookie Length on SYN/ACK                                |
-+---------------+-------------------------------------------------------------+
-| tfo_seq       | Sequence number of SYN                                      |
-+---------------+-------------------------------------------------------------+
-| tfo_dlen      | Length of TCP payload on SYN                                |
-+---------------+-------------------------------------------------------------+
-| tfo_ack       | Ack number of SYN/ACK. For ACKed data, = seq + dlen + 1     |
-+---------------+-------------------------------------------------------------+
+Supported Connection Modes
+--------------------------
 
+This plugin supports the following connection modes:
+
+ * http - Performs a GET request
+ * http - Performs a GET request using HTTPS
+ * dnstcp - Performs a DNS query using TCP
+
+To use an alternative connection mode, add the ``--connect`` argument to the
+invocation of PATHspider:
+
+.. code-block:: shell
+
+ pspdr measure -i eth0 tfo --connect tcp </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
+
+Output Conditions
+-----------------
+
+The following conditions are generated for the TFO plugin:
+
+tfo.connectivity.Y
+~~~~~~~~~~~~~~~~~~
+
+For each connection that was observed by PATHspider, a connectivity condition
+will be generated to indicate whether or not connectivity was successful using
+TFO validated against a connection not using TFO.
+
+Y may have the following values:
+
+ * works - Both connections succeeded
+ * broken - Baseline connection succeeded where experimental connection failed
+ * offline - Both connections failed
+ * transient - Baseline connection failed where experimental connection
+   succeeded (this can be used to give an indication of transient failure rates
+   included in the "broken" set)
+
+tfo.cookie.X
+~~~~~~~~~~~~
+
+For each connection that was observed to have a response by PATHspider, a
+condition is generated to show whether the TFO cookie was received on response packets.
+
+X can have two values, "received" or "not_received", idicating whther the client 
+received a TFO cookie after sending the Fast Open Cookie Request option.
+
+
+tfo.syndata.X
+~~~~~~~~~~~~~
+
+For each connection that was observed to have a response by PATHspider, a
+condition is generated to show whether the TFO cookie was acknowledged when
+resending to the tested host.
+
+ * acked - The server sends a SYN-ACK acknowledging the TFO cookie
+ * not_acked - The server sends a SYN-ACK not acknowledging the TFO cookie
+ * failed - The server does not send a SYN-ACK
+
+Notes
+-----
+
+* TCP Fast Open is set using curl options. Through passive observation it should
+  be possible to verify that TCP Fast Open is indeed being used.
