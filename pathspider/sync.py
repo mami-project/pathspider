@@ -213,8 +213,8 @@ class SemaphoreN(threading.BoundedSemaphore):
         :class:`BoundedSemaphore`.
 
         :returns: The same value as the last call to `BoundedSemaphore`'s
-        :meth:`acquire` if :meth:`acquire` were called ``value`` times instead
-        of the call to this method.
+                  :meth:`acquire` if :meth:`acquire` were called ``value``
+                  times instead of the call to this method.
         """
         ret = None
         for _ in range(value):
@@ -226,8 +226,8 @@ class SemaphoreN(threading.BoundedSemaphore):
         Release ``value`` number of tokens at once.
 
         :returns: The same value as the last call to `BoundedSemaphore`'s
-        :meth:`release` if :meth:`release` were called ``value`` times instead
-        of the call to this method.
+                  :meth:`release` if :meth:`release` were called ``value``
+                  times instead of the call to this method.
         """
         ret = None
         for _ in range(value):
