@@ -39,7 +39,7 @@ Table of Contents
    observer
    targets.rst
    plugindev/index.rst
-   advanced
+   internals
 
 .. toctree::
    :hidden:
