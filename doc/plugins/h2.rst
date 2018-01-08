@@ -1,0 +1,81 @@
+H2 Plugin
+=========
+
+HTTP/2 (originally named HTTP/2.0) is a major revision of the HTTP network
+protocol used in the Internet. 
+
+The HTTP Upgrade mechanism is used to establish HTTP/2 starting from plain
+HTTP. The client starts a HTTP/1.1 connection and sends "Upgrade: h2c" header.
+If the server supports HTTP/2, it replies with HTTP 101 Switching Protocol
+status code. The HTTP Upgrade mechanism is used only for cleartext HTTP2 (h2c).
+In the case of HTTP2 over TLS (h2), the ALPN TLS protocol extension is used
+instead.
+
+The h2 plugin for PATHspider aims to detect breakage in the Internet due to
+the use of HTTP/2.
+
+Usage Example
+-------------
+
+.. note:: The path given to the example list of web servers is taken from a
+          Debian GNU/Linux installation and may differ on your computer. These
+          are the same examples that can be found in the `examples/` directory
+          of the source distribution.
+
+To use the H2 plugin, specify ``h2`` as the plugin to use on the command-line:
+
+.. code-block:: shell
+
+ pspdr measure -i eth0 h2 </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
+
+This will run two HTTP GET request connections over TCP for each job input, one
+without requesting an upgrade and one requesting an upgrade to HTTP/2. 
+
+Supported Connection Modes
+--------------------------
+
+This plugin supports the following connection modes:
+
+ * http - Performs a GET request
+ * https - Performs a GET request using HTTPS
+
+To use an alternative connection mode, add the ``--connect`` argument to the
+invocation of PATHspider:
+
+.. code-block:: shell
+
+ pspdr measure -i eth0 h2 --connect https </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
+
+Output Conditions
+-----------------
+
+The following conditions are generated for the H2 plugin:
+
+h2.connectivity.X
+~~~~~~~~~~~~~~~~~
+
+For each connection that was observed by PATHspider, a connectivity condition
+will be generated to indicate whether or not connectivity was successful using
+HTTP/2 against a connection using HTTP/1.1.
+
+Y may have the following values:
+
+ * works - Both connections succeeded
+ * broken - Baseline connection succeeded where experimental connection failed
+ * offline - Both connections failed
+ * transient - Baseline connection failed where experimental connection
+   succeeded (this can be used to give an indication of transient failure rates
+   included in the "broken" set)
+
+h2.upgrade.X
+~~~~~~~~~~~~
+
+For each connection that was observed by PATHspider, a connectivity condition
+will be generated to indicate whether or not an upgrade request to HTTP/2 was
+successful. X can have two values, "success" or "failed".
+
+Notes
+-----
+
+* The H2 plugin uses cURL options to set the HTTP version to be used for the
+  request and uses the version negotiation techniques built-in to cURL.
