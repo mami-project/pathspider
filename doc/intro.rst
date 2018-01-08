@@ -34,15 +34,14 @@ failures negotiating Explicit Congestion Notification (ECN) [RFC3168]_ in
 TCP.
 
 As a generalized tool for controlled experimental A/B testing of path
-impairment, PATHspider fills a gap in the existing Internet active
-measurement software ecosystem.  Existing active measurement platforms, such
-as RIPE Atlas [RIPEAtlas]_, OONI [Filasto12]_, or
-Netalyzr [Kreibich10]_, were built to measure absolute performance and
-connectivity between a pair of endpoints under certain conditions. The results
-obtainable from each of these can of course be compared to each other to
-simulate A/B testing. However, the measurement data obtained from these
-platforms provide a less controlled view than can be achieved with
-PATHspider, given coarser scheduling of measurements in each state.
+impairment, PATHspider fills a gap in the existing Internet active measurement
+software ecosystem.  Existing active measurement platforms, such as RIPE Atlas
+[RIPEAtlas]_, OONI [Filasto12]_, or Netalyzr [Kreibich10]_, measure absolute
+performance and connectivity between a pair of endpoints under certain
+conditions. The results obtainable from each of these can be compared to each
+other to simulate A/B testing. However, the measurement data from these
+platforms provide a less controlled view than can be achieved with PATHspider,
+given coarser scheduling of measurements in each state.
 
 Given PATHspider's modular design and implementation in Python, plugins to
 perform measurements for any transport protocol or extension are easy to
@@ -106,10 +105,9 @@ flags within packets and analysis based on previously observed packets in the
 flow. For example, a function may record both an ECN negotiation attempt and
 whether the host successfully negotiated use of ECN.
 
-A function may alert the observer that a flow should have completed and that
-the flow information can be matched with the corresponding job record and
-passed to the merger. The merger extracts the fields needed for a particular
-measurement campaign from the records produced by the worker and the observer.
+Path conditions are generated for the path to each target to determine whether
+or not connectivity breakage has occured, or other conditions that may lead to
+more subtle breakage.
 
 Extensibility
 -------------
@@ -128,7 +126,7 @@ extended to include logic for generating the active measurement traffic.
 Plugins can implement arbitrary functions for the observer function chain, or
 reuse library functions for some functionality.  These track the state of flows
 and build flow records for different packet classes: The first chain handles
-setup on the first packet of a new flow.  Separate chains chains for IP, TCP
+setup on the first packet of a new flow.  Separate chains for IP, TCP
 and UDP packets to allow different behaviours based on the IP version and
 transport protocol.
 
