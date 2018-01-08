@@ -30,7 +30,7 @@ PATHspider is a generalized version of the
 `ecnspider <https://github.com/britram/pathtools/tree/master/pathspider/ecnspider2>`_
 tool, used in previous studies to probe the paths from multiple vantage points
 to web-servers [Trammell15]_ and to peer-to-peer clients [Gubser15]_ for
-failures negotiating Explicit Congestion Notification (ECN) [RFC3186]_ in
+failures negotiating Explicit Congestion Notification (ECN) [RFC3168]_ in
 TCP.
 
 As a generalized tool for controlled experimental A/B testing of path
