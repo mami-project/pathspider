@@ -8,7 +8,7 @@ DesynchronizedSpider can be more efficient than a SynchronizedSpider.
 Connection Functions
 --------------------
 
-Connection functions are at the heart of a DesynchronisedSpider plugin. These
+Connection functions are at the heart of a DesynchronizedSpider plugin. These
 use a connection helper (or custom connection logic) to generate traffic
 towards with a target to get a reply from the target.
 

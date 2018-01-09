@@ -33,7 +33,7 @@ virtual machine with all the PATHspider dependencies installed.
 
 In the virtual machine, the PATHspider code will be copied to
 ``/home/vagrant/pathspider``. To improve compatibility across platforms, this
-is not synchronised with the repository outside of the Vagrant image. Expert
+is not synchronized with the repository outside of the Vagrant image. Expert
 users may edit the ``Vagrantfile`` to achieve this. PATHspider is installed in
 development mode, meaning that this is also the location of the PATHspider code
 that will be run when running the ``/usr/bin/pspdr`` command inside the virtual

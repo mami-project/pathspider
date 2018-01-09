@@ -8,7 +8,7 @@ The directory layout and example plugin below can be found in the
 `pathspider-example GitHub repository
 <https://github.com/mami-project/pathspider-example/>`_. You can get going
 quickly by forking this repository and using that as a basis for plugin
-development. The repository has templates for a Synchronised, a Desynchronised
+development. The repository has templates for a Synchronized, a Desynchronized
 and a Forge plugin.
 
 Directory Layout
