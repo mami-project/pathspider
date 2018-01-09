@@ -1,12 +1,6 @@
 PATHspider |version|
 ====================
 
-.. warning:: This documentation is for a development version of PATHspider that
-	     has not yet been released. In places the documentation may not
-             accurately reflect reality. You can find the documentation for the
-	     latest stable release of PATHspider `here
-             <http://pathspider.readthedocs.io/en/stable/>`_.
-
 In today's Internet we see an increasing deployment of middleboxes. While
 middleboxes provide in-network functionality that is necessary to keep networks
 manageable and economically viable, any packet mangling — whether essential for
