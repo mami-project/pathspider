@@ -1,0 +1,20 @@
+digraph decide {
+
+node [shape=record;]
+nativestack [label="Is the feature available in the native stack?"];
+systemwide [label="Do you need to switch a kernel option or other system wide configuation?"];
+node [shape=record;fillcolor="yellow"; style="filled"]
+sync [label="SynchronizedSpider"];
+desync [label="DesynchronizedSpider"];
+forge [label="ForgeSpider"];
+node [shape=circle, fixedsize=true; width=0.9;label="yes";fillcolor="green";style="filled"];
+yes1; yes2;
+node [label="no";fillcolor="red"; style="filled"];
+no1; no2;
+
+nativestack -> yes1 -> systemwide;
+nativestack -> no1 -> forge;
+systemwide -> yes2 -> sync;
+systemwide -> no2 -> desync;
+
+}
