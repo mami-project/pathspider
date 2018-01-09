@@ -49,7 +49,7 @@ In order to run your plugin, in the root of your plugin source tree run:
 
 .. code-block:: shell
 
- PYTHONPATH=. pathspider example </usr/share/doc/pathspider/examples.csv >results.txt
+ PYTHONPATH=. pspdr measure -i eth0 example </usr/share/doc/pathspider/examples/webtest.ndjson
 
 Unless you install your plugin, you will need to add the plugin tree to the
 ``PYTHONPATH`` to allow the plugin to be discovered.
