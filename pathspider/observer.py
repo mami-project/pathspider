@@ -425,9 +425,19 @@ class Observer:
 
 
 class DummyObserver:  # pylint: disable=R0903
-    def __init__(self):
-        pass
+    """
+    The dummy observer provides a class compatible with the API of the Observer
+    class without actually performing any operations.  This is primarily used
+    for PATHspider's test suite.
+    """
 
     def run_flow_enqueuer(self, flowqueue, irqueue=None):  # pylint: disable=R0201
+        """
+        When running the flow enqueuer, no network operation is performed and
+        the thread will block until given a shutdown signal. When the shutdown
+        signal is received it will cascade the signal onto the flowqueue
+        in the same way that a real Observer instance would.
+        """
+
         irqueue.get()
         flowqueue.put(SHUTDOWN_SENTINEL)
