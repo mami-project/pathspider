@@ -102,7 +102,7 @@ def tcp_options(tcp):
         ncp = cp + optbytes[cp+1]
 
         # copy options data into hash
-        # FIXME doesn't handle multiples
+        # FIXME doesn't handle multiples (#189)
         opthash[optbytes[cp]] = optbytes[cp+2:ncp]
 
         # advance

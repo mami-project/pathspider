@@ -8,7 +8,7 @@ from pathspider.base import SHUTDOWN_SENTINEL
 
 
 def _flow4_ids(ip):
-    # FIXME keep map of fragment IDs to keys
+    # FIXME keep map of fragment IDs to keys (#144)
 
     icmp_with_payload = {3, 4, 5, 11, 12}
     quotation_fid = False
