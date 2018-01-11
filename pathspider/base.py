@@ -294,12 +294,20 @@ class Spider:
         Thread to merge results from the workers and the observer.
         """
 
-        if len(self.chains) > 0:
+        if len(self.chains) == 0:
+            self.__logger.warning("Merger is not expecting flows from the Observer")
             # Immediately merge with NO_FLOW when there's no chains, as there's
             # going to also be no observer and so no flows.
             while self.running:
-                for res_item in self.restab.items():
-                    res = res_item[1]
+                try:
+                    res = self.resqueue.get_nowait()
+                except queue.Empty:
+                    time.sleep(QUEUE_SLEEP)
+                    self.__logger.debug("result queue is empty")
+                    continue
+                if res == SHUTDOWN_SENTINEL:
+                    break
+                if not ('spdr_state' in res.keys() and res['spdr_state'] == CONN_SKIPPED):
                     self.merge(NO_FLOW, res)
         else:
             merging_flows = True
