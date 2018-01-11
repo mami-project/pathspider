@@ -27,7 +27,7 @@ setup(
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
 
         # The UI
         'Environment :: Console',
@@ -41,7 +41,6 @@ setup(
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
 
         # Specify the Python versions you support here
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
