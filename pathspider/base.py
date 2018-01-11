@@ -295,19 +295,25 @@ class Spider:
         """
 
         if len(self.chains) > 0:
-            merging_flows = True
+            # Immediately merge with NO_FLOW when there's no chains, as there's
+            # going to also be no observer and so no flows.
+            while self.running:
+                for res_item in self.restab.items():
+                    res = res_item[1]
+                    self.merge(NO_FLOW, res)
         else:
-            merging_flows = False
-        merging_results = True
+            merging_flows = True
+            merging_results = True
 
-        while self.running and (merging_results or merging_flows):
+            while self.running and (merging_results or merging_flows):
 
-            if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
-                merging_flows = self._merge_flows()
+                if merging_flows and self.flowqueue.qsize() >= self.resqueue.qsize():
+                    merging_flows = self._merge_flows()
 
-            elif merging_results:
-                merging_results = self._merge_results()
+                elif merging_results:
+                    merging_results = self._merge_results()
 
+        # One more pass during shutdown, to clean up any leftovers
         for res_item in self.restab.items():
             res = res_item[1]
             self.merge(NO_FLOW, res)
