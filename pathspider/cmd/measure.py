@@ -125,8 +125,8 @@ def register_args(subparsers):
                                    formatter_class=SubcommandHelpFormatter)
     parser.add_argument('-i', '--interface', default="eth0",
                         help="The interface to use for the observer. (Default: eth0)")
-    parser.add_argument('-w', '--workers', type=int, default=100,
-                        help="Number of workers to use. (Default: 100)")
+    parser.add_argument('-w', '--workers', type=int, default=20,
+                        help="Number of workers to use. (Default: 20)")
     parser.add_argument('--input', default='/dev/stdin', metavar='INPUTFILE',
                         help=("A file containing a list of PATHspider jobs. "
                               "Defaults to standard input."))
