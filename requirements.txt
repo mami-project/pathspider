@@ -4,3 +4,4 @@ scapy-python3
 stem
 dnslib
 pycurl
+nose
