@@ -70,8 +70,8 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
             'sp': sp,
             'spdr_state': CONN_OK,
             'http_response_code': code,
-            'http_response_header': header.getvalue().decode('utf-8'),
-            'http_response_body': body.getvalue().decode('utf-8'),
+            'http_response_header': header.getvalue().decode('utf-8', 'backslashreplace'),
+            'http_response_body': body.getvalue().decode('utf-8', 'backslashreplace'),
             'http_info': info,
         }
     except pycurl.error: # TODO: Catch timeout seperately
