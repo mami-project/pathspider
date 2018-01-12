@@ -17,8 +17,11 @@ class ChainTestCase(unittest.TestCase):
             raise nose.SkipTest
 
     def create_observer(self, test_trace, chains):
-        self.lturi = "pcap:" + pkg_resources.resource_filename("pathspider", "tests/data/" +
-                                                               test_trace)
+        if not test_trace.startswith("/"):
+            test_trace = pkg_resources.resource_filename("pathspider",
+                                                         "tests/data/" +
+                                                         test_trace)
+        self.lturi = "pcap:" + test_trace
         self.observer = Observer(self.lturi, chains)
         self.flowqueue = queue.Queue()
 
