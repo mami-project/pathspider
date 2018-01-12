@@ -45,7 +45,7 @@ class TestPluginEvilBitForgeObserve(ChainTestCase):
                 assert len(flows) == 2
     
                 for idx in range(0, 2):
-                    print("FLOW " + idx + " =================")
+                    print("FLOW " + str(idx) + " =================")
                     for key in expected_flows[idx]:
                         print(key + ">>" + str(flows[idx][key]) + ":" +
                               str(expected_flows[idx][key]))
