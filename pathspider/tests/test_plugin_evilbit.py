@@ -23,33 +23,32 @@ class TestPluginEvilBitForgeObserve(ChainTestCase):
                 packets.append(spider.forge(job, seq))
             assert len(packets) == 2
 
+            expected_flows = [
+              {
+                'evilbit_syn_fwd': False if connect == "tcpsyn" else None,
+                'evilbit_syn_rev': None,
+                'evilbit_data_fwd': False if connect == "dnsudp" else None,
+                'evilbit_data_rev': None
+              }, {
+                'evilbit_syn_fwd': True if connect == "tcpsyn" else None,
+                'evilbit_syn_rev': None,
+                'evilbit_data_fwd': True if connect == "dnsudp" else None,
+                'evilbit_data_rev': None
+              }
+            ]
+
             with NamedTemporaryFile() as test_trace:
-                wrpcap(test_trace.name, packets)
-                self.create_observer(test_trace.name, [EvilChain])
-    
-                expected_flows = [
-                  {
-                    'evilbit_syn_fwd': False if connect == "tcpsyn" else None,
-                    'evilbit_syn_rev': None,
-                    'evilbit_data_fwd': False if connect == "dnsudp" else None,
-                    'evilbit_data_rev': None
-                  }, {
-                    'evilbit_syn_fwd': True if connect == "tcpsyn" else None,
-                    'evilbit_syn_rev': None,
-                    'evilbit_data_fwd': True if connect == "dnsudp" else None,
-                    'evilbit_data_rev': None
-                  }
-                ]
-    
-                flows = self.run_observer()
-                assert len(flows) == 2
-    
                 for idx in range(0, 2):
-                    print("FLOW " + str(idx) + " =================")
+                    wrpcap(test_trace.name, [packets[idx]])
+                    self.create_observer(test_trace.name, [EvilChain])
+        
+                    flows = self.run_observer()
+                    assert len(flows) == 1
+        
                     for key in expected_flows[idx]:
-                        print(key + ">>" + str(flows[idx][key]) + ":" +
-                              str(expected_flows[idx][key]))
-                        assert flows[idx][key] == expected_flows[idx][key]
+                        print(key + ">>" + str(flows[0][key]) + ":" +
+                              str(expected_flows[0][key]))
+                        assert flows[0][key] == expected_flows[idx][key]
 
 
 def test_plugin_evilbit_forge_diff():
