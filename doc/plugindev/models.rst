@@ -1,9 +1,9 @@
 Choosing a Plugin Model
 =======================
 
-To be as flexible as possible while attempting to use real network stacks as far
-as possible, PATHspider has 3 models for plugins. The following flowchart can
-help you to decide which model best suits your use case:
+To be as flexible as possible while using real network stacks, PATHspider has 3
+models for plugins. The following flowchart can help you to decide which model
+best suits your use case:
 
 .. figure:: ../_static/models.png
    :align: center

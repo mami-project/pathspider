@@ -127,7 +127,7 @@ Plugins can implement arbitrary functions for the observer function chain, or
 reuse library functions for some functionality.  These track the state of flows
 and build flow records for different packet classes: The first chain handles
 setup on the first packet of a new flow.  Separate chains for IP, TCP
-and UDP packets to allow different behaviours based on the IP version and
+and UDP packets allow different behaviours based on the IP version and
 transport protocol.
 
 The final plugin function is the combiner function. This takes

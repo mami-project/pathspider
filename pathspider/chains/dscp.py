@@ -24,7 +24,7 @@ class DSCPChain(Chain):
     |                       |      | codepoint seen on a TCP SYN packet in the      |
     |                       |      | forward direction                              |
     +-----------------------+------+------------------------------------------------+
-    | ``dscp_mark_syn_fwd`` | int  | The value of the Differentiated Services       |
+    | ``dscp_mark_data_fwd``| int  | The value of the Differentiated Services       |
     |                       |      | codepoint seen on a non-TCP packet or a TCP    |
     |                       |      | packet with a payload in the forward direction |
     +-----------------------+------+------------------------------------------------+
@@ -32,7 +32,7 @@ class DSCPChain(Chain):
     |                       |      | codepoint seen on a TCP SYN packet in the      |
     |                       |      | reverse direction                              |
     +-----------------------+------+------------------------------------------------+
-    | ``dscp_mark_syn_rev`` | int  | The value of the Differentiated Services       |
+    | ``dscp_mark_data_rev``| int  | The value of the Differentiated Services       |
     |                       |      | codepoint seen on a non-TCP packet or a TCP    |
     |                       |      | packet with a payload in the reverse direction |
     +-----------------------+------+------------------------------------------------+
