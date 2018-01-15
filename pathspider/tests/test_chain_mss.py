@@ -3,7 +3,7 @@ from pathspider.tests.chains import ChainTestCase
 
 from pathspider.chains.mss import MSSChain
 
-class TestDSCPChain(ChainTestCase):
+class TestMSSChain(ChainTestCase):
 
     def test_chain_mss_ipv4(self):
         test_trace = "mss_ipv4.pcap"
