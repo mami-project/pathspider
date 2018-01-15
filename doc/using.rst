@@ -117,6 +117,11 @@ redirection instead. You will be required to set your interface name and
 PATHspider will not start if it detects that the chosen interface is not
 active.
 
+It is also possible to perform offline analysis of a PCAP file using the
+"observe" command. Instead of an interface name, pass the name of the pcap file
+to ``-i`` instead. The PCAP file must have a ``.pcap`` extension to be
+recognised.
+
 .. code-block:: text
 
  usage: pspdr observe [-h] [--list-chains] [-i INTERFACE] [--output OUTPUTFILE]

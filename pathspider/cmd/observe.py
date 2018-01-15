@@ -30,7 +30,15 @@ def run_observer(args):
         print("\nSpider safely!")
         sys.exit(0)
 
-    if not interface_up(args.interface):
+    interface = args.interface
+
+    if not ":" in args.interface:
+        if interface.endswith(".pcap") or interface.startswith("/"):
+            interface = "pcapfile:" + interface
+        else:
+            interface = "int:" + interface
+
+    if interface.startswith("int:") and not interface_up(interface[4:]):
         logger.error("The chosen interface is not up! Cannot continue.")
         logger.error("Try --help for more information.")
         sys.exit(1)
@@ -49,7 +57,8 @@ def run_observer(args):
 
     observer_shutdown_queue = queue.Queue(QUEUE_SIZE)
     flowqueue = queue.Queue(QUEUE_SIZE)
-    observer = Observer("int:" + args.interface, chosen_chains)
+
+    observer = Observer(interface, chosen_chains)
 
     logger.info("starting observer...")
     threading.Thread(target=observer.run_flow_enqueuer, args=(flowqueue,observer_shutdown_queue)).start()
@@ -83,7 +92,10 @@ def register_args(subparsers):
     parser.add_argument('--list-chains', help="Prints a list of available chains",
                         action='store_true')
     parser.add_argument('-i', '--interface', default="eth0",
-                        help="The interface to use for the observer. (Default: eth0)")
+                        help=("The interface to use for the observer. If this "
+                              "argument ends with '.pcap' then it will instead "
+                              "be treated as a PCAP file for offline analysis. "
+                              "(Default: eth0)"))
     parser.add_argument('--output', default='/dev/stdout', metavar='OUTPUTFILE',
                         help=("The file to output results data to. "
                               "Defaults to standard output."))
