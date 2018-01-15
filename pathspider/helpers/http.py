@@ -13,6 +13,9 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
     but can be customised on a per-call basis through the curlopts argument.
     """
 
+    if 'dp' not in job:
+        job['dp'] = 80
+
     c = pycurl.Curl()
 
     if curlopts is None:
@@ -78,6 +81,9 @@ def connect_http(source, job, conn_timeout, curlopts=None, curlinfos=None):
         return {'spdr_state': CONN_FAILED, 'sp': 0}
 
 def connect_https(source, job, conn_timeout, curlopts=None, curlinfos=None):
+    if 'dp' not in job:
+        job['dp'] = 443
+
     if curlopts is None:
         curlopts = {}
 
