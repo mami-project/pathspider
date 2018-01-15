@@ -20,6 +20,8 @@ class DNSResolv(DesynchronizedSpider, PluggableSpider):
             ips = set([str(i[4][0]) for i in socket.getaddrinfo(job['domain'], 80)])
         except socket.gaierror:
             return {'spdr_state': CONN_DISCARD} # Always discard
+        except OSError:
+            return {'spdr_state': CONN_DISCARD} # Always discard
         for ip in ips:
             res = job.copy()
             res['dip'] = ip
