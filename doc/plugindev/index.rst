@@ -20,5 +20,6 @@ without being a part of the PATHspider distribution.
    common.rst
    sync.rst
    desync.rst
+   single.rst
    forge.rst
    chains.rst
