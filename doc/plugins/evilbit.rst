@@ -1,11 +1,11 @@
-EvilBit Plugin
-==============
+Evil Bit Plugin
+===============
 
-The EvilBit refers to the unused high-order bit of the IP fragment offset field 
-in the IP header. It was defined in RFC3514 on the 1st of April 2003.	
+The Evil Bit refers to the unused high-order bit of the IP fragment offset
+field in the IP header. It was defined in RFC3514 on the 1st of April 2003.
 
-The EvilBit plugin for PATHspider aims to detect breakage in the Internet due to
-the use of reserved bit in the IP fragment offset field.
+The Evil Bit plugin for PATHspider aims to detect breakage in the Internet due
+to the use of reserved bit in the IP fragment offset field.
 
 Usage Example
 -------------
@@ -65,7 +65,8 @@ evilbit.mark.X
 ~~~~~~~~~~~~~~
 
 A condition is generated to show whether the evil bit was set on the return
-path when the evil bit was set. X can have two values, "seen" or "not_seen".
+path for the experimental connection. X can have two values, "seen" or
+"not_seen".
 
 Notes
 -----

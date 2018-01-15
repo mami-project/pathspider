@@ -153,13 +153,12 @@ Data Formats
 ------------
 
 PATHspider uses `newline delimited JSON <http://ndjson.org/>`_ (ndjson) for
-both the output format when in standalone (the default) mode. The ndjson format
-gives flexibility in the actual contents of the data as different tests may
-require data to remain associated with jobs, for example the Alexa ranking of a
-webserver, so that it can be present in the final output, or in some cases the
-data may be used as part of the test, for example when running tests against
+both the input and output format. The ndjson format gives flexibility in the
+contents of the data as different tests may require data to remain associated
+with jobs so that it can be present in the final output (the Alexa ranking of a
+webserver, for example), or used as part of the test (running tests against
 authoritative DNS servers and needing to know a domain for which the server
-should be authoritative.
+should be authoritative).
 
 .. _defaultoutput:
 
