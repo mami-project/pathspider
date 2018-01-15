@@ -1,7 +1,7 @@
 Choosing a Plugin Model
 =======================
 
-To be as flexible as possible while using real network stacks, PATHspider has 3
+To be as flexible as possible while using real network stacks, PATHspider has 4
 models for plugins. The following flowchart can help you to decide which model
 best suits your use case:
 
@@ -33,6 +33,14 @@ feature is used and so the global synchronization only serves to slow down
 measurements. The connection helper you are using must support the feature
 which means for most helpers that it must be supported by both libcurl and
 pycurl.
+
+SingleSpider Model
+------------------
+
+This model was developed for TCP Maximum Segment Size discovery. In this case,
+only a single connection is required with no global configuration or
+customisation of the connection. All work is done by the Observer or using the
+output of the connection helpers.
 
 ForgeSpider Model
 -----------------
