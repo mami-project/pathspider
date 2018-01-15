@@ -10,8 +10,8 @@ class TestMSSChain(ChainTestCase):
         self.create_observer(test_trace, [MSSChain])
 
         expected_mss = {
-            'mss_len_fwd': 2,
-            'mss_len_rev': 2,
+            'mss_len_fwd': 4,
+            'mss_len_rev': 4,
             'mss_value_fwd': 1460,
             'mss_value_rev': 1452
         }
@@ -27,8 +27,8 @@ class TestMSSChain(ChainTestCase):
         self.create_observer(test_trace, [MSSChain])
 
         expected_mss = {
-            'mss_len_fwd': 2,
-            'mss_len_rev': 2,
+            'mss_len_fwd': 4,
+            'mss_len_rev': 4,
             'mss_value_fwd': 1440,
             'mss_value_rev': 1360
         }
@@ -61,7 +61,7 @@ class TestMSSChain(ChainTestCase):
         self.create_observer(test_trace, [MSSChain])
 
         expected_mss = {
-            'mss_len_fwd': 3,
+            'mss_len_fwd': 5,
             'mss_len_rev': None,
             'mss_value_fwd': 1460,
             'mss_value_rev': None
