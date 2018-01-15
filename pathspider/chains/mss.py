@@ -28,11 +28,9 @@ class MSSChain(Chain):
     | ``mss_len_rev``  | int    | Length of the MSS option field including kind and length in the |
     |                  |        | reverse direction.                                              |
     +------------------+--------+-----------------------------------------------------------------+
-    | ``mss_value_fwd``| int    | Value of the MSS option field including kind and length in the  |
-    |                  |        | forward direction.                                              |
+    | ``mss_value_fwd``| int    | Value of the MSS option field in the forward direction.         |
     +------------------+--------+-----------------------------------------------------------------+
-    | ``mss_value_rev``| int    | Value of the MSS option field including kind and length in the  |
-    |                  |        | reverse direction.                                              |
+    | ``mss_value_rev``| int    | Value of the MSS option field in the reverse direction.         |
     +------------------+--------+-----------------------------------------------------------------+
     """
 
@@ -84,7 +82,7 @@ class MSSChain(Chain):
 
         if TO_MSS in opts:
             mss = bytes(opts[TO_MSS])
-            rec['mss_len_' + ('rev' if rev else 'fwd')] = len(mss)
+            rec['mss_len_' + ('rev' if rev else 'fwd')] = len(mss) + 2
             rec['mss_value_' + ('rev' if rev else 'fwd')] = int.from_bytes(mss, byteorder="big")
 
         # tell observer to keep going
