@@ -42,7 +42,9 @@ more output and so is disabled by default.
 
 You may specify input and output files using flags, however by default these
 are set to be stdin and stdout and so you can, and are recommended to, use
-shell redirection instead.
+shell redirection instead. To see output as it is written to the file, you can
+pipe the output to ``tee`` to print it on the screen while also saving it to
+a file.
 
 You will be required to set your interface name and PATHspider will not start
 if it detects that the chosen interface is not active.
@@ -113,9 +115,10 @@ flow records.
 
 You may specify the output file using a flag, however by default this is set to
 be ``/dev/stdout`` and so you can, and are recommended to, use shell
-redirection instead. You will be required to set your interface name and
-PATHspider will not start if it detects that the chosen interface is not
-active.
+redirection instead. To see output as it is written to the file, you can
+pipe the output to ``tee`` to print it on the screen while also saving it to
+a file. You will be required to set your interface name and PATHspider will not
+start if it detects that the chosen interface is not active.
 
 It is also possible to perform offline analysis of a PCAP file using the
 "observe" command. Instead of an interface name, pass the name of the pcap file
