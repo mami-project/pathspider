@@ -11,7 +11,7 @@ def test_plugin_load():
     except ImportError:
         raise nose.SkipTest
 
-    expected_names = set(['TFO', 'ECN', 'DSCP', 'UDPZero', 'UDPOpts', 'DNSResolv', 'H2', 'EvilBit'])
+    expected_names = set(['TFO', 'ECN', 'DSCP', 'UDPZero', 'UDPOpts', 'DNSResolv', 'H2', 'EvilBit', 'MSS'])
     names = set()
 
     for plugin in pathspider.cmd.measure.plugins:
