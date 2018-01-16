@@ -66,3 +66,11 @@ def test_plugin_evilbit_forge_diff():
         print(packets[1].summary())
 
         assert bytes(packets[0]) == bytes(packets[1])
+
+def test_plugin_evilbit_combine_not_observed():
+    flows = [
+             {'observed': True},
+             {'observed': False}
+            ]
+    conditions = EvilBit.combine_flows(None, flows)
+    assert "pathspider.not_observed" in conditions
