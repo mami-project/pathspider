@@ -1,3 +1,5 @@
+import heapq
+
 import pathspider
 from pathspider.base import PluggableSpider
 from pathspider.single import SingleSpider
@@ -39,3 +41,56 @@ class MSS(SingleSpider, PluggableSpider):
             conditions.append('mss.connectivity.offline')
 
         return conditions
+
+    @classmethod
+    def aggregate(self, result_feeder):
+        online = 0
+        offline = 0
+        absent = 0
+        msss = {}
+        top100 = []
+        bot100 = []
+        abs100 = []
+
+        class MSSResult:
+            def __init__(self, mss, result, reverse=False):
+                self.mss = mss
+                self.result = result
+                self.reverse = reverse
+
+            def __lt__(self, other):
+                return self.mss > other.mss if self.reverse else self.mss < other.mss
+
+            def __gt__(self, other):
+                return self.mss < other.mss if self.reverse else self.mss > other.mss
+
+        for result in result_feeder():
+            if 'mss.connectivity.offline' in result['conditions']:
+                offline += 1
+                continue
+            online += 1
+            if 'mss.option.received.absent' in result['conditions']:
+                absent += 1
+                abs100.append(result)
+                continue
+            for condition in result['conditions']:
+                if condition.startswith('mss.option.received.value:'):
+                    mss = int(condition.split(':')[1])
+                    if mss not in msss:
+                        msss[mss] = 0
+                    msss[mss] += 1
+                    if len(top100) < 100 or mss > top100[0].mss:
+                        if len(top100) == 100: heapq.heappop(top100)
+                        heapq.heappush(top100, MSSResult(mss, result))
+                    if len(bot100) < 100 or mss < bot100[0].mss:
+                        if len(bot100) == 100: heapq.heappop(bot100)
+                        heapq.heappush(bot100, MSSResult(mss, result, reverse=True))
+        return {
+                'online': online,
+                'offline': offline,
+                'absent': absent,
+                'msss': msss,
+                'top100': [x.result for x in top100],
+                'bottom100': [x.result for x in bot100],
+                'absent100': abs100
+               }
