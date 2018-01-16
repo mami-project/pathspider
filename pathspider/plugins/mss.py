@@ -26,7 +26,7 @@ class MSS(SingleSpider, PluggableSpider):
             conditions.append('mss.connectivity.online')
             conditions.append('mss.option.local.value:' + str(flows[0]['mss_value_fwd']))
             if flows[0]['mss_len_rev'] is not None:
-                conditions.append('mss.option.received.value:' + str(flows[0]['mss_value_rev']))
+                conditions.append('mss.option.remote.value:' + str(flows[0]['mss_value_rev']))
                 if (flows[0]['mss_value_rev'] < flows[0]['mss_value_fwd']):
                     conditions.append('mss.option.received.deflated')
                 elif (flows[0]['mss_value_rev'] == flows[0]['mss_value_fwd']):
