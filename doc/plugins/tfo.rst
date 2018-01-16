@@ -38,17 +38,13 @@ To use the TFO plugin, specify ``tfo`` as the plugin to use on the command-line:
 This will run two HTTP GET request connections over TCP for each job input, one
 without using TCP Fast Open and one using it.
 
-.. code-block:: shell
-
- pspdr measure -i tfo </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
-
 Supported Connection Modes
 --------------------------
 
 This plugin supports the following connection modes:
 
  * http - Performs a GET request
- * http - Performs a GET request using HTTPS
+ * https - Performs a GET request using HTTPS
  * dnstcp - Performs a DNS query using TCP
 
 To use an alternative connection mode, add the ``--connect`` argument to the
