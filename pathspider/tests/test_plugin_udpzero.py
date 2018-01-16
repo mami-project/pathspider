@@ -59,3 +59,27 @@ def test_plugin_udpzero_forge_diff():
     print(packets[1].summary())
 
     assert bytes(packets[0]) == bytes(packets[1])
+
+def test_plugin_udpzero_combine():
+    test_groups = [
+                   (True,  True,  "udpzero.connectivity.works"),
+                   (True,  False, "udpzero.connectivity.broken"),
+                   (False, True,  "udpzero.connectivity.transient"),
+                   (False, False, "udpzero.connectivity.offline")
+                  ]
+    for group in test_groups:
+        flows = [
+                 {'observed': True, 'dns_response_valid': group[0]},
+                 {'observed': True, 'dns_response_valid': group[1]}
+                ]
+        conditions = UDPZero.combine_flows(None, flows)
+        assert group[2] in conditions
+
+def test_plugin_udpzero_combine_not_observed():
+    for valid in [True, False]:
+        flows = [
+                 {'observed': True, 'dns_response_valid': valid},
+                 {'observed': False}
+                ]
+        conditions = UDPZero.combine_flows(None, flows)
+        assert "pathspider.not_observed" in conditions
