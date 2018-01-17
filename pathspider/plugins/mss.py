@@ -48,9 +48,9 @@ class MSS(SingleSpider, PluggableSpider):
         offline = 0
         absent = 0
         msss = {}
-        top100 = []
-        bot100 = []
-        abs100 = []
+        top500 = []
+        bottom500 = []
+        absr = []
 
         class MSSResult:
             def __init__(self, mss, result, reverse=False):
@@ -71,7 +71,7 @@ class MSS(SingleSpider, PluggableSpider):
             online += 1
             if 'mss.option.received.absent' in result['conditions']:
                 absent += 1
-                abs100.append(result)
+                absr.append(result)
                 continue
             for condition in result['conditions']:
                 if condition.startswith('mss.option.received.value:'):
@@ -79,18 +79,20 @@ class MSS(SingleSpider, PluggableSpider):
                     if mss not in msss:
                         msss[mss] = 0
                     msss[mss] += 1
-                    if len(top100) < 100 or mss > top100[0].mss:
-                        if len(top100) == 100: heapq.heappop(top100)
-                        heapq.heappush(top100, MSSResult(mss, result))
-                    if len(bot100) < 100 or mss < bot100[0].mss:
-                        if len(bot100) == 100: heapq.heappop(bot100)
-                        heapq.heappush(bot100, MSSResult(mss, result, reverse=True))
+                    if len(top500) < 500 or mss > top500[0].mss:
+                        if len(top500) == 500:
+                            heapq.heappop(top500)
+                        heapq.heappush(top500, MSSResult(mss, result))
+                    if len(bottom500) < 500 or mss < bottom500[0].mss:
+                        if len(bottom500) == 500:
+                            heapq.heappop(bottom500)
+                        heapq.heappush(bottom500, MSSResult(mss, result, reverse=True))
         return {
                 'online': online,
                 'offline': offline,
                 'absent': absent,
                 'msss': msss,
-                'top100': [x.result for x in top100],
-                'bottom100': [x.result for x in bot100],
-                'absent100': abs100
+                'top500': [x.result for x in top500],
+                'bottom500': [x.result for x in bottom500],
+                'absr': absr
                }
