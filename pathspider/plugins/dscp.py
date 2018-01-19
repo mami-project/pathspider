@@ -69,9 +69,9 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         conditions.append(cond_conn)
 
         conditions.append(baseline + 'replymark:' + str(
-            flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']))
-        conditions.append(test + 'replymark:' + str(
             flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']))
+        conditions.append(test + 'replymark:' + str(
+            flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']))
 
         return conditions
 
