@@ -76,7 +76,6 @@ if it detects that the chosen interface is not active.
      h2                  HTTP/2
      dscp                Differentiated Services Codepoints
      dnsresolv           Simple Input List DNS Resolver
-     udpopts             UDP Options Trailer
      udpzero             UDP Zero Checksum
 
  Spider safely!
