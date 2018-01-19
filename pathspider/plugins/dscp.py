@@ -43,12 +43,12 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     configurations = [config_no_dscp, config_dscp]
 
     def combine_flows(self, flows):
-        conditions = []
-
         # discard non-observed flows
         for f in flows:
             if not f['observed']:
                 return ['pathspider.not_observed']
+
+        conditions = []
 
         baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd'] or
                                  flows[0]['dscp_mark_data_fwd']) + '.'
@@ -68,10 +68,13 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             cond_conn = test + 'connectivity.offline'
         conditions.append(cond_conn)
 
-        conditions.append(baseline + 'replymark:' + str(
-            flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']))
-        conditions.append(test + 'replymark:' + str(
-            flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']))
+        baseline_replymark = flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']
+        test_replymark = flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']
+
+        if baseline_replymark is not None:
+            conditions.append(baseline + 'replymark:' + str(baseline_replymark))
+        if test_replymark is not None:
+            conditions.append(test + 'replymark:' + str(test_replymark))
 
         return conditions
 
