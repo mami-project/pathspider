@@ -8,7 +8,8 @@ def test_plugin_mss_combine_not_observed():
              {'observed': False, 'tcp_connected': False},
              {'observed': True, 'tcp_connected': False}
             ]
-    conditions = MSS.combine_flows(None, flows)
+    spider = MSS(0, "", None)
+    conditions = spider.combine_flows(flows)
     assert "pathspider.not_observed" in conditions
 
 
@@ -22,7 +23,8 @@ def test_plugin_mss_combine():
                  {'observed': True, 'tcp_connected': group[0], 'mss_value_fwd': None , 'mss_len_rev': None, 'mss_value_rev': None}
                 ]
         
-        conditions = MSS.combine_flows(None, flows)
+        spider = MSS(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[1] in conditions
         if "mss.connectivity.online" in conditions:
             assert 'mss.option.received.absent' in conditions
@@ -34,8 +36,11 @@ def test_plugin_mss_combine():
                   ('mss.option.received.deflated', 1460, 1440)
                  ]
     for group in mss_groups:
-        flow =  [
+        flows =  [
                  {'observed': True, 'tcp_connected': True, 'mss_value_fwd': group[1], 'mss_len_rev': 4, 'mss_value_rev': group[2]}
                 ]
-        conditions = MSS.combine_flows(None, flow)
+        spider = MSS(0, "", None)
+        conditions = spider.combine_flows(flows)
+        print(group)
+        print(conditions)
         assert group[0] in conditions

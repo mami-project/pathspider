@@ -20,8 +20,9 @@ def test_plugin_h2_combine():
         flows = [              
                  {'spdr_state': group[0]},
                  {'spdr_state': group[1], 'http_info': {pycurl.INFO_HTTP_VERSION: pycurl.CURL_HTTP_VERSION_2_0}}
-                ] 
-        conditions = H2.combine_flows(None, flows)
+                ]
+        spider = H2(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[2] in conditions
 
     upgrade_groups = [ 
@@ -29,9 +30,10 @@ def test_plugin_h2_combine():
                       ('h2.upgrade.failed', None),
                      ]
     for group in upgrade_groups:
-        flow =  [
+        flows =  [
                  {'spdr_state': CONN_OK},
                  {'spdr_state': CONN_OK, 'http_info': {pycurl.INFO_HTTP_VERSION : group[1]}}
                 ]
-        conditions = H2.combine_flows(None, flow)
+        spider = H2(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[0] in conditions

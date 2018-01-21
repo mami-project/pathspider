@@ -39,11 +39,5 @@ class UDPZero(ForgeSpider, PluggableSpider):
             if not flow['observed']:
                 return ['pathspider.not_observed']
 
-        if flows[0]['dns_response_valid'] and flows[1]['dns_response_valid']:
-            return ['udpzero.connectivity.works']
-        if flows[0]['dns_response_valid'] and not flows[1]['dns_response_valid']:
-            return ['udpzero.connectivity.broken']
-        if not flows[0]['dns_response_valid'] and flows[1]['dns_response_valid']:
-            return ['udpzero.connectivity.transient']
-        else:
-            return ['udpzero.connectivity.offline']
+        return [self.combine_connectivity(flows[0]['dns_response_valid'],
+                                          flows[1]['dns_response_valid'])]

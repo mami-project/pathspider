@@ -49,17 +49,9 @@ class ECN(SynchronizedSpider, PluggableSpider):
     def combine_flows(self, flows):
         conditions = []
 
-        if flows[0]['spdr_state'] == CONN_OK and flows[1][
-                'spdr_state'] == CONN_OK:
-            conditions.append('ecn.connectivity.works')
-        elif flows[0]['spdr_state'] == CONN_OK and not flows[1][
-                'spdr_state'] == CONN_OK:
-            conditions.append('ecn.connectivity.broken')
-        elif not flows[0]['spdr_state'] == CONN_OK and flows[1][
-                'spdr_state'] == CONN_OK:
-            conditions.append('ecn.connectivity.transient')
-        else:
-            conditions.append('ecn.connectivity.offline')
+        conditions.append(self.combine_connectivity(
+                                             flows[0]['spdr_state'] == CONN_OK,
+                                             flows[1]['spdr_state'] == CONN_OK))
 
         for f in flows:
             if not f['observed']:

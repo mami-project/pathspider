@@ -72,7 +72,8 @@ def test_plugin_udpzero_combine():
                  {'observed': True, 'dns_response_valid': group[0]},
                  {'observed': True, 'dns_response_valid': group[1]}
                 ]
-        conditions = UDPZero.combine_flows(None, flows)
+        spider = UDPZero(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[2] in conditions
 
 def test_plugin_udpzero_combine_not_observed():
@@ -81,5 +82,6 @@ def test_plugin_udpzero_combine_not_observed():
                  {'observed': True, 'dns_response_valid': valid},
                  {'observed': False}
                 ]
-        conditions = UDPZero.combine_flows(None, flows)
+        spider = UDPZero(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert "pathspider.not_observed" in conditions
