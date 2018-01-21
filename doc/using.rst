@@ -71,12 +71,14 @@ if it detects that the chosen interface is not active.
  Plugins:
    The following plugins are available for use:
 
-     tfo                 TCP Fast Open
-     ecn                 Explicit Congestion Notification
-     h2                  HTTP/2
-     dscp                Differentiated Services Codepoints
-     dnsresolv           Simple Input List DNS Resolver
-     udpzero             UDP Zero Checksum
+    dscp                Differentiated Services Codepoints
+    h2                  HTTP/2
+    evilbit             Evil bit connectivity testing
+    mss                 TCP Maximum Segment Size
+    tfo                 TCP Fast Open
+    dnsresolv           Simple Input List DNS Resolver
+    ecn                 Explicit Congestion Notification
+    udpzero             UDP Zero Checksum
 
  Spider safely!
 
