@@ -23,3 +23,4 @@ without being a part of the PATHspider distribution.
    single.rst
    forge.rst
    chains.rst
+   combiner.rst

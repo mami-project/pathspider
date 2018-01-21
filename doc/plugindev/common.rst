@@ -1,6 +1,8 @@
 Common Plugin Features
 ======================
 
+.. _plugmeta:
+
 Plugin Metadata
 ---------------
 
