@@ -48,3 +48,33 @@ class TestDNSChain(ChainTestCase):
 
         for key in expected_dns:
             assert flows[0][key] == expected_dns[key]
+
+    def test_chain_dns_invalid_response_udp(self):
+        test_trace = "dns_invalid_response_udp.pcap"
+        self.create_observer(test_trace, [DNSChain])
+
+        expected_dns = {
+            'dns_response_valid': False,
+        }
+
+        flows = self.run_observer()
+        print(flows)
+        assert len(flows) == 1
+
+        for key in expected_dns:
+            assert flows[0][key] == expected_dns[key]
+
+    def test_chain_dns_invalid_response_tcp(self):
+        test_trace = "dns_invalid_response_tcp.pcap"
+        self.create_observer(test_trace, [DNSChain])
+
+        expected_dns = {
+            'dns_response_valid': False,
+        }
+
+        flows = self.run_observer()
+        print(flows)
+        assert len(flows) == 1
+
+        for key in expected_dns:
+            assert flows[0][key] == expected_dns[key]
