@@ -121,3 +121,26 @@ class TestBasicChain(ChainTestCase):
 
         for key in expected_basic:
             assert flows[0][key] == expected_basic[key]
+
+    def test_chain_basic_ipv6_non_udp_tcp(self):
+        test_trace = "basic_ipv6_non_udp_tcp.pcap"
+        self.create_observer(test_trace, [BasicChain])
+
+        expected_basic = {
+            'oct_fwd': 60,
+            'dp': None,
+            'pkt_rev': 1,
+            'pkt_fwd': 1,
+            'proto': 88,
+            'dip': 'fe80::c600:3aff:fe44:0',
+            'oct_rev': 60,
+            'sp': None,
+            'sip': 'fe80::c601:3aff:fe44:0'
+        }
+
+        flows = self.run_observer()
+        print(flows)
+        assert len(flows) == 1
+
+        for key in expected_basic:
+            assert flows[0][key] == expected_basic[key]
