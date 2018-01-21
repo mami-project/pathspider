@@ -27,7 +27,10 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     description = "TCP Fast Open"
     version = pathspider.base.__version__
     chains = [BasicChain, TCPChain, TFOChain]
-    connect_supported = ["http", "https", "dnstcp"]
+    # TODO: Once cURL supports retrieving the source port for TCP fast open,
+    #       http and https connections would be supported.
+    #       https://github.com/curl/curl/issues/1332
+    connect_supported = ["dnstcp"]
 
     def conn_no_tfo(self, job, config):  # pylint: disable=unused-argument
         if self.args.connect == "http":
@@ -80,29 +83,21 @@ class TFO(DesynchronizedSpider, PluggableSpider):
     def combine_flows(self, flows):
         conditions = []
 
-        if (not flows[0]['spdr_state'] == CONN_OK and
-                not flows[2]['spdr_state'] == CONN_OK):
-            conditions.append('tfo.connectivity.offline')
-        elif (not flows[0]['spdr_state'] == CONN_OK and
-              flows[2]['spdr_state'] == CONN_OK):
-            conditions.append('tfo.connectivity.transient')
-        elif (flows[0]['spdr_state'] == CONN_OK and
-              flows[2]['spdr_state'] == CONN_OK):
-            conditions.append('tfo.connectivity.works')
-            if flows[2]['observed']:
-                if flows[2]['tfo_synclen']:
-                    conditions.append('tfo.cookie.received')
-                    if flows[2]['tfo_ack'] - flows[2]['tfo_seq'] == flows[2][
-                            'tfo_dlen'] + 1:
-                        conditions.append('tfo.syndata.acked')
-                    elif (flows[2]['tfo_ack'] - flows[2]['tfo_seq'] == 1
-                          ) and flows[2]['tfo_dlen'] > 0:
-                        conditions.append('tfo.syndata.not_acked')
-                    elif flows[2]['tfo_ack'] == 0:
-                        conditions.append('tfo.syndata.failed')
-                else:
-                    conditions.append('tfo.cookie.not_received')
-        else:
-            conditions.append('tfo.connectivity.broken')
+        conditions.append(self.combine_connectivity(
+                                           flows[0]['spdr_state'] == CONN_OK,
+                                           flows[2]['spdr_state'] == CONN_OK))
+        if flows[2]['spdr_state'] == CONN_OK and flows[2]['observed']:
+            if flows[2]['tfo_synclen']:
+                conditions.append('tfo.cookie.received')
+                if flows[2]['tfo_ack'] - flows[2]['tfo_seq'] == flows[2][
+                        'tfo_dlen'] + 1:
+                    conditions.append('tfo.syndata.acked')
+                elif (flows[2]['tfo_ack'] - flows[2]['tfo_seq'] == 1
+                      ) and flows[2]['tfo_dlen'] > 0:
+                    conditions.append('tfo.syndata.not_acked')
+                elif flows[2]['tfo_ack'] == 0:
+                    conditions.append('tfo.syndata.failed')
+            else:
+                conditions.append('tfo.cookie.not_received')
 
         return conditions
