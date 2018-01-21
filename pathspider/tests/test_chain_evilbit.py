@@ -109,4 +109,20 @@ class TestEvilChain(ChainTestCase):
         for key in expected_evil:
             assert flows[0][key] == expected_evil[key]
 
+    def test_chain_evilbit_tcp_no_syn(self):
+        test_trace = "evilbit_tcp_non_syn.pcap"
+        self.create_observer(test_trace, [EvilChain])
+
+        expected_evil = {
+            'evilbit_syn_fwd': None,
+            'evilbit_syn_rev': None,
+            'evilbit_data_fwd': None,
+            'evilbit_data_rev': None,
+        }
+
+        flows = self.run_observer()
+        print(flows)
+        assert len(flows) == 1
+        for key in expected_evil:
+            assert flows[0][key] == expected_evil[key]
 
