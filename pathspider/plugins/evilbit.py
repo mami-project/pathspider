@@ -16,16 +16,6 @@ from pathspider.chains.evil import EvilChain
 from pathspider.chains.base import Chain
 from pathspider.chains.tcp import TCP_SYN, TCP_SA
 
-def _evilcon(conn0, conn1):
-    if conn0 is True and conn1 is True:
-        return 'evilbit.connectivity.works'
-    elif conn0 is True and conn1 is False:
-        return 'evilbit.connectivity.broken'
-    elif conn0 is False and conn1 is True:
-        return 'evilbit.connectivity.transient'
-    elif conn0 is False and conn1 is False:
-        return 'evilbit.connectivity.offline'
- 
 class EvilBit(ForgeSpider, PluggableSpider):
 
     name = "evilbit"
@@ -69,9 +59,10 @@ class EvilBit(ForgeSpider, PluggableSpider):
             if flows[1]['tcp_synflags_rev'] is not None and flows[1][
                     'tcp_synflags_rev'] & TCP_SA == TCP_SA:
                 conn1 = True
+
+            conditions.append(self.combine_connectivity(conn0, conn1))
  
-            conditions.append(_evilcon(conn0, conn1))
-            if 'works' in (_evilcon(conn0, conn1)):
+            if conn1:
                 if flows[1]['evilbit_syn_rev']:
                     conditions.append('evilbit.mark.seen')
                 else:
@@ -81,12 +72,13 @@ class EvilBit(ForgeSpider, PluggableSpider):
             conn0 = flows[0]['dns_response_valid']     
             conn1 = flows[1]['dns_response_valid']     
 
-            conditions.append(_evilcon(conn0, conn1))
-            if 'works' in (_evilcon(conn0, conn1)):
+            conditions.append(self.combine_connectivity(conn0, conn1))
+            if conn1:
                 if flows[1]['evilbit_data_rev']:
                     conditions.append('evilbit.mark.seen')
                 else:
                     conditions.append('evilbit.mark.not_seen')
+
         return conditions
 
 

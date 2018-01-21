@@ -51,30 +51,23 @@ class DSCP(SynchronizedSpider, PluggableSpider):
         conditions = []
 
         baseline = 'dscp.' + str(flows[0]['dscp_mark_syn_fwd'] or
-                                 flows[0]['dscp_mark_data_fwd']) + '.'
+                                 flows[0]['dscp_mark_data_fwd'])
         test = 'dscp.' + str(flows[1]['dscp_mark_syn_fwd'] or
-                             flows[1]['dscp_mark_data_fwd']) + '.'
+                             flows[1]['dscp_mark_data_fwd'])
 
-        if flows[0]['spdr_state'] == CONN_OK and flows[1][
-                'spdr_state'] == CONN_OK:
-            cond_conn = test + 'connectivity.works'
-        elif flows[0]['spdr_state'] == CONN_OK and not flows[1][
-                'spdr_state'] == CONN_OK:
-            cond_conn = test + 'connectivity.broken'
-        elif not flows[0]['spdr_state'] == CONN_OK and flows[1][
-                'spdr_state'] == CONN_OK:
-            cond_conn = test + 'connectivity.transient'
-        else:
-            cond_conn = test + 'connectivity.offline'
-        conditions.append(cond_conn)
+        conditions.append(self.combine_connectivity(
+                              flows[0]['spdr_state'] == CONN_OK,
+                              experimental = flows[1]['spdr_state'] == CONN_OK,
+                              prefix = test)
+                         )
 
         baseline_replymark = flows[0]['dscp_mark_syn_rev'] or flows[0]['dscp_mark_data_rev']
         test_replymark = flows[1]['dscp_mark_syn_rev'] or flows[1]['dscp_mark_data_rev']
 
         if baseline_replymark is not None:
-            conditions.append(baseline + 'replymark:' + str(baseline_replymark))
+            conditions.append(baseline + '.replymark:' + str(baseline_replymark))
         if test_replymark is not None:
-            conditions.append(test + 'replymark:' + str(test_replymark))
+            conditions.append(test + '.replymark:' + str(test_replymark))
 
         return conditions
 

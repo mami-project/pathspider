@@ -46,20 +46,14 @@ class H2(DesynchronizedSpider, PluggableSpider):
     def combine_flows(self, flows):
         conditions = []
 
-        if (not flows[0]['spdr_state'] == CONN_OK and
-                not flows[1]['spdr_state'] == CONN_OK):
-            conditions.append('h2.connectivity.offline')
-        elif (not flows[0]['spdr_state'] == CONN_OK and
-              flows[1]['spdr_state'] == CONN_OK):
-            conditions.append('h2.connectivity.transient')
-        elif (flows[0]['spdr_state'] == CONN_OK and
-              flows[1]['spdr_state'] == CONN_OK):
-            conditions.append('h2.connectivity.works')
+        conditions.append(self.combine_connectivity(
+                                             flows[0]['spdr_state'] == CONN_OK,
+                                             flows[1]['spdr_state'] == CONN_OK))
+
+        if flows[1]['spdr_state'] == CONN_OK:
             if flows[1]['http_info'][pycurl.INFO_HTTP_VERSION] == pycurl.CURL_HTTP_VERSION_2_0:
                 conditions.append('h2.upgrade.success')
             else:
                 conditions.append('h2.upgrade.failed')
-        else:
-            conditions.append('h2.connectivity.broken')
 
         return conditions

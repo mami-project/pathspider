@@ -73,7 +73,8 @@ def test_plugin_evilbit_combine_not_observed():
              {'observed': True},
              {'observed': False}
             ]
-    conditions = EvilBit.combine_flows(None, flows)
+    spider = EvilBit(0, "", None)
+    conditions = spider.combine_flows(flows)
     assert "pathspider.not_observed" in conditions
 
 

@@ -625,6 +625,26 @@ class Spider:
 
         self.jobqueue.put(job)
 
+    def combine_connectivity(self, baseline, experimental=None, prefix=None):
+        if prefix is None:
+            prefix = self.name
+        if experimental is None:
+            if baseline:
+                return prefix + ".connectivity.online"
+            else:
+                return prefix + ".connectivity.offline"
+        if experimental:
+            if baseline:
+                return prefix + ".connectivity.works"
+            else:
+                return prefix + ".connectivity.transient"
+        else:
+            if baseline:
+                return prefix + ".connectivity.broken"
+            else:
+                return prefix + ".connectivity.offline"
+
+
 class PluggableSpider:
     @staticmethod
     def register_args(subparsers):

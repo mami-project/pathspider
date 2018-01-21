@@ -13,7 +13,8 @@ def test_plugin_ecn_not_observed():
              {'observed': True, 'spdr_state': CONN_OK},
              {'observed': False, 'spdr_state': CONN_OK}
             ]
-    conditions = ECN.combine_flows(None, flows)
+    spider = ECN(0, "", None)
+    conditions = spider.combine_flows(flows)
     assert "pathspider.not_observed" in conditions
 
 def test_plugin_ecn_combine():
@@ -24,12 +25,13 @@ def test_plugin_ecn_combine():
                    (CONN_FAILED, CONN_FAILED, "ecn.connectivity.offline")
                   ]
     for group in test_groups:
-        flow = [
+        flows = [
                 {'observed': True, 'spdr_state': group[0], 'tcp_connected': False},
                 {'observed': True, 'spdr_state': group[1], 'tcp_connected': False}
                ]
 
-        conditions = ECN.combine_flows(None, flow)
+        spider = ECN(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[2] in conditions
 
     test_groups_ecn = [
@@ -39,12 +41,13 @@ def test_plugin_ecn_combine():
                       ]
 
     for group in test_groups_ecn:
-        flow = [
+        flows = [
                 {'observed': True, 'spdr_state': CONN_OK},
                 {'observed': True, 'spdr_state': CONN_OK, 'tcp_connected': group[0], 'tcp_synflags_rev': group[1], 'ecn_ect0_syn_rev': False, 'ecn_ect1_syn_rev': False, 'ecn_ce_syn_rev': False, 'ecn_ect0_data_rev': False, 'ecn_ect1_data_rev': False, 'ecn_ce_data_rev': False }
                ]
 
-        conditions = ECN.combine_flows(None, flow)
+        spider = ECN(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[2] in conditions
 
     test_groups_mark = [
@@ -56,9 +59,10 @@ def test_plugin_ecn_combine():
                        (False, "ecn.ipmark.ce.not_seen")
                       ]
     for group in test_groups_mark:
-        flow = [
+        flows = [
                 {'observed': True, 'spdr_state': CONN_OK},
                 {'observed': True, 'spdr_state': CONN_OK, 'tcp_connected': True, 'tcp_synflags_rev': TCP_SAE, 'ecn_ect0_syn_rev': group[0], 'ecn_ect1_syn_rev': group[0], 'ecn_ce_syn_rev': group[0], 'ecn_ect0_data_rev': group[0], 'ecn_ect1_data_rev': group[0], 'ecn_ce_data_rev': group[0] }
                ]
-        conditions = ECN.combine_flows(None, flow)
+        spider = ECN(0, "", None)
+        conditions = spider.combine_flows(flows)
         assert group[1] in conditions
