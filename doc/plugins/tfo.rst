@@ -1,11 +1,6 @@
 TFO Plugin
 ==========
 
-.. danger:: This plugin uses experimental features in cURL that have not yet
-            been accepted upstream. This plugin is very unlikely to work for
-            you. For more information see
-            https://github.com/curl/curl/issues/1332.
-
 TCP Fast Open (TFO) is an extension to speed up the opening of successive
 Transmission Control Protocol (TCP) connections between two endpoints. It works
 by using a TFO cookie (a TCP option), which is a cryptographic cookie stored on
@@ -35,16 +30,15 @@ To use the TFO plugin, specify ``tfo`` as the plugin to use on the command-line:
 
  pspdr measure -i eth0 tfo </usr/share/doc/pathspider/examples/webtest.ndjson >results.ndjson
 
-This will run two HTTP GET request connections over TCP for each job input, one
-without using TCP Fast Open and one using it.
+This will run three DNS queries over TCP for each job input, one
+without using TCP Fast Open and two using it, with the first connection using
+it used to prime the system to make a 0-RTT connection on the second.
 
 Supported Connection Modes
 --------------------------
 
 This plugin supports the following connection modes:
 
- * http - Performs a GET request
- * https - Performs a GET request using HTTPS
  * dnstcp - Performs a DNS query using TCP
 
 To use an alternative connection mode, add the ``--connect`` argument to the
@@ -99,5 +93,6 @@ resending to the tested host.
 Notes
 -----
 
-* TCP Fast Open is set using curl options. Through passive observation it should
-  be possible to verify that TCP Fast Open is indeed being used.
+* TCP Fast Open is set using a socket option options. Through passive
+  observation it should be possible to verify that TCP Fast Open is indeed
+  being used.
