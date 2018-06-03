@@ -109,7 +109,7 @@ class DSCPChain(Chain):
             if ip.tcp.flags & TCP_SYN == TCP_SYN:
                 rec['dscp_mark_syn_rev' if rev else 'dscp_mark_syn_fwd'] = dscp
                 return True
-            if ip.tcp.payload is None:
+            if ip.pkt_len == (ip.hdr_len + ip.tcp.doff) * 4: # No payload
                 return True
     
         # If not TCP or TCP non-SYN
