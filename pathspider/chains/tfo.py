@@ -52,7 +52,7 @@ class TFOChain(Chain):
         elif TO_EXPA in opts and opts[TO_EXPA][0:2] == bytearray(TO_EXID_FASTOPEN):
             return (TO_EXPA, bytes(opts[TO_EXPA][2:]))
         elif TO_EXPB in opts and opts[TO_EXPB][0:2] == bytearray(TO_EXID_FASTOPEN):
-            return (TO_EXPB, tuple(opts[TO_EXPA][2:]))
+            return (TO_EXPB, tuple(opts[TO_EXPB][2:]))
         else:
             return (None, None)
 
