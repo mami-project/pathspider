@@ -94,3 +94,50 @@ class TestTFOChain(ChainTestCase):
 
         for key in expected_tfo:
             assert flows[0][key] == expected_tfo[key]
+
+    def test_chain_tfo_cookie_request_official(self):
+        test_trace = "tfo_cookie_request_official.pcap"
+        self.create_observer(test_trace, [TFOChain])
+
+        expected_tfo = {
+            'tfo_ack': 3865413713,
+            'tfo_ackclen': 10,
+            'tfo_ackkind': 34,
+            'tfo_dlen': 0,
+            'tfo_seq': 3865413712,
+            'tfo_synclen': 2,
+            'tfo_synkind': 34,
+        }
+
+        flows = self.run_observer()
+        assert len(flows) == 1
+
+        print(flows)
+        print(expected_tfo)
+
+        for key in expected_tfo:
+            assert flows[0][key] == expected_tfo[key]
+
+    def test_chain_tfo_data_on_syn_official(self):
+        test_trace = "tfo_data_on_syn_official.pcap"
+        self.create_observer(test_trace, [TFOChain])
+
+        expected_tfo = {
+            'tfo_ack': 3108342141,
+            'tfo_ackclen': 0,
+            'tfo_ackkind': 0,
+            'tfo_dlen': 39,
+            'tfo_seq': 3108342101,
+            'tfo_synclen': 10,
+            'tfo_synkind': 34,
+        }
+
+        flows = self.run_observer()
+        assert len(flows) == 1
+
+        print(flows)
+        print(expected_tfo)
+
+
+        for key in expected_tfo:
+            assert flows[0][key] == expected_tfo[key]
