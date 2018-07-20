@@ -21,7 +21,7 @@ def register_args(subparsers):
 
     parser.add_argument("filename", help="Data file in .ndjson")
     parser.add_argument("--campaign", help="Campaign the data belongs to", default="spiderweb-2018")
-    parser.add_argument("--token", help="Authentification token", default="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+    parser.add_argument("--token", help="Authentification token", default="e3b0c4429834ca495991b7852b855")
     parser.add_argument("--entry", nargs='+', help="Additional meta entry", metavar="ENTRY:VALUE")
     #TODO: add this function
 
