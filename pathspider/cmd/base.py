@@ -8,6 +8,7 @@ import pathspider.cmd.filter
 import pathspider.cmd.measure
 import pathspider.cmd.observe
 import pathspider.cmd.test
+import pathspider.cmd.upload
 
 cmds = [
     pathspider.cmd.analyze,
@@ -15,6 +16,7 @@ cmds = [
     pathspider.cmd.measure,
     pathspider.cmd.observe,
     pathspider.cmd.test,
+    pathspider.cmd.upload
 ]
 
 def handle_args(argv):

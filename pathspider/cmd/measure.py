@@ -8,9 +8,12 @@ import csv
 
 from straight.plugin import load
 
+import pathspider.cmd.upload as upload
+
 from pathspider.base import PluggableSpider
 from pathspider.base import SHUTDOWN_SENTINEL
 from pathspider.network import interface_up
+
 
 plugins = load("pathspider.plugins", subclasses=PluggableSpider)
 
@@ -65,8 +68,6 @@ def job_feeder_csv(inputfile, spider):
         logger.debug("job_feeder: stopped")
 
 
-
-
 def run_measurement(args):
     logger = logging.getLogger("pathspider")
 
@@ -107,6 +108,10 @@ def run_measurement(args):
                 outputfile.write(json.dumps(result) + "\n")
                 logger.debug("wrote a result")
                 spider.outqueue.task_done()
+        #upload data if option is set
+        logger.info("uploading data to PTO..")
+        if args.upload is not None:
+            upload.uploader(args.upload[0], args.upload[1], args.output, args.metadata)
 
     except KeyboardInterrupt:
         logger.error("Received keyboard interrupt, dying now.")
@@ -119,6 +124,16 @@ def register_args(subparsers):
                 parts = "\n".join([line for line in parts.split("\n")[1:]])
                 parts += "\n\nSpider safely!"
             return parts
+
+    class UploadAction(argparse.Action):
+        def __call__(self, parser, args, values, option_string=None):
+            #check if --output is set
+            if args.output == '/dev/stdout':
+                msg='argument "{upload}" requires --output to be set'.format(
+                    upload=self.dest)
+                raise argparse.ArgumentTypeError(msg)
+            else:
+                setattr(args, self.dest, values)
 
     parser = subparsers.add_parser(name='measure',
                                    help="Perform a PATHspider measurement",
@@ -137,6 +152,11 @@ def register_args(subparsers):
                               "Defaults to standard output."))
     parser.add_argument('--output-flows', action='store_true',
                         help="Include flow results in output.")
+    #add command option for pto upload
+    parser.add_argument('--upload', nargs = 2, metavar=('CAMPAIGN', 'API-TOKEN'), action = UploadAction,
+                        help="Uploads generated data to PTO CAMPAIGN. requires --output to be set other than default")
+    parser.add_argument('--metadata', nargs = '+', metavar=('PARAMETER:VALUE'),
+                        help="Adds provided custom metadata")
 
     # Set the command entry point
     parser.set_defaults(cmd=run_measurement)
