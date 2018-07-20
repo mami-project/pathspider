@@ -9,9 +9,6 @@ import os
 
 from io import BytesIO
 
-# TODO
-# add custom fields to meta data
-
 BASELINK = "https://v3.pto.mami-project.eu/raw/"
 TOKEN = "APIKEY"
 
@@ -20,8 +17,8 @@ def register_args(subparsers):
                                    help="Uploads data to PTO")
 
     parser.add_argument("filename", help="Data file in .ndjson")
-    parser.add_argument("--campaign", help="Campaign the data belongs to", default="spiderweb-2018")
-    parser.add_argument("--token", help="Authentification token", default="e3b0c4429834ca495991b7852b855")
+    parser.add_argument("--campaign", help="Campaign the data belongs to")
+    parser.add_argument("--token", help="Authentification token")
     parser.add_argument("--entry", nargs='+', help="Additional meta entry", metavar="ENTRY:VALUE")
     #TODO: add this function
 
@@ -285,6 +282,3 @@ def uploader(campaign, token, filename, entry):
 
 def start_uploader(args):
     uploader(args.campaign, args.token, args.filename, args.entry)
-
-
-
