@@ -8,7 +8,6 @@ import pathspider.cmd.filter
 import pathspider.cmd.measure
 import pathspider.cmd.observe
 import pathspider.cmd.test
-#new cmd
 import pathspider.cmd.upload
 
 cmds = [
@@ -17,7 +16,6 @@ cmds = [
     pathspider.cmd.measure,
     pathspider.cmd.observe,
     pathspider.cmd.test,
-    #add new cmd
     pathspider.cmd.upload
 ]
 
