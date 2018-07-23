@@ -1,7 +1,7 @@
-from pathspider.chains.mss import MSSChain
 from pathspider.plugins.mss import MSS
 from pathspider.tests.chains import ChainTestCase
-from pathspider.chains.tcp import TCP_SA 
+from pathspider.chains.tcp import TCP_SA
+from pathspider.cmd.analyze import analyze
 
 def test_plugin_mss_combine_not_observed():
     flows = [
@@ -44,3 +44,29 @@ def test_plugin_mss_combine():
         print(group)
         print(conditions)
         assert group[0] in conditions
+
+
+def test_plugin_mss_absent():
+   f = "data/mss_analyze.ndjson"
+   spider = MSS(0, "", None)
+   lines = {}
+   with open(f) as input:
+       results = spider.aggregate(input)
+   assert results['absent'] == 0
+
+def test_plugin_mss_v4():
+   f = "data/mss_analyze.ndjson"
+   spider = MSS(0, "", None)
+   lines = {}
+   with open(f) as input:
+       results = spider.aggregate(input)
+   assert results['msss4'] == {1440: 1, 1410: 2, 1460: 2}
+
+
+def test_plugin_mss_v6():
+   f = "data/mss_analyze.ndjson"
+   spider = MSS(0, "", None)
+   lines = {}
+   with open(f) as input:
+       results = spider.aggregate(input)
+   assert results['msss6'] == {1440: 2, 1376: 1, 1410: 1, 1220: 1}
