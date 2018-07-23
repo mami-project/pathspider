@@ -5,12 +5,11 @@ from straight.plugin import load
 
 from pathspider.cmd.measure import plugins
 
-def analyze(args):
+def make_result_feeder(filename):
     logger = logging.getLogger("analyzer")
-
     def result_feeder():
-        with open("/dev/stdin") as fh:
-            logger.debug("job_feeder: started")
+        with open(filename) as fh:
+            logger.debug("result_feeder: started")
             for line in fh:
                 try:
                     yield json.loads(line)
@@ -18,6 +17,10 @@ def analyze(args):
                     logger.warning("Unable to decode JSON for a result, skipping...")
             logger.debug("result_feeder: stopped")
 
+    return result_feeder
+
+def analyze(args):
+    result_feeder = make_result_feeder("/dev/stdin")
     print(json.dumps(args.spider.aggregate(result_feeder)))
 
 def register_args(subparsers):

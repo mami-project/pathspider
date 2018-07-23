@@ -46,9 +46,12 @@ class MSS(SingleSpider, PluggableSpider):
         online = 0
         offline = 0
         absent = 0
-        msss = {}
-        top500 = []
-        bottom500 = []
+        msss6 = {}
+        msss4 = {}
+        top500_v4 = []
+        bottom500_v4 = []
+        top500_v6 = []
+        bottom500_v6 = []
         absr = []
 
         class MSSResult:
@@ -62,7 +65,7 @@ class MSS(SingleSpider, PluggableSpider):
 
             def __gt__(self, other):
                 return self.mss < other.mss if self.reverse else self.mss > other.mss
-
+ 
         for result in result_feeder():
             if 'mss.connectivity.offline' in result['conditions']:
                 offline += 1
@@ -73,25 +76,42 @@ class MSS(SingleSpider, PluggableSpider):
                 absr.append(result)
                 continue
             for condition in result['conditions']:
-                if condition.startswith('mss.option.received.value:'):
+                if condition.startswith('mss.option.remote.value:'):
                     mss = int(condition.split(':')[1])
-                    if mss not in msss:
-                        msss[mss] = 0
-                    msss[mss] += 1
-                    if len(top500) < 500 or mss > top500[0].mss:
-                        if len(top500) == 500:
-                            heapq.heappop(top500)
-                        heapq.heappush(top500, MSSResult(mss, result))
-                    if len(bottom500) < 500 or mss < bottom500[0].mss:
-                        if len(bottom500) == 500:
-                            heapq.heappop(bottom500)
-                        heapq.heappush(bottom500, MSSResult(mss, result, reverse=True))
+                    if '.' in result['dip']:
+                        if mss not in msss4:
+                            msss4[mss] = 0
+                        msss4[mss] += 1
+                        if len(top500_v4) < 500 or mss > top500_v4[0].mss:
+                            if len(top500_v4) == 500:
+                                heapq.heappop(top500_v4)
+                            heapq.heappush(top500_v4, MSSResult(mss, result))
+                        if len(bottom500_v4) < 500 or mss < bottom500_v4[0].mss:
+                            if len(bottom500_v4) == 500:
+                                heapq.heappop(bottom500_v4)
+                            heapq.heappush(bottom500_v4, MSSResult(mss, result, reverse=True))
+
+                    if ':' in result['dip']:
+                        if mss not in msss6:
+                            msss6[mss] = 0
+                        msss6[mss] += 1
+                        if len(top500_v6) < 500 or mss > top500_v6[0].mss:
+                            if len(top500_v6) == 500:
+                                heapq.heappop(top500_v6)
+                            heapq.heappush(top500_v6, MSSResult(mss, result))
+                        if len(bottom500_v6) < 500 or mss < bottom500_v6[0].mss:
+                            if len(bottom500_v6) == 500:
+                                heapq.heappop(bottom500_v6)
+                            heapq.heappush(bottom500_v6, MSSResult(mss, result, reverse=True))
         return {
                 'online': online,
                 'offline': offline,
                 'absent': absent,
-                'msss': msss,
-                'top500': [x.result for x in top500],
-                'bottom500': [x.result for x in bottom500],
+                'msss4': msss4,
+                'msss6': msss6,
+                'top500_v4': [x.mss for x in top500_v4],
+                'bottom500_v4': [x.mss for x in bottom500_v4],
+                'top500_v6': [x.mss for x in top500_v6],
+                'bottom500_v6': [x.mss for x in bottom500_v6],
                 'absr': absr
                }
