@@ -78,8 +78,12 @@ class EvilChain(Chain):
             if ip.tcp.flags & TCP_SYN == TCP_SYN:
                 rec['evilbit_syn_rev' if rev else 'evilbit_syn_fwd'] = evil
                 return True
-            if ip.pkt_len == (ip.hdr_len + ip.tcp.doff) * 4: # No payload
-                return True
+            if ip.version == 4:
+                if ip.pkt_len == (ip.hdr_len + ip.tcp.doff) * 4: # No payload
+                   return True
+            elif ip.version == 6:
+                if ip.payload_len == ip.tcp.doff * 4: # No payload
+                   return True
 
         # If not TCP or TCP non-SYN
         data_key = 'evilbit_data_rev' if rev else 'evilbit_data_fwd'
