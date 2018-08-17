@@ -3,6 +3,7 @@ from collections import namedtuple
 from tempfile import NamedTemporaryFile
 
 from scapy.all import wrpcap
+from scapy.all import Ether
 
 from pathspider.chains.evil import EvilChain
 from pathspider.plugins.evilbit import EvilBit
@@ -39,7 +40,7 @@ class TestPluginEvilBitForgeObserve(ChainTestCase):
 
             with NamedTemporaryFile() as test_trace:
                 for idx in range(0, 2):
-                    wrpcap(test_trace.name, [packets[idx]])
+                    wrpcap(test_trace.name, [Ether()/packets[idx]])
                     self.create_observer(test_trace.name, [EvilChain])
         
                     flows = self.run_observer()
