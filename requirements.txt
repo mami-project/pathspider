@@ -1,6 +1,6 @@
 straight.plugin
 pyroute2
-scapy-python3
+scapy
 stem
 dnslib
 pycurl
