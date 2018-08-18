@@ -43,6 +43,7 @@ setup(
         # Specify the Python versions you support here
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 
     keywords='internet measurement ecn tfo dns web www analysis router congestion path transparency latency diffserv dscp',
