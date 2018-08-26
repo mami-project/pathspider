@@ -12,8 +12,8 @@ class ForgeSpider(DesynchronizedSpider):
     chains = [BasicChain]
     packets = 0
 
-    def __init__(self, worker_count, libtrace_uri, args):
-        super().__init__(worker_count, libtrace_uri, args)
+    def __init__(self, worker_count, libtrace_uri, args, server_mode=False):
+        super().__init__(worker_count, libtrace_uri, args, server_mode)
 
         self.__logger = logging.getLogger('forge')
         self._config_count = self.packets

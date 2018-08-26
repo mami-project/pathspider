@@ -125,6 +125,13 @@ class Spider:
         else:
             self.source = ("127.0.0.1", "::1")
 
+    def _get_test_count(self):
+        if hasattr(self, 'packets'):
+            return self.packets # pylint: disable=no-member
+        if hasattr(self, 'configurations'):
+            return len(self.configurations) # pylint: disable=no-member
+        if hasattr(self, 'connections'):
+            return len(self.connections) # pylint: disable=no-member
 
     def configurator(self):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
