@@ -4,7 +4,7 @@
 $setup_pathspider = <<SCRIPT
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y python3-libtrace python3-sphinx python3-straight.plugin python3-setuptools pylint3 python3-pep8 python3-pyroute2 python3-pip unzip python3-nose python3-stem
+apt-get install -y python3-libtrace python3-sphinx python3-straight.plugin python3-setuptools pylint3 python3-pep8 python3-pyroute2 python3-pip unzip python3-nose
 apt-get build-dep -y python3-pycurl
 pip3 install 'pycurl>=7.43.0.1'
 cd /home/vagrant/pathspider

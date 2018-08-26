@@ -94,12 +94,6 @@ class Spider:
 
         self.__logger = logging.getLogger('pathspider')
 
-        if hasattr(self.args, 'connect') and self.args.connect.startswith('tor'):
-            logging.getLogger("stem").setLevel(logging.ERROR)
-            import stem.control
-            self.controller = stem.control.Controller.from_port()
-            self.controller.authenticate()
-
     def __initialize_queues(self):
         # TODO: These could be initialized closer to where they are used?
         self.jobqueue = queue.Queue(QUEUE_SIZE)

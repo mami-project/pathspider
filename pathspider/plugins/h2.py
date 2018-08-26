@@ -7,7 +7,6 @@ from pathspider.base import CONN_OK
 from pathspider.desync import DesynchronizedSpider
 from pathspider.helpers.http import connect_http
 from pathspider.helpers.http import connect_https
-from pathspider.helpers.tor_http import connect_tor_http
 from pathspider.chains.basic import BasicChain
 from pathspider.chains.tcp import TCPChain
 
@@ -17,15 +16,13 @@ class H2(DesynchronizedSpider, PluggableSpider):
     description = "HTTP/2"
     version = pathspider.base.__version__
     chains = [BasicChain, TCPChain]
-    connect_supported = ["http", "https", "torhttp"]
+    connect_supported = ["http", "https"]
 
     def conn_no_h2(self, job, config):  # pylint: disable=unused-argument
         if self.args.connect == "http":
             return connect_http(self.source, job, self.args.timeout)
         if self.args.connect == "https":
             return connect_http(self.source, job, self.args.timeout)
-        if self.args.connect == "torhttp":
-            return connect_tor_http(self.controller, self.args.tor_path, job, self.args.timeout)
         else:
             raise RuntimeError("Unknown connection mode specified")
 
@@ -36,8 +33,6 @@ class H2(DesynchronizedSpider, PluggableSpider):
             return connect_http(self.source, job, self.args.timeout, curlopts, curlinfos)
         if self.args.connect == "https":
             return connect_https(self.source, job, self.args.timeout, curlopts, curlinfos)
-        if self.args.connect == "torhttp":
-            return connect_tor_http(self.controller, self.args.tor_path, job, self.args.timeout, curlopts, curlinfos)
         else:
             raise RuntimeError("Unknown connection mode specified")
 

@@ -1,7 +1,6 @@
 straight.plugin
 pyroute2
 scapy
-stem
 dnslib
 pycurl
 nose
