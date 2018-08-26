@@ -37,7 +37,7 @@ class DesynchronizedSpider(Spider):
     def worker(self, worker_number):
         """
         This function provides the logic for
-        configuration-synchronized worker threads.
+        non-synchronized worker threads.
 
         :param worker_number: The unique number of the worker.
         :type worker_number: int
@@ -45,17 +45,11 @@ class DesynchronizedSpider(Spider):
         The workers operate as continuous loops:
 
          * Fetch next job from the job queue
-         * Perform pre-connection operations
-         * Acquire a lock for "config_zero"
-         * Perform the "config_zero" connection
-         * Release "config_zero"
-         * Acquire a lock for "config_one"
-         * Perform the "config_one" connection
-         * Release "config_one"
-         * Perform post-connection operations for config_zero and pass the
-           result to the merger
-         * Perform post-connection operations for config_one and pass the
-           result to the merger
+         * For each connection:
+            * Perform pre-connection operation
+            * Perform the connection
+            * Perform post-connection operation
+            * Pass the result to the merger
          * Do it all again
 
         If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
