@@ -63,6 +63,8 @@ class Spider:
         :param libtrace_uri: The URI to pass to the Observer to describe the
                              interface on which packets should be captured.
         :type libtrace_uri: str
+        :param server_mode: Whether the spider should operate in server mode
+        :type server_mode: bool
 
         It is expected that this function will be overloaded by plugins, though
         the plugin should always make a call to the __init__() function of the
@@ -72,60 +74,23 @@ class Spider:
 
          super().__init__(worker_count=worker_count,
                           libtrace_uri=libtrace_uri,
-                          args=args)
+                          args=args,
+                          server_mode=server_mode)
 
         This can be used to initialise any variables which may be required in
         the object.
         """
 
+        self.worker_count = worker_count
         self.args = args
-
-        self.running = False
-        self.stopping = False
-        self.terminating = False
+        self.libtrace_uri = libtrace_uri
         self.server_mode = server_mode
 
-        self.worker_count = worker_count
-        self.active_worker_count = 0
-        self.active_worker_lock = threading.Lock()
-
-        self.libtrace_uri = libtrace_uri
-
-        self.jobqueue = queue.Queue(QUEUE_SIZE)
-        self.resqueue = queue.Queue(QUEUE_SIZE)
-        self.flowqueue = mp.Queue(QUEUE_SIZE)
-        self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
-
-        self.jobtab = {}
-        self.comparetab = {}
-        self.restab = {}
-        self.flowtab = {}
-        self.flowreap = collections.deque()
-        self.flowreap_size = min(self.worker_count * 100, 10000)
-
-        self.outqueue = queue.Queue(QUEUE_SIZE)
-
-        self.observer = None
-
-        self.worker_threads = []
-        self.configurator_thread = None
-        self.merger_thread = None
-
-        self.observer_process = None
+        self.__initialize_queues()
+        self.__set_interface_addresses()
 
         self.lock = threading.Lock()
         self.exception = None
-
-        if libtrace_uri.startswith('int'):
-            # TODO: Refactor this
-            self.source = (ipv4_address(self.libtrace_uri[4:]),
-                           ipv6_address(self.libtrace_uri[4:]))
-            self.source_public = (ipv4_address_public(self.libtrace_uri[4:]),
-                                  ipv6_address_public(self.libtrace_uri[4:]))
-            self.source_asn = (ipv4_asn(self.libtrace_uri[4:]),
-                               ipv6_asn(self.libtrace_uri[4:]))
-        else:
-            self.source = ("127.0.0.1", "::1")
 
         self.__logger = logging.getLogger('pathspider')
 
@@ -134,6 +99,31 @@ class Spider:
             import stem.control
             self.controller = stem.control.Controller.from_port()
             self.controller.authenticate()
+
+    def __initialize_queues(self):
+        # TODO: These could be initialized closer to where they are used?
+        self.jobqueue = queue.Queue(QUEUE_SIZE)
+        self.resqueue = queue.Queue(QUEUE_SIZE)
+        self.flowqueue = mp.Queue(QUEUE_SIZE)
+        self.observer_shutdown_queue = mp.Queue(QUEUE_SIZE)
+        self.jobtab = {}
+        self.comparetab = {}
+        self.restab = {}
+        self.flowtab = {}
+        self.flowreap = collections.deque()
+        self.flowreap_size = min(self.worker_count * 100, 10000)
+        self.outqueue = queue.Queue(QUEUE_SIZE)
+
+    def __set_interface_addresses(self):
+        if self.libtrace_uri.startswith('int'):
+            self.source = (ipv4_address(self.libtrace_uri[4:]),
+                           ipv6_address(self.libtrace_uri[4:]))
+            self.source_public = (ipv4_address_public(self.libtrace_uri[4:]),
+                                  ipv6_address_public(self.libtrace_uri[4:]))
+            self.source_asn = (ipv4_asn(self.libtrace_uri[4:]),
+                               ipv6_asn(self.libtrace_uri[4:]))
+        else:
+            self.source = ("127.0.0.1", "::1")
 
 
     def configurator(self):
@@ -362,7 +352,6 @@ class Spider:
             self.__logger.exception("exception occurred. terminating.")
             if self.exception is None:
                 self.exception = sys.exc_info()[1]
-
             self.terminate()
 
     def _finalise_conns(self, job, jobId, conns):
@@ -394,6 +383,10 @@ class Spider:
         """
 
         self.__logger.info("starting pathspider")
+
+        self.worker_threads = []
+        self.active_worker_count = 0
+        self.active_worker_lock = threading.Lock()
 
         with self.lock:
             # set the running flag
@@ -551,7 +544,10 @@ class Spider:
 
     def add_job(self, job):
         """
-        Adds a job to the job queue.
+        Adds a job to the job queue. Before inserting into the queue, the local
+        IP addresses will be added to the job information. The path specifier
+        will also be constructed using this information and any additional
+        information that is available in the job record.
 
         If PATHspider is currently stopping, the job will not be added to the
         queue.
