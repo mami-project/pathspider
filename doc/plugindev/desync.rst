@@ -31,8 +31,6 @@ framework:
                 return connect_http(self.source, job, self.args.timeout)
             if self.args.connect == "https":
                 return connect_http(self.source, job, self.args.timeout)
-            if self.args.connect == "torhttp":
-                return connect_tor_http(self.controller, self.args.tor_path, job, self.args.timeout)
             else:
                 raise RuntimeError("Unknown connection mode specified")
     
@@ -43,8 +41,6 @@ framework:
                 return connect_http(self.source, job, self.args.timeout, curlopts, curlinfos)
             if self.args.connect == "https":
                 return connect_https(self.source, job, self.args.timeout, curlopts, curlinfos)
-            if self.args.connect == "torhttp":
-                return connect_tor_http(self.controller, self.args.tor_path, job, self.args.timeout, curlopts, curlinfos)
             else:
                 raise RuntimeError("Unknown connection mode specified")
     
