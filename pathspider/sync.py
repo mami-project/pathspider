@@ -86,17 +86,11 @@ class SynchronizedSpider(Spider):
         The workers operate as continuous loops:
 
          * Fetch next job from the job queue
-         * Perform pre-connection operations
-         * Acquire a lock for "config_zero"
-         * Perform the "config_zero" connection
-         * Release "config_zero"
-         * Acquire a lock for "config_one"
-         * Perform the "config_one" connection
-         * Release "config_one"
-         * Perform post-connection operations for config_zero and pass the
-           result to the merger
-         * Perform post-connection operations for config_one and pass the
-           result to the merger
+         * For each configuration:
+            * Acquire a lock for the configuration (blocking)
+            * Perform the connection with the configuration
+            * Release the lock
+            * Pass the result to the merger
          * Do it all again
 
         If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
@@ -134,9 +128,6 @@ class SynchronizedSpider(Spider):
                         self.__semaphores[(config + 1) % len(
                             self.configurations)][1].release()
                 else:
-                    # Hook for preconnection
-                    self.pre_connect(job)
-
                     conns = []
                     should_discard = False
 

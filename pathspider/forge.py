@@ -19,12 +19,6 @@ class ForgeSpider(DesynchronizedSpider):
         self._config_count = self.packets
         self.connections = [self.connect] * self.packets # pylint: disable=no-member
 
-    def pre_connect(self, job):
-        self.setup(job)
-
-    def setup(self, job):
-        pass
-
     def connect(self, job, seq):
         pkt = self.forge(job, seq)
         send(pkt, verbose=0)

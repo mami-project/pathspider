@@ -141,24 +141,6 @@ class Spider:
     def worker(self, worker_number):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
 
-    def pre_connect(self, job):
-        """
-        Performs pre-connection operations.
-
-        :param job: The job record
-        :type job: dict
-
-        The pre_connect function can be used to perform any operations that
-        must be performed before each connection. It will be run only once
-        per job, with the same result passed to both the A and B connect
-        calls. This function is not synchronized with the configurator.
-
-        Plugins to PATHspider can optionally implement this function. If this
-        function is not overloaded, it will be a noop.
-        """
-
-        pass
-
     def _connect_wrapper(self, job, config, connect=None):
         start = str(datetime.utcnow())
         if connect is None:
@@ -169,33 +151,6 @@ class Spider:
             conn = connect(job, config)
         conn['spdr_start'] = start
         return conn
-
-    def post_connect(self, job, rec, config):
-        """
-        Performs post-connection operations.
-
-        :param job: The job record.
-        :type job: dict
-        :param rec: The result of the connection operation(s).
-        :type rec: dict
-        :param config: The state of the configurator during
-                       :func:`pathspider.base.Spider.connect`.
-        :type config: int
-
-        The post_connect function can be used to perform any operations that
-        must be performed after each connection. It will be run for both the
-        A and the B configuration, and is not synchronized with the
-        configurator.
-
-        Plugins to PATHspider can optionally implement this function. If this
-        function is not overloaded, it will be a noop.
-
-        Any sockets or other file handles that were opened during
-        :func:`pathspider.base.Spider.connect` should be closed in this
-        function if they have not been already.
-        """
-
-        pass
 
     def create_observer(self):
         """
@@ -413,7 +368,6 @@ class Spider:
         # Pass results on for merge
         config = 0
         for conn in conns:
-            self.post_connect(job, conn, config)
             conn['spdr_stop'] = str(datetime.utcnow())
             conn['config'] = config
             if self.server_mode:

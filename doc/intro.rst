@@ -74,12 +74,13 @@ threads, launched when PATHspider starts.
 
 For each target hostname and/or address, with port numbers where appropriate,
 PATHspider enqueues a job, to be distributed amongst the worker threads when
-available.  Each worker performs one connection with the "A" configuration
-and one connection with the "B" configuration. The "A" configuration will
+available.  Each worker performs a number of connections. Typically this is one
+connection with the "A" configuration and one connection with the "B"
+configuration but in fact this can be any number. The "A" configuration will
 always be connected first and serves as the base line measurement, followed by
 the "B" configuration. This allows detection of hosts that do not respond
 rather than failing as a result of using a particular transport protocol or
-extension. These sockets remain open for a post-connection operation.
+extension.
 
 Some transport options require a system-wide parameter change, for example
 enabling ECN in the Linux kernel.  This requires locking and synchronisation.

@@ -45,11 +45,8 @@ class DesynchronizedSpider(Spider):
         The workers operate as continuous loops:
 
          * Fetch next job from the job queue
-         * For each connection:
-            * Perform pre-connection operation
-            * Perform the connection
-            * Perform post-connection operation
-            * Pass the result to the merger
+         * For each connection, perform the connection and pass the result
+           to the merger
          * Do it all again
 
         If the job fetched is the SHUTDOWN_SENTINEL, then the worker will
@@ -81,9 +78,6 @@ class DesynchronizedSpider(Spider):
                 except queue.Empty:
                     time.sleep(QUEUE_SLEEP)
                 else:
-                    # Hook for preconnection
-                    self.pre_connect(job)
-
                     conns = []
                     should_discard = False
 
