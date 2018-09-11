@@ -17,6 +17,9 @@ def connect_tcp(source, job, conn_timeout, sockopts=None):
 
     if not isinstance(conn_timeout, int):
         raise RuntimeError("Plugin did not set TCP connect conn_timeout.")
+    
+    if 'dp' not in job:
+        job['dp'] = 80
 
     try:
         if ":" in job['dip']:
