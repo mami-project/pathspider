@@ -392,6 +392,8 @@ class Spider:
         with self.lock:
             # set the running flag
             self.running = True
+            
+            self.stopping = False
 
             # create an observer and start its process
             self.observer = self.create_observer()
