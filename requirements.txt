@@ -4,3 +4,4 @@ scapy
 dnslib
 pycurl
 nose
+python-dateutil
