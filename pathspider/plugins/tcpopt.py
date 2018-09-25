@@ -7,6 +7,7 @@ from pathspider.base import CONN_OK
 from pathspider.sync import SynchronizedSpider
 from pathspider.chains.basic import BasicChain
 from pathspider.chains.tcp import TCPChain
+from pathspider.chains.tcpopt import TCPOptChain
 
 
 class ECN(SynchronizedSpider, PluggableSpider):
