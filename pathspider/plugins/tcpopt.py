@@ -38,7 +38,7 @@ class ECN(SynchronizedSpider, PluggableSpider):
             stderr=subprocess.DEVNULL)
         logger.debug("Configurator disabled TCP Options")
 
-    def config_ws(self): # pylint: disable=no-self-use
+    def config_ts(self): # pylint: disable=no-self-use
         """
         Enable only TSOpt via sysctl.
         """
