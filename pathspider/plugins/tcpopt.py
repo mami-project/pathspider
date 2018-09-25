@@ -136,16 +136,16 @@ class ECN(SynchronizedSpider, PluggableSpider):
 
         if flows[0]['observed'] and flows[0]['tcp_connected']:
             if flows[0]['tcpopt_ts']:
-                conditions.append('tsopt.sendwithoutrequest.true')
+                conditions.append('tsopt.unsolicited.seen')
             else:
-                conditions.append('tsopt.sendwithoutrequest.false')
+                conditions.append('tsopt.unsolicited.not_seen')
             if flows[0]['tcpopt_ws']:
-                conditions.append('wsopt.sendwithoutrequest.true')
+                conditions.append('wsopt.unsolicited.seen')
             else:
-                conditions.append('tsopt.sendwithoutrequest.false')
+                conditions.append('wsopt.unsolicited.not_seen')
             if flows[0]['tcpopt_sack']:
-                conditions.append('sack.sendwithoutrequest.true')
+                conditions.append('sack.unsolicited.seen')
             else:
-                conditions.append('sack.sendwithoutrequest.false')
+                conditions.append('sack.unsolicited.not_seen')
 
         return conditions
