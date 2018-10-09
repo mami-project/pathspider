@@ -23,6 +23,8 @@ class SynchronizedSpider(Spider):
         super().__init__(worker_count, libtrace_uri, args, server_mode)
         self.__logger = logging.getLogger('sync')
 
+        if callable(self.configurations):
+            self.configurations = self.configurations()
         self._config_count = len(self.configurations)
 
         self.__semaphores = []
