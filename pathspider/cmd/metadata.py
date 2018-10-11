@@ -24,9 +24,12 @@ def metadata_from_ps_ndjson(fp):
             z = b    
 
     return {'_time_start': y.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            '_time_end': z.strftime("%Y-%m-%dT%H:%M:%SZ")}
+            '_time_end': z.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "_file_type": "pathspider-v2-ndjson-bz2"}
 
-def write_metadata_for(filename, metadata_fn):
+FILETYPE_MAP = { 'ps-ndjson': metadata_from_ps_ndjson }
+
+def extract_metadata_for(filename, metadata_fn):
     metafilename = filename + ".meta.json"
 
     if filename.endswith(".bz2"):
@@ -36,11 +39,22 @@ def write_metadata_for(filename, metadata_fn):
     
     with open_fn(filename) as fp:
         metadata = metadata_fn(fp)
-    
+
+    return metafilename, metadata
+
+def add_extra_meta_data(meta_data, extra_data):
+    '''
+    add custom data to metadata from argparser
+    extra_data is list of strings. each element is tag:value
+    '''
+    for element in extra_data:
+        keyword, value = element.split(":")
+        meta_data[keyword] = value
+    return meta_data
+
+def write_metadata(metafilename, metadata):
     with open(metafilename, mode="w") as mfp:
         json.dump(metadata, mfp, indent=2)
-
-FILETYPE_MAP = { 'ps-ndjson': metadata_from_ps_ndjson }
 
 def metadata(args):
     logger = logging.getLogger("metadata")
@@ -48,7 +62,13 @@ def metadata(args):
     for filename in args.files:
         logger.info('processing %s...' % (filename,))
         sys.stdout.flush()
-        write_metadata_for(filename, FILETYPE_MAP[args.filetype])
+
+        meta_filename, meta_data = extract_metadata_for(filename, FILETYPE_MAP[args.filetype])
+        
+        if args.extra is not None:
+            add_extra_meta_data(meta_data, args.extra)
+        
+        write_metadata(meta_filename, meta_data)
 
 def register_args(subparsers):
     parser = subparsers.add_parser(name='metadata',
@@ -56,5 +76,8 @@ def register_args(subparsers):
     parser.add_argument("files", nargs="*", help="input files", metavar="INPUTFILE")
     parser.add_argument("-t", "--filetype", help="filetype [ps-ndjson]",
                         metavar="FILETYPE", default="ps-ndjson")
+    parser.add_argument("--extra", nargs='+', help="Additional metadata tags",
+                        metavar="TAG:VAL")
     # Set the command entry point
     parser.set_defaults(cmd=metadata)
+    

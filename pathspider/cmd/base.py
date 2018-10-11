@@ -6,6 +6,7 @@ import logging
 import pathspider.cmd.filter
 import pathspider.cmd.measure
 import pathspider.cmd.metadata
+import pathspider.cmd.upload
 import pathspider.cmd.observe
 import pathspider.cmd.test
 
@@ -13,6 +14,7 @@ cmds = [
     pathspider.cmd.filter,
     pathspider.cmd.measure,
     pathspider.cmd.metadata,
+    pathspider.cmd.upload,
     pathspider.cmd.observe,
     pathspider.cmd.test,
 ]
