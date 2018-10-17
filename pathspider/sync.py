@@ -177,7 +177,7 @@ class SynchronizedSpider(Spider):
                             help="Type of connection to perform (Default: {})".format(
                                 cls.connect_supported[0]))
         parser.add_argument("--timeout", default=5, type=int,
-                            help=("The timeout to use for attempted connections in seconds "
+                            help=("The time allowed for a connection operation to finish before it is terminated. On slow links this should be increased."
                                   "(Default: 5)"))
         if hasattr(cls, "extra_args"):
             cls.extra_args(parser)
