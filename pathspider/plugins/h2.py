@@ -22,7 +22,7 @@ class H2(DesynchronizedSpider, PluggableSpider):
         if self.args.connect == "http":
             return connect_http(self.source, job, self.args.timeout)
         if self.args.connect == "https":
-            return connect_http(self.source, job, self.args.timeout)
+            return connect_https(self.source, job, self.args.timeout)
         else:
             raise RuntimeError("Unknown connection mode specified")
 
