@@ -19,7 +19,6 @@ class DSCP(SynchronizedSpider, PluggableSpider):
     connect_supported = ["http", "tcp", "dnstcp", "dnsudp"]
 
     def generate_f(self, i):
-        logger = logging.getLogger('dscp')
         def config_dscp(self):
             logger = logging.getLogger('dscp')
             for iptables in ['iptables', 'ip6tables']:
