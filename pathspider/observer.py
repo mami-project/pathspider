@@ -75,7 +75,8 @@ class Observer:
     data to be associated with each flow.
     """
 
-    def __init__(self, lturi, chains=None, idle_timeout=30, expiry_timeout=5):
+    def __init__(self, lturi, chains=None, idle_timeout=30, expiry_timeout=5,
+                 aggregate=False):
         """
         Create an Observer.
 
@@ -89,6 +90,7 @@ class Observer:
         # Control
         self._irq = None
         self._irq_fired = False
+        self._aggregate = aggregate
 
         # Libtrace initialization
         self._trace = libtrace.trace(lturi)  # pylint: disable=no-member
@@ -215,10 +217,12 @@ class Observer:
         # get possible a flow IDs for the packet
         try:
             if self._pkt.ip:
-                (ffid, rfid) = _flow4_ids(self._pkt.ip)
+                (ffid, rfid) = (4, 5) if self._aggregate else _flow4_ids(
+                    self._pkt.ip)
                 ip = self._pkt.ip
             elif self._pkt.ip6:
-                (ffid, rfid) = _flow6_ids(self._pkt.ip6)
+                (ffid, rfid) = (4, 5) if self._aggregate else _flow6_ids(
+                    self._pkt.ip6)
                 ip = self._pkt.ip6
             else:
                 # we don't care about non-IP packets
