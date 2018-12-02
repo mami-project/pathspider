@@ -1,5 +1,6 @@
 
 import nose
+from nose.tools import assert_equal
 
 import pathspider.base
 import pathspider.cmd.measure
@@ -11,11 +12,12 @@ def test_plugin_load():
     except ImportError:
         raise nose.SkipTest
 
-    expected_names = set(['TFO', 'ECN', 'DSCP', 'UDPZero', 'DNSResolv', 'H2', 'EvilBit', 'MSS'])
+    expected_names = set(['DNSResolv', 'DSCP', 'ECN', 'EvilBit', 'H2', 'MSS',
+                          'TCPOptions', 'TFO', 'UDPZero'])
     names = set()
 
     for plugin in pathspider.cmd.measure.plugins:
         assert issubclass(plugin, pathspider.base.Spider)
         names.add(plugin.__name__)
 
-    assert names == expected_names
+    assert_equal(names, expected_names)
