@@ -343,7 +343,7 @@ class Spider:
             self.outqueue.put(job)
 
     def combine_flows(self, flows):
-        pass
+        return []
 
     def exception_wrapper(self, target, *args, **kwargs):
         try:
