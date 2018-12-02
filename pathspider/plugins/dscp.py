@@ -29,7 +29,7 @@ class DSCP(SynchronizedSpider, PluggableSpider):
             logger.debug("Configurator enabled DSCP marking")
         return config_dscp 
      
-    def configurations(self):
+    def configurations(self):  # pylint: disable=method-hidden
         def config_no_dscp(self):  # pylint: disable=no-self-use
            """
            Disables DSCP marking via iptables
