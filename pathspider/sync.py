@@ -217,15 +217,9 @@ class SemaphoreN(threading.BoundedSemaphore):
     def release_n(self, value=1):
         """
         Release ``value`` number of tokens at once.
-
-        :returns: The same value as the last call to `BoundedSemaphore`'s
-                  :meth:`release` if :meth:`release` were called ``value``
-                  times instead of the call to this method.
         """
-        ret = None
         for _ in range(value):
-            ret = self.release()
-        return ret
+            self.release()
 
     def empty(self):
         """
