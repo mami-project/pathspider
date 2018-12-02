@@ -10,13 +10,15 @@ from pathspider.tests.chains import ChainTestCase
 from pathspider.base import CONN_OK
 from pathspider.base import CONN_FAILED
 
+TestArgs = namedtuple('TestArgs', ['codepoint'])
+
 def test_plugin_dscp_combine_not_observed():
     for valid in [True, False]:
         flows = [
                  {'observed': True},
                  {'observed': False}
                 ]
-        spider = DSCP(0, "", None)
+        spider = DSCP(0, "", TestArgs(codepoint=[46]))
         conditions = spider.combine_flows(flows)
         assert "pathspider.not_observed" in conditions
 
@@ -32,7 +34,7 @@ def test_plugin_dscp_combine():
                  {'observed': True, 'spdr_state': group[0], 'dscp_mark_syn_fwd': 0, 'dscp_mark_data_fwd': 0, 'dscp_mark_syn_rev': 0, 'dscp_mark_data_rev': 0},
                  {'observed': True, 'spdr_state': group[1], 'dscp_mark_syn_fwd': 46, 'dscp_mark_data_fwd': 46, 'dscp_mark_syn_rev': 46, 'dscp_mark_data_rev': 46}
                 ]
-        spider = DSCP(0, "", None)
+        spider = DSCP(0, "", TestArgs(codepoint=[46]))
         conditions = spider.combine_flows(flows)
         print(group)
         print(conditions)

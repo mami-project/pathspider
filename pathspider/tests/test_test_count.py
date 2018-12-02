@@ -1,8 +1,11 @@
+from collections import namedtuple
 from nose.tools import assert_equals
 
 from pathspider.plugins.ecn import ECN
 from pathspider.plugins.dscp import DSCP
 from pathspider.plugins.evilbit import EvilBit
+
+TestArgs = namedtuple("TestArgs", ["codepoint"])
 
 def test_ecn_test_count():
     """
@@ -13,5 +16,5 @@ def test_ecn_test_count():
 
     for test_spider in [ECN, DSCP, EvilBit]:
         print("Trying " + test_spider.name)
-        spider = test_spider(0, "", None, False)
+        spider = test_spider(0, "", TestArgs(codepoint=[46]), False)
         assert_equals(spider._get_test_count(), 2)
