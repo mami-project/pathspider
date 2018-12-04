@@ -117,7 +117,7 @@ On other platforms, you may install most of the dependencies required via pip:
 
 .. code-block:: shell
 
- pip install -r requirements.txt
+ pip3 install -r requirements.txt
 
 Unfortunately, `python-libtrace
 <https://github.com/nevil-brownlee/python-libtrace>`_ is not available on PyPI
@@ -131,7 +131,7 @@ dependencies:
 
 .. code-block:: shell
 
- pip install -r requirements_dev.txt
+ pip3 install -r requirements_dev.txt
 
 With the dependencies installed, you can install PATHspider with:
 
