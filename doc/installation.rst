@@ -49,6 +49,49 @@ installed, you can get started with:
 
 Depending on the speed of your Internet connection, this may take a long time.
 
+virtualenv
+----------
+
+.. warning:: PATHspider 2.0 depends on pycurl >= 7.43.0.1, released on the 7th
+             December 2017. If you have errors when running PATHspider similar
+             to ``AttributeError: module 'pycurl' has no attribute
+             'CONNECT_TO'`` then it is most likely the case that your version
+             of pycurl is too old.
+
+
+`virtualenv` is a tool to create isolated Python environments. This allows you
+to install the dependencies necessary for PATHspider without having them
+conflict with your system libraries used for other applications on the system.
+
+The following instructions assume a Debian GNU/Linux system and may have to be
+modified on other systems:
+
+.. code-block:: shell
+
+   sudo apt install libtrace-dev libldns-dev python3-dev python3-virtualenv
+   mkdir ~/psenv && cd ~/psenv
+   python3 -m virtualenv -p /usr/bin/python3 .
+   source bin/activate
+   export PATH=$PWD/bin:$PATH
+   git clone https://github.com/nevil-brownlee/python-libtrace.git
+   pushd python-libtrace && python3 setup.py install && popd
+   git clone https://github.com/mami-project/pathspider.git
+   pushd pathspider && \
+       pip install -r requirements.txt && \
+       pip install -r requirements_dev.txt && \
+       python3 setup.py develop && popd
+   pspdr test
+
+Ensure that all tests have passed before beginning to measure or develop with
+PATHspider. To re-enter the virtual environment from another shell session:
+
+.. code-block:: shell
+
+   cd ~/psenv
+   source bin/activate
+   export PATH=$PWD/bin:$PATH
+   pspdr test
+
 Source
 ------
 
