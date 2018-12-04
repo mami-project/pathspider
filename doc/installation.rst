@@ -32,7 +32,7 @@ during development. A Vagrantfile is provided that will create a Debian-based
 virtual machine with all the PATHspider dependencies installed.
 
 In the virtual machine, the PATHspider code will be copied to
-``/home/vagrant/pathspider``. To improve compatibility across platforms, this
+``/vagrant``. To improve compatibility across platforms, this
 is not synchronized with the repository outside of the Vagrant image. Expert
 users may edit the ``Vagrantfile`` to achieve this. PATHspider is installed in
 development mode, meaning that this is also the location of the PATHspider code

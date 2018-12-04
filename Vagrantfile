@@ -4,12 +4,14 @@
 $setup_pathspider = <<SCRIPT
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y python3-libtrace python3-sphinx python3-straight.plugin python3-setuptools pylint3 python3-pep8 python3-pyroute2 python3-pip unzip python3-nose
-apt-get build-dep -y python3-pycurl
-pip3 install 'pycurl>=7.43.0.1'
-cd /home/vagrant/pathspider
-pip3 install -r requirements_dev.txt
-python3 setup.py develop
+apt install -y libtrace-dev libldns-dev python3-dev python3-pip git
+git clone https://github.com/nevil-brownlee/python-libtrace.git
+pushd python-libtrace && python3 setup.py install && popd
+pushd /vagrant && \
+    pip3 install -r requirements.txt && \
+    pip3 install -r requirements_dev.txt && \
+    python3 setup.py develop && popd
+pspdr test
 SCRIPT
 
 Vagrant.configure("2") do |config|
@@ -17,7 +19,6 @@ Vagrant.configure("2") do |config|
   config.vm.box = "debian/testing64"
 
   config.vm.define "spider" do |spider|
-    spider.vm.synced_folder ".", "/home/vagrant/pathspider", type: "rsync"
     spider.vm.provision :shell, :inline => $setup_pathspider
   end
 
