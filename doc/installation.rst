@@ -138,3 +138,79 @@ With the dependencies installed, you can install PATHspider with:
 .. code-block:: shell
 
  python3 setup.py install
+
+cloud-init
+----------
+
+The following cloud-config script installs PATHspider globally in the VM. The
+default user is `ubuntu`. Include your public key to ssh into the VM.
+
+Customise this to your needs. You may want to change the hostname.
+
+::
+
+    #cloud-config
+
+    # Hostname management
+    preserve_hostname: False
+    hostname: spider
+    fqdn: spider.local
+
+    package_update: true
+
+    package_upgrade: true
+
+    ssh_authorized_keys:
+     - ssh-rsa <include your public SSH key here>
+
+    packages:
+     - git
+     - python3
+     - python3-pip
+     - python3-setuptools
+     - python3-pycurl
+     - libtrace-dev
+     - libldns-dev
+
+    write_files:
+    - content: |
+        #!/bin/bash
+        export LC_ALL=C
+        # Select the stable pathspider release, comment for github clone
+        REL=2.0.1
+
+        cd /tmp
+        git clone https://github.com/nevil-brownlee/python-libtrace.git
+        cd python-libtrace/
+          make install-py3
+        cd -
+
+        if [ -z "$REL" ]; then
+          git clone https://github.com/mami-project/pathspider
+        else
+          wget -q -O - https://github.com/mami-project/pathspider/archive/$REL.tar.gz | tar -xzvf -
+        fi
+
+        if [ -d pathspider ]; then
+          cd pathspider # github clone
+        else
+          cd pathspider-$REL # release
+        fi
+            pip3 install -r requirements.txt
+            python3 setup.py install
+        cd -
+      path: /root/build-psp.sh
+      permissions: 0755
+
+    runcmd:
+      - ls -al /root > /install-psp.log
+      - /root/build-psp.sh
+
+    # Configure where output will go
+    output:
+      all: ">> /var/log/cloud-init.log"
+
+    # configure interaction with ssh server
+    ssh_svcname: ssh
+    ssh_deletekeys: True
+    ssh_genkeytypes: ['rsa', 'ecdsa']
