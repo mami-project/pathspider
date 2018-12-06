@@ -1,0 +1,10 @@
+{"dip": "17.253.206.8", "domain": "mesu.apple.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "187", "dp": 53}
+{"dip": "17.253.201.8", "domain": "mesu.apple.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "187", "dp": 53}
+{"dip": "2620:0:37::53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "208.76.45.53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "2620:0:30::53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "208.84.0.53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "2620:0:32::53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "208.84.2.53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "2620:0:34::53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
+{"dip": "193.221.113.53", "domain": "windows.com", "hellfire_lookup_attempts": 1, "hellfire_lookup_type": "ns", "rank": "140", "dp": 53}
