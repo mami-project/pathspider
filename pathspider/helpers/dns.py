@@ -10,7 +10,7 @@ from pathspider.base import CONN_FAILED
 
 
 class PSDNSRecord(DNSRecord):
-    def spider_send(self, source, job, conn_timeout, tcp=False):
+    def spider_send(self, source, job, conn_timeout, tcp=False, sockopts=None):
         """
         Send packet to nameserver and return response and source port.
         """
@@ -29,6 +29,9 @@ class PSDNSRecord(DNSRecord):
             else:
                 sock.bind((source[0], 0))
             sock.settimeout(conn_timeout)
+            if sockopts:
+                for sockopt in sockopts:
+                    sock.setsockopt(*sockopt)
             sock.connect((job['dip'], job['dp']))
             sock.sendall(data)
             sp = sock.getsockname()[1]
@@ -56,6 +59,9 @@ class PSDNSRecord(DNSRecord):
                 sock.bind((source[0], sp))
             sp = sock.getsockname()[1]
             sock.settimeout(conn_timeout)
+            if sockopts:
+                for sockopt in sockopts:
+                    sock.setsockopt(*sockopt)
             sock.sendto(self.pack(), (job['dip'], job['dp']))
             response = None
             try:
@@ -71,25 +77,25 @@ class PSDNSRecord(DNSRecord):
         return (response, sp)
 
 
-def connect_dns_tcp(source, job, conn_timeout):
+def connect_dns_tcp(source, job, conn_timeout, sockopts=None):
     """
     This helper function will perform a DNS query over a TCP connection. It
     will not perform any special action in the event that this is the
     experimental flow, it only performs a DNS query connection.
     """
 
-    return connect_dns(source, job, conn_timeout, tcp=True)
+    return connect_dns(source, job, conn_timeout, tcp=True, sockopts=sockopts)
 
-def connect_dns_udp(source, job, conn_timeout):
+def connect_dns_udp(source, job, conn_timeout, sockopts=None):
     """
     This helper function will perform a DNS query over a TCP connection. It
     will not perform any special action in the event that this is the
     experimental flow, it only performs a DNS query connection.
     """
 
-    return connect_dns(source, job, conn_timeout, tcp=False)
+    return connect_dns(source, job, conn_timeout, tcp=False, sockopts=sockopts)
 
-def connect_dns(source, job, conn_timeout, tcp=False):
+def connect_dns(source, job, conn_timeout, tcp=False, sockopts=None):
     """
     This helper function will perform a DNS query over a TCP connection. It
     will not perform any special action in the event that this is the
@@ -98,7 +104,7 @@ def connect_dns(source, job, conn_timeout, tcp=False):
 
     try:
         q = PSDNSRecord(q=DNSQuestion(job['domain'], QTYPE.A))
-        response, sp = q.spider_send(source, job, conn_timeout, tcp=tcp)
+        response, sp = q.spider_send(source, job, conn_timeout, tcp=tcp, sockopts=sockopts)
         if response is None:
             return {'sp': sp, 'spdr_state': CONN_FAILED}
         return {'sp': sp, 'spdr_state': CONN_OK}
