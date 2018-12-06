@@ -37,8 +37,9 @@ Table of Contents
    using
    plugins
    observer
-   targets.rst
+   targets
    plugindev/index.rst
+   helpers
    internals
 
 .. toctree::
