@@ -43,6 +43,12 @@ class ECN(SynchronizedSpider, PluggableSpider):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL)
         logger.debug("Configurator enabled ECN")
+        
+        subprocess.check_call(
+            ['/sbin/sysctl', '-w', 'net.ipv4.tcp_ecn_fallback=0'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
+        logger.debug("Configurator enabled ECN")
 
     configurations = [config_no_ecn, config_ecn]
 
