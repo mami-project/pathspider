@@ -69,6 +69,8 @@ def ipv4_asn(ifname):
             return None
     except pycurl.error:
         return None
+    except KeyError:
+        return None
 
 def ipv6_asn(ifname):
     try:
@@ -85,4 +87,6 @@ def ipv6_asn(ifname):
         else:
             return None
     except pycurl.error:
+        return None
+    except KeyError:
         return None
