@@ -20,6 +20,9 @@ Vagrant.configure("2") do |config|
   # Use Debian buster
   config.vm.box = "debian/testing64"
 
+  # Remove this next line if you're having problems, or only want layer 7 tests
+  config.vm.network :public_network, use_dhcp_assigned_default_route: true
+
   config.vm.define "spider" do |spider|
     spider.vm.provision :shell, :inline => $setup_pathspider
   end
