@@ -68,7 +68,7 @@ modified on other systems:
 
 .. code-block:: shell
 
-   sudo apt install libtrace-dev libldns-dev python3-dev python3-virtualenv
+   sudo apt install libtrace-dev libldns-dev python3-dev python3-virtualenv build-essential gnutls-dev libcurl4-gnutls-dev
    mkdir ~/psenv && cd ~/psenv
    python3 -m virtualenv -p /usr/bin/python3 .
    source bin/activate
