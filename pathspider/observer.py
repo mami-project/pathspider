@@ -46,12 +46,20 @@ def _flow6_ids(ip6):
             quotation_fid = True
 
     protos_with_ports = {6, 17, 132, 136}
+    hdr_opts = {0, 60}
     if ip6.proto in protos_with_ports:
+        # key gets the protocol from the IPv6 HBH or Destination Options header
+        if ip6.next_hdr in hdr_opts:
+            fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[
+                40:41] + ip6.payload[0:4]
+            rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[
+                40:41] + ip6.payload[2:4] + ip6.payload[0:2]
         # key includes ports
-        fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[
-            6:7] + ip6.payload[0:4]
-        rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[
-            6:7] + ip6.payload[2:4] + ip6.payload[0:2]
+        else:
+            fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[
+                6:7] + ip6.payload[0:4]
+            rid = ip6.dst_prefix.addr + ip6.src_prefix.addr + ip6.data[
+                6:7] + ip6.payload[2:4] + ip6.payload[0:2]
     else:
         # no ports, just 3-tuple
         fid = ip6.src_prefix.addr + ip6.dst_prefix.addr + ip6.data[6:7]
