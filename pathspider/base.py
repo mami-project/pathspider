@@ -17,6 +17,8 @@ import multiprocessing as mp
 import queue
 from datetime import datetime
 
+from scapy.all import send
+
 from pathspider.network import ipv4_address
 from pathspider.network import ipv6_address
 from pathspider.network import ipv4_address_public
@@ -133,6 +135,33 @@ class Spider:
     def worker(self, worker_number):
         raise NotImplementedError("Cannot instantiate an abstract Spider")
 
+    def traceroute_worker(self, worker_number):
+        while self.running:
+            try:
+                job = self.jobqueue.get_nowait()
+                # Break on shutdown sentinel
+                if job == SHUTDOWN_SENTINEL:
+                    self.jobqueue.task_done()
+                    self.__logger.debug(
+                        "shutting down worker %d on sentinel",
+                        worker_number)
+                    worker_active = False
+                    with self.active_worker_lock:
+                        self.active_worker_count -= 1
+                        self.__logger.debug("%d workers still active",
+                                            self.active_worker_count)
+                    break
+
+                self.__logger.debug("got a job: " + repr(job))
+            except queue.Empty:
+                time.sleep(QUEUE_SLEEP)
+            else:
+                conns = []
+                for seq in range(0, self._get_test_count):
+                    conns.append(self._trace_wrapper(job, seq))
+                self.__logger.debug("trace job complete: " + repr(job))
+                self.jobqueue.task_done()
+
     def _connect_wrapper(self, job, config, connect=None):
         start = str(datetime.utcnow())
         if connect is None:
@@ -143,6 +172,33 @@ class Spider:
             conn = connect(job, config)
         conn['spdr_start'] = start
         return conn
+
+    def trace(self, job, seq, template=None):
+        logger = logging.getLogger('hopspider')
+        if template is None:
+            try:
+                template = self.forge(job, seq)
+            except NotImplementedError:
+                logger.error("This plugin has not implemented packet forging"
+                             "which is required for standalone traceroute")
+                sys.exit(1)
+        for hop in range(1, 31):
+            pkt = template.copy()
+            pkt.ttl = hop
+            # TODO: A series of functions are needed to "mark" packets
+            #       using different strategies so we can identify them
+            #       when they come back.
+            send(pkt, verbose=0)
+        return {'sp': pkt.getlayer(1).sport}
+
+    def _trace_wrapper(self, job, seq):
+        start = str(datetime.utcnow())
+        conn = self.trace(job, seq)
+        conn['spdr_start'] = start
+        return conn
+
+    def forge(self, job, seq):
+        raise NotImplementedError("This plugin has not implemented packet forging")
 
     def create_observer(self):
         """
@@ -369,7 +425,7 @@ class Spider:
             self.resqueue.put(conn)
             config += 1
 
-    def start(self):
+    def start(self, worker=None):
         """
         This function starts a PATHspider plugin by:
 
@@ -428,7 +484,7 @@ class Spider:
                 self.active_worker_count = self.worker_count
             for i in range(self.worker_count):
                 worker_thread = threading.Thread(
-                    args=(self.worker, i),
+                    args=(worker or self.worker, i),
                     target=self.exception_wrapper,
                     name='worker_{}'.format(i),
                     daemon=True)

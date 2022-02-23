@@ -24,9 +24,6 @@ class ForgeSpider(DesynchronizedSpider):
         send(pkt, verbose=0)
         return {'sp': pkt.getlayer(1).sport}
 
-    def forge(self, job, config):
-        raise NotImplementedError("Cannot register an abstract plugin")
-
     @classmethod
     def register_args(cls, subparsers):
         # pylint: disable=no-member

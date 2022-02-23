@@ -64,10 +64,7 @@ def job_feeder_csv(inputfile, spider):
         spider.shutdown()
         logger.debug("job_feeder: stopped")
 
-
-
-
-def run_measurement(args):
+def run_measurement(args, traceroute=None):
     logger = logging.getLogger("pathspider")
 
     try:
@@ -84,7 +81,7 @@ def run_measurement(args):
 
         logger.info("activating spider...")
 
-        spider.start()
+        spider.start(worker=spider.traceroute_worker if traceroute else None)
 
         logger.debug("starting job feeder...")
         if args.csv_input:
