@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Gosrcs on PATHspider</title>
+    <link>https://pathspider.net/gosrc/</link>
+    <description>Recent content in Gosrcs on PATHspider</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-gb</language>
+    <lastBuildDate>Thu, 16 Mar 2017 11:19:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://pathspider.net/gosrc/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Hellfire</title>
+      <link>https://pathspider.net/hellfire/</link>
+      <pubDate>Thu, 16 Mar 2017 11:19:00 +0000</pubDate>
+      
+      <guid>https://pathspider.net/hellfire/</guid>
+      <description>Introduction Hellfire is a parallelised DNS resolver. It is written in Go and for the purpose of generating input lists to PATHspider, though may be useful for other applications.
+Get Started If you already have Go installed on your system, you can install hellfire with:
+go get pathspider.net/hellfire/... Basic Usage Usage: hellfire --topsites [--file=&amp;lt;filename&amp;gt;] [--output=&amp;lt;individual|array|oneeach&amp;gt;] [--type=&amp;lt;host|ns|mx&amp;gt;] [--canid=&amp;lt;canid address&amp;gt;] hellfire --cisco [--file=&amp;lt;filename&amp;gt;] [--output=&amp;lt;individual|array|oneeach&amp;gt;] [--type=&amp;lt;host|ns|mx&amp;gt;] [--canid=&amp;lt;canid address&amp;gt;] hellfire --citizenlab [--country=&amp;lt;cc&amp;gt;|--file=&amp;lt;filename&amp;gt;] [--output=&amp;lt;individual|array|oneeach&amp;gt;] [--type=&amp;lt;host|ns|mx&amp;gt;] [--canid=&amp;lt;canid address&amp;gt;] hellfire --opendns [--list=&amp;lt;name&amp;gt;|--file=&amp;lt;filename&amp;gt;] [--output=&amp;lt;individual|array|oneeach&amp;gt;] [--type=&amp;lt;host|ns|mx&amp;gt;] [--canid=&amp;lt;canid address&amp;gt;] hellfire --csv --file=&amp;lt;filename&amp;gt; [--output=&amp;lt;individual|array|oneeach&amp;gt;] [--type=&amp;lt;host|ns|mx&amp;gt;] [--canid=&amp;lt;canid address&amp;gt;] hellfire --txt --file=&amp;lt;filename&amp;gt; [--output=&amp;lt;individual|array|oneeach&amp;gt;] [--type=&amp;lt;host|ns|mx&amp;gt;] [--canid=&amp;lt;canid address&amp;gt;] Options: -h --help Show this screen.</description>
+    </item>
+    
+    <item>
+      <title>canid</title>
+      <link>https://pathspider.net/canid/</link>
+      <pubDate>Thu, 16 Mar 2017 11:19:00 +0000</pubDate>
+      
+      <guid>https://pathspider.net/canid/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>
